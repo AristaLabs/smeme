@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
@@ -24,7 +24,13 @@ from smeme.billing.quota import (
     reserve_mcp_quota,
     wizard_start_blocked_message,
 )
-from smeme.billing.tiers import TIER_LIMITS, BillingTier, limits_for_user, tier_display_name, tier_for_user
+from smeme.billing.tiers import (
+    TIER_LIMITS,
+    BillingTier,
+    limits_for_user,
+    tier_display_name,
+    tier_for_user,
+)
 from smeme.billing.usage import (
     count_active_root_workflows,
     count_wizard_completions_month,
@@ -579,7 +585,6 @@ async def test_reserve_mcp_quota_inserts_reserved_row(
     """Happy path: under cap → reserved row committed, returns UUID."""
     from uuid import UUID
 
-    from smeme.mcp.invocation_telemetry import outcome_from_tool_json
 
     async with test_session_factory() as session:
         result = await reserve_mcp_quota(session, billing_user, "smeme_reasoning_evaluate")
