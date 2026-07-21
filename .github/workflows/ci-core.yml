@@ -16,9 +16,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # GHCR requires lowercase image paths
+  IMAGE_NAME: aristalabs/smeme
 
 jobs:
   ci:
@@ -189,6 +194,9 @@ jobs:
           context: .
           file: Dockerfile.core
           push: true
+          # Avoid GHCR 403 on empty attestation blobs from buildx provenance.
+          provenance: false
+          sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
