@@ -1,0 +1,22 @@
+name: One-shot — make Core package public
+
+on:
+  workflow_dispatch:
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  public:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set package visibility public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api -X POST orgs/AristaLabs/packages/container/smeme/visibility \
+            -f visibility=public \
+            && echo OK || echo FAIL
+          gh api orgs/AristaLabs/packages/container/smeme --jq '{name,visibility,html_url}'
