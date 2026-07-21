@@ -55,6 +55,9 @@ def include_object(object, name, type_, reflected, compare_to):
     Excluded:
     - checkpoint_* : Managed by LangGraph's AsyncPostgresSaver.setup()
     - stripe_events: Created in migration bb8be63 for webhook idempotency; not a SQLModel table
+    - teams_waitlist_signups: SAAS-ONLY model (smeme.landing); table remains in shared
+      migration history for overlay DBs. When landing is absent (public Core), ignore so
+      autogenerate does not propose drop_table.
     """
     # Ignore checkpoint tables (managed by LangGraph)
     if type_ == "table" and name in (
@@ -69,6 +72,10 @@ def include_object(object, name, type_, reflected, compare_to):
     if type_ == "table" and name == "stripe_events":
         return False
 
+    # SAAS-ONLY table: model lives in smeme.landing (optional import above).
+    if type_ == "table" and name == "teams_waitlist_signups":
+        return False
+
     # Ignore indexes on checkpoint tables
     if (
         type_ == "index"
@@ -78,6 +85,9 @@ def include_object(object, name, type_, reflected, compare_to):
             for checkpoint_table in ["checkpoints", "checkpoint_writes", "checkpoint_blobs"]
         )
     ):
+        return False
+
+    if type_ == "index" and name and "teams_waitlist_signups" in name:
         return False
 
     return True
