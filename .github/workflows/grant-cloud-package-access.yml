@@ -1,0 +1,26 @@
+name: One-shot — grant smeme-cloud package access
+
+on:
+  workflow_dispatch:
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect smeme-cloud repo to Core package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO_ID=$(gh api repos/AristaLabs/smeme-cloud --jq .id)
+          echo "smeme-cloud id=$REPO_ID"
+          gh api -X PUT \
+            "orgs/AristaLabs/packages/container/smeme/repositories/${REPO_ID}" \
+            -H "Accept: application/vnd.github+json" \
+            && echo LINKED || echo LINK_FAILED
+          gh api "orgs/AristaLabs/packages/container/smeme/repositories" \
+            --jq '.[].full_name' || true
