@@ -1,0 +1,52 @@
+name: Prepare Core release evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image reference'
+        required: true
+        default: 'ghcr.io/aristalabs/smeme:v1.0.0'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull ${{ inputs.image }}
+
+      - name: Record digest
+        id: digest
+        run: |
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ inputs.image }} | sed 's/.*@//')
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Digest: $DIGEST"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Prepare evidence pack
+        run: |
+          mkdir -p build/release-evidence
+          bash scripts/prepare_core_release_evidence.sh "${{ inputs.image }}" build/release-evidence
+          ls -laR build/release-evidence | head -80
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-release-evidence-v1.0.0
+          path: build/release-evidence
+          retention-days: 90
