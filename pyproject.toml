@@ -13,11 +13,6 @@ authors = [
     {name = "Arista Labs, LLC", email = "team@smeme.ai"},
 ]
 readme = "README.md"
-[project.urls]
-Homepage = "https://github.com/AristaLabs/smeme"
-Documentation = "https://github.com/AristaLabs/smeme/blob/main/docs/guides/self-host-quickstart.md"
-Repository = "https://github.com/AristaLabs/smeme"
-Issues = "https://github.com/AristaLabs/smeme/issues"
 requires-python = ">=3.13"
 dependencies = [
     # Core Framework
@@ -58,6 +53,12 @@ dependencies = [
     "svix>=1.0.0",
     "pyjwt[crypto]>=2.10.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/AristaLabs/smeme"
+Documentation = "https://github.com/AristaLabs/smeme/blob/main/docs/guides/self-host-quickstart.md"
+Repository = "https://github.com/AristaLabs/smeme"
+Issues = "https://github.com/AristaLabs/smeme/issues"
 
 [project.optional-dependencies]
 saas = [
