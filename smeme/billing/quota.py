@@ -1,4 +1,11 @@
-"""Quota enforcement helpers (Mode B — hard caps, no feature flag)."""
+"""Quota enforcement helpers.
+
+Core default: **enforcement off**, metering on (D022). Hosted Free/Pro Mode B
+caps are registered explicitly by the SaaS overlay via
+``register_hosted_quota_enforcement``. Do not early-return from
+``reserve_mcp_quota`` when enforcement is off — that path still inserts the
+``reserved`` telemetry row and UUID used by flush.
+"""
 
 from __future__ import annotations
 
@@ -78,13 +85,32 @@ async def check_quota(
     *,
     projected_add: float = 0.0,
 ) -> QuotaCheckResult:
-    """Return whether ``used + projected_add`` is within the tier cap."""
-    from smeme.billing.providers import ensure_pro_billing_period
+    """Return whether ``used + projected_add`` is within the tier cap.
+
+    When hosted Free/Pro enforcement is off (Core default), always allow.
+    """
+    from smeme.billing.providers import (
+        ensure_pro_billing_period,
+        hosted_quota_enforcement_enabled,
+    )
+
+    tier = tier_for_user(user)
+    resets = resets_at_iso(user=user)
+
+    if not hosted_quota_enforcement_enabled():
+        return QuotaCheckResult(
+            allowed=True,
+            used=0.0,
+            limit=float("inf"),
+            remaining=float("inf"),
+            dimension=dimension,
+            tier=tier,
+            message="",
+            resets_at_iso=resets,
+        )
 
     await ensure_pro_billing_period(db, user)
-    tier = tier_for_user(user)
     limits = limits_for_user(user)
-    resets = resets_at_iso(user=user)
 
     if dimension == QuotaDimension.WORKFLOWS:
         if tier == BillingTier.FREE:
@@ -138,9 +164,14 @@ async def check_wizard_start_block(
 ) -> WizardStartBlock | None:
     """Return structured block info when a new wizard may not start, else ``None``."""
     from smeme.billing.access_policy import is_workflow_pick_required
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
 
     tier = tier_for_user(user)
-    show_upgrade = tier == BillingTier.FREE and not getattr(user, "is_premium", False)
+    show_upgrade = (
+        hosted_quota_enforcement_enabled()
+        and tier == BillingTier.FREE
+        and not getattr(user, "is_premium", False)
+    )
 
     if is_workflow_pick_required(user):
         return WizardStartBlock(
@@ -153,6 +184,9 @@ async def check_wizard_start_block(
             dashboard_href="/billing/choose-workflow",
             show_upgrade=show_upgrade,
         )
+
+    if not hosted_quota_enforcement_enabled():
+        return None
 
     if tier == BillingTier.FREE and in_progress_count >= 1:
         return WizardStartBlock(
@@ -251,11 +285,15 @@ async def reserve_mcp_quota(
 
     Lock failure returns ``concurrency_limit``, not ``quota_exceeded`` — the user's
     plan allowance is not involved when another call is simply mid-transaction.
+
+    When hosted enforcement is off, cap denial is skipped but the reserved row
+    (metering) is still inserted.
     """
     from smeme.billing.access_policy import (
         is_workflow_pick_required,
         mcp_account_downgrade_pending_response,
     )
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
     from smeme.mcp.models import McpToolInvocation
 
     if is_workflow_pick_required(user):
@@ -278,17 +316,18 @@ async def reserve_mcp_quota(
             "Another MCP tool call is being processed for your account. Please retry in a moment.",
         )
 
-    # 2. Re-check quota while holding the lock — no concurrent request can slip
-    #    past this check until db.commit() releases the lock below.
-    check = await check_quota(db, user, QuotaDimension.MCP_WEIGHTED, projected_add=weight)
-    if not check.allowed:
-        return tool_error_json(
-            "quota_exceeded",
-            check.message,
-            remaining=check.remaining,
-            limit=check.limit,
-            resets_at=check.resets_at_iso,
-        )
+    # 2. Re-check quota while holding the lock — skipped when Core enforcement
+    #    is off (metering still continues below).
+    if hosted_quota_enforcement_enabled():
+        check = await check_quota(db, user, QuotaDimension.MCP_WEIGHTED, projected_add=weight)
+        if not check.allowed:
+            return tool_error_json(
+                "quota_exceeded",
+                check.message,
+                remaining=check.remaining,
+                limit=check.limit,
+                resets_at=check.resets_at_iso,
+            )
 
     # 3. INSERT reserved row — lock still held.  Row is visible to concurrent
     #    sum() queries after commit, so the slot is counted even if the handler

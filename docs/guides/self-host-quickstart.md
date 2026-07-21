@@ -73,6 +73,7 @@ Authors build trees in the **editor**; agents call MCP evaluate on your instance
 | | `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` | Static client allowlist when DCR is off |
 | | `SMEME_MCP_OAUTH_ACCESS_TOKEN_AUDIENCE` | Optional `aud` binding |
 | | Transport rate limits / invocation telemetry | See `.env.core.example` |
+| **Quotas** | *(no self-host Free/Pro switch)* | **Enforcement off** by default; MCP/wizard **metering stays on**. Hosted Free/Pro caps are registered only by the SaaS overlay. Operator-managed `defaults` / `per_user` remains stretch (D022). |
 
 **LangSmith:** hard-disabled (see [sovereignty](#sovereignty--third-party-egress)). Not an operator toggle today.
 
@@ -112,7 +113,7 @@ docker compose -f docker-compose.core.yml up --build
 | | Core (this guide) | Hosted smeme.ai |
 |--|-------------------|-----------------|
 | Image | `Dockerfile.core` → `smeme` (`ghcr.io/AristaLabs/smeme`) | `smeme-cloud` = `FROM` public image + overlay |
-| Billing | Quota engine only; no Stripe Checkout | Stripe Pro / Portal |
+| Billing | Quota **metering** on; **enforcement off** (no Free/Pro hard caps) | Stripe Pro / Portal + hosted Free/Pro Mode B |
 | `/` | Redirect to dashboard | Marketing landing |
 | Legal / waitlist | Operator-supplied or none | Arista pages + Business waitlist |
 | Generation / Tavily | Optional operator keys | Same product paths when enabled |

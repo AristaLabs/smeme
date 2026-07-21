@@ -774,7 +774,7 @@ Always-on product tools (when MCP is mounted):
 | `smeme/billing/quota.py`, `usage.py`, `tiers.py`, `access_policy.py`, `providers.py` | Cap checks / MCP reserve / wizard completion counting; provider-neutral lifecycle (no Stripe) |
 | `mcp_tool_invocations` telemetry | Supports quotas and ops |
 
-**Core intent (planned, not fully built):** `SMEME_QUOTA_MODE=off \| defaults \| per_user` where **org defaults** and **per-user overrides** are **admin-set (DB)**; env only seeds install. SaaS today still ties Pro to Stripe `is_premium`. Do not confuse “keep quota engine” with “keep Stripe Checkout.”
+**Core intent (locked 2026-07-21):** **enforcement off by default**, **metering on**. Hosted Free/Pro Mode B caps are **registered explicitly** by the SaaS overlay (`register_hosted_quota_enforcement` in `saas_overlay`); SaaS boots **fail closed** if unregistered. There is **no** self-host env switch that reuses SaaS Free/Pro tiers. Stretch: operator-managed `defaults` / `per_user` (admin DB; env only seeds install). Do not confuse “keep quota engine” with “keep Stripe Checkout.”
 
 ##### Optional authoring (see FLAG-GATED)
 
@@ -888,7 +888,7 @@ Deleted from the monorepo so they cannot be “accidentally flipped on.” Do no
 1. Public Core / `smeme` image omits: billing payment routers, landing marketing (waitlist **out** of Core), Plausible, Arista legal, gallery (already gone), upgrade CTAs — SAAS-ONLY stays in private `smeme-cloud` overlay ([D023](#d023-public-core-repo--private-saas-overlay-distribution)).
 2. Root `/` → auth or dashboard, not marketing hero.
 3. `BASE_URL`-relative MCP connect docs only.
-4. Quota: `off` / admin org defaults / flagged `per_user` — no Stripe writers in Core.
+4. Quota: **enforcement off** / metering on in Core; hosted Free/Pro registered by SaaS overlay only; stretch admin org defaults / `per_user` — no Stripe writers in Core.
 5. Auth: generic issuer + JWKS + subject mapping; Clerk as documented Core profile (optional module OK for self-host).
 6. Optional: `SMEME_AI_GENERATION_ENABLED`; OpenAI required only when on.
 7. Artifact / tree separation so Core cannot “flip on Stripe” by setting env alone — public Core must boot and document without SaaS packages ([D023](#d023-public-core-repo--private-saas-overlay-distribution)). SUL 1.0 + counsel review gate first public release.
@@ -967,7 +967,7 @@ Self-host buyers and contributors need a **visible product codebase** and a clea
 2. ~~`SMEME_AI_GENERATION_ENABLED`; `OPENAI_API_KEY` required only when generation is on.~~
 3. ~~License + naming locked: SUL 1.0, `<org>/smeme`, `ghcr.io/<org>/smeme`, overlay `smeme-cloud`; legal pack scaffolds (`LICENSE.md`, `LICENSING.md`, CLA, `THIRD_PARTY_NOTICES.md`).~~
 4. Prove Core appliance (compose / `Dockerfile.core`); counsel pass; public extract + GHCR tags/digests; `smeme-cloud` `FROM` pin — see [extract checklist](planning/core-public-extract-checklist.md) and [sprint](planning/sprint-core-public-release.md).
-5. Generic OIDC MRS + admin quota modes without Stripe (may slip post-extract; Clerk-first documented).
+5. Generic OIDC MRS + operator-managed quota modes without Stripe (may slip; Clerk-first documented). Core enforcement-off default is locked; hosted Free/Pro stay overlay-registered.
 
 ---
 

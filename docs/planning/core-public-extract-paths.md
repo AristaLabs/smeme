@@ -46,6 +46,7 @@ Use these lists when building the orphan public tree. Prefer an **allowlist copy
 
 - `LICENSE.md`
 - `LICENSING.md`
+- `SECURITY.md`
 - `THIRD_PARTY_NOTICES.md`
 - `legal/SOURCE_OFFER.md`
 - `legal/third_party/`

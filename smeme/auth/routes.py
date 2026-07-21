@@ -299,6 +299,7 @@ async def profile_dashboard(
 ):
     """Serve the profile dashboard page."""
     from smeme.billing.access_policy import billing_lifecycle_context, count_active_root_workflows
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
     from smeme.billing.usage import build_usage_summary
 
     usage_summary = await build_usage_summary(db, user)
@@ -315,6 +316,7 @@ async def profile_dashboard(
                 "/auth/profile/dashboard"
             ),
             "stripe_configured": settings.stripe_configured,
+            "quota_enforcement_enabled": hosted_quota_enforcement_enabled(),
             "usage_summary": usage_summary,
             "billing_unlinked": billing_unlinked,
             **billing_ctx,

@@ -8,11 +8,16 @@ packages = ["smeme"]
 [project]
 name = "smeme-platform"
 version = "2.0.0"
-description = "Subject Matter Expert Memo Platform - Clean Architecture"
+description = "SMEme Core — source-available decision-workflow platform (fair-code)"
 authors = [
-    {name = "SMEme Platform Team", email = "team@smeme.platform"},
+    {name = "Arista Labs, LLC", email = "team@smeme.ai"},
 ]
 readme = "README.md"
+[project.urls]
+Homepage = "https://github.com/AristaLabs/smeme"
+Documentation = "https://github.com/AristaLabs/smeme/blob/main/docs/guides/self-host-quickstart.md"
+Repository = "https://github.com/AristaLabs/smeme"
+Issues = "https://github.com/AristaLabs/smeme/issues"
 requires-python = ">=3.13"
 dependencies = [
     # Core Framework

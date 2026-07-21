@@ -11,6 +11,11 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import delete
 
+from smeme.billing.providers import (
+    hosted_quota_enforcement_enabled,
+    register_hosted_quota_enforcement,
+    reset_billing_providers_for_tests,
+)
 from smeme.billing.quota import (
     QuotaDimension,
     check_quota,
@@ -62,6 +67,14 @@ async def billing_user(test_session_factory):
         await session.execute(delete(QNR).where(QNR.author_id == user.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
+
+
+@pytest.fixture(autouse=True)
+def _hosted_quota_enforcement_for_mode_b_tests():
+    """Quota denial tests exercise hosted Free/Pro Mode B (SaaS registration)."""
+    register_hosted_quota_enforcement(enabled=True)
+    yield
+    reset_billing_providers_for_tests()
 
 
 def test_tier_for_user_free_and_pro() -> None:
@@ -654,3 +667,77 @@ async def test_reserve_mcp_quota_concurrency_limit_on_lock_fail(
 
     assert isinstance(result, str)
     assert json.loads(result)["error"]["code"] == "concurrency_limit"
+
+
+# ---------------------------------------------------------------------------
+# Core enforcement off (metering on)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_check_quota_allows_when_enforcement_off(
+    test_session_factory, billing_user
+) -> None:
+    """Core default: no Free/Pro hard deny even when usage would exceed Free caps."""
+    register_hosted_quota_enforcement(enabled=False)
+    assert hosted_quota_enforcement_enabled() is False
+    async with test_session_factory() as session:
+        for i in range(5):
+            session.add(
+                QNR(
+                    author_id=billing_user.id,
+                    title=f"wf-{i}",
+                    graph_data={"nodes": [], "edges": []},
+                    is_current=True,
+                    is_archived=False,
+                )
+            )
+        await session.commit()
+        check = await check_quota(session, billing_user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+    assert check.allowed is True
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reserve_mcp_quota_meters_when_enforcement_off(
+    test_session_factory, billing_user
+) -> None:
+    """Enforcement off still inserts reserved telemetry row (no early-return)."""
+    from uuid import UUID
+
+    register_hosted_quota_enforcement(enabled=False)
+    row_id = uuid4()
+    async with test_session_factory() as session:
+        session.add(
+            McpToolInvocation(
+                id=row_id,
+                user_id=billing_user.id,
+                tool_name="smeme_reasoning_evaluate",
+                outcome="ok",
+                duration_ms=1,
+                quota_weight=Decimal("150.00"),
+                estimated_cost_usd_micros=1,
+            )
+        )
+        await session.commit()
+
+    async with test_session_factory() as session:
+        result = await reserve_mcp_quota(session, billing_user, "smeme_reasoning_evaluate")
+
+    assert isinstance(result, UUID), f"expected UUID when enforcement off, got: {result!r}"
+
+    async with test_session_factory() as session:
+        row = await session.get(McpToolInvocation, result)
+        assert row is not None
+        assert row.outcome == "reserved"
+        await session.execute(delete(McpToolInvocation).where(McpToolInvocation.id == result))
+        await session.commit()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_wizard_start_unblocked_when_enforcement_off(
+    test_session_factory, billing_user
+) -> None:
+    register_hosted_quota_enforcement(enabled=False)
+    async with test_session_factory() as session:
+        block = await check_wizard_start_block(session, billing_user, in_progress_count=2)
+    assert block is None

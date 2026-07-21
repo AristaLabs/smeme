@@ -148,6 +148,7 @@ async def _dashboard_page_context(
         count_active_root_workflows,
         is_qnr_dashboard_grayed,
     )
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
     from smeme.billing.quota import check_wizard_start_block
     from smeme.billing.usage import build_usage_summary, mcp_weighted_by_qnr_month
 
@@ -174,6 +175,7 @@ async def _dashboard_page_context(
         "tools_row": tools_row,
         "active_page": "dashboard",
         "stripe_configured": settings.stripe_configured,
+        "quota_enforcement_enabled": hosted_quota_enforcement_enabled(),
         "usage_summary": usage_summary,
         "wizard_start_block": wizard_start_block,
         "mcp_calls_by_qnr": mcp_calls_by_qnr,

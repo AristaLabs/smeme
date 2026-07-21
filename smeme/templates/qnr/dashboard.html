@@ -27,7 +27,7 @@
   {% endcall %}
   {% endif %}
 
-  {% if usage_summary is defined %}
+  {% if usage_summary is defined and quota_enforcement_enabled %}
   {% set usage_at_cap = usage_summary.wizard_completions.at_cap or usage_summary.workflows.at_cap %}
   {% set usage_at_warning = usage_summary.workflows.at_warning or usage_summary.mcp_weighted.at_warning or usage_summary.wizard_completions.at_warning %}
   {% if usage_at_cap %}
@@ -70,9 +70,9 @@
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2 id="qnr-list-heading" class="text-xl font-semibold text-ui-ink">Workflows</h2>
-        {% if usage_summary is defined and usage_summary.workflows.at_cap and not user.is_premium %}
+        {% if quota_enforcement_enabled and usage_summary is defined and usage_summary.workflows.at_cap and not user.is_premium %}
         <p class="text-sm text-amber-800 mt-1">Live workflow limit reached — permanently delete a dormant workflow, or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
-        {% elif usage_summary is defined and usage_summary.workflows.at_cap %}
+        {% elif quota_enforcement_enabled and usage_summary is defined and usage_summary.workflows.at_cap %}
         <p class="text-sm text-amber-800 mt-1">Workflow limit reached — delete a workflow or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
         {% endif %}
       </div>

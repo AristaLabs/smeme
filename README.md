@@ -103,7 +103,7 @@ Hosted SaaS overlay additionally uses Stripe / SendGrid — those packages and r
 - [User contract](docs/product/user-contract.md)
 - [Messaging](docs/product/messaging.md)
 - [Self-host quickstart](docs/guides/self-host-quickstart.md)
-- [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md)
+- [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md) · [Security](SECURITY.md)
 
 ## License
 

@@ -3,6 +3,9 @@
 SaaS / ``smeme-cloud`` registers Stripe-backed implementations via
 ``register_billing_providers`` from ``smeme.saas_overlay``. Core must never
 import Stripe adapters directly.
+
+Hosted Free/Pro **quota enforcement** is also registered by the SaaS overlay
+(default off in Core — metering stays on). See D022.
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ async def _noop_cancel_subscription_if_needed(_user: User) -> bool:
 
 _ensure_pro_billing_period: EnsureProBillingPeriodFn = _noop_ensure_pro_billing_period
 _cancel_subscription_if_needed: CancelSubscriptionFn = _noop_cancel_subscription_if_needed
+_hosted_quota_enforcement: bool = False
 
 
 def register_billing_providers(
@@ -42,11 +46,37 @@ def register_billing_providers(
         _cancel_subscription_if_needed = cancel_subscription_if_needed
 
 
+def register_hosted_quota_enforcement(*, enabled: bool = True) -> None:
+    """Enable hosted Free/Pro hard caps (SaaS overlay only).
+
+    Core default is enforcement **off** with metering still on. There is no
+    self-host switch that reuses SaaS Free/Pro tiers.
+    """
+    global _hosted_quota_enforcement
+    _hosted_quota_enforcement = enabled
+
+
+def hosted_quota_enforcement_enabled() -> bool:
+    """True when hosted Free/Pro Mode B caps are active (SaaS)."""
+    return _hosted_quota_enforcement
+
+
+def require_hosted_quota_enforcement() -> None:
+    """Fail closed for SaaS boots missing hosted quota registration."""
+    if not _hosted_quota_enforcement:
+        msg = (
+            "SaaS overlay requires hosted Free/Pro quota enforcement. "
+            "Call register_hosted_quota_enforcement() from mount_saas_overlay."
+        )
+        raise RuntimeError(msg)
+
+
 def reset_billing_providers_for_tests() -> None:
-    """Restore no-op providers (unit tests)."""
-    global _ensure_pro_billing_period, _cancel_subscription_if_needed
+    """Restore no-op providers and Core quota defaults (unit tests)."""
+    global _ensure_pro_billing_period, _cancel_subscription_if_needed, _hosted_quota_enforcement
     _ensure_pro_billing_period = _noop_ensure_pro_billing_period
     _cancel_subscription_if_needed = _noop_cancel_subscription_if_needed
+    _hosted_quota_enforcement = False
 
 
 async def ensure_pro_billing_period(db: AsyncSession, user: User) -> None:
@@ -62,6 +92,9 @@ async def cancel_subscription_if_needed(user: User) -> bool:
 __all__ = [
     "cancel_subscription_if_needed",
     "ensure_pro_billing_period",
+    "hosted_quota_enforcement_enabled",
     "register_billing_providers",
+    "register_hosted_quota_enforcement",
+    "require_hosted_quota_enforcement",
     "reset_billing_providers_for_tests",
 ]
