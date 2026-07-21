@@ -1,0 +1,267 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import badge %}
+{% block title %}Deploy, Validate, List, & Delete — Docs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Deploy, list, & delete" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    {# Sidebar — desktop #}
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    {# Main content #}
+    <article class="min-w-0 flex-1">
+
+      {# Mobile nav #}
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Deploy, validate, list, & delete</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Saving a workflow in the editor doesn't make it available to your AI — you need to
+          <strong class="font-medium text-ui-ink">Deploy</strong> it first.
+          After deploying, use <strong class="font-medium text-ui-ink">Listed</strong> to control whether it appears in your AI tool list.
+          Use the trash icon on the dashboard to <a href="#delete-heading" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">delete a workflow</a> permanently.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+
+        {# What Deploy does #}
+        <section aria-labelledby="deploy-heading">
+          <h2 id="deploy-heading" class="text-base font-semibold text-ui-ink mb-3">What Deploy does</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Clicking <strong class="font-medium text-ui-ink">Deploy</strong> does two things in order:
+          </p>
+          <ol class="space-y-3">
+            <li class="flex gap-3 text-sm text-ui-ink-secondary leading-relaxed">
+              <span class="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 mt-0.5">1</span>
+              <span><strong class="font-medium text-ui-ink">Runs readiness checks.</strong> A set of structural and logical checks on your saved workflow. If any check fails, deployment stops and you'll see the issues to fix.</span>
+            </li>
+            <li class="flex gap-3 text-sm text-ui-ink-secondary leading-relaxed">
+              <span class="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 mt-0.5">2</span>
+              <span><strong class="font-medium text-ui-ink">Builds and saves the deployed version.</strong> Your workflow is packaged and stored as the live version your AI will use. This is what runs at evaluation time.</span>
+            </li>
+          </ol>
+          <div class="mt-4 rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 text-sm text-ui-ink-secondary">
+            <strong class="font-medium text-ui-ink">Deploy does not affect visibility.</strong> It only saves a new deployed version. Use <strong class="font-medium text-ui-ink">Listed</strong> to control whether your AI can discover the deployed workflow.
+          </div>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Preflight checks #}
+        <section aria-labelledby="checks-heading">
+          <h2 id="checks-heading" class="text-base font-semibold text-ui-ink mb-3">Readiness checks</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            These checks run automatically every time you deploy. Fix any failures before deploying.
+          </p>
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="min-w-full border-collapse text-left text-sm">
+              <thead>
+                <tr class="border-b border-ui-line bg-ui-surface-muted">
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted w-36">Check</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">What it verifies</th>
+                </tr>
+              </thead>
+              <tbody class="bg-ui-surface divide-y divide-ui-line">
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Structure</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">At least one question node, one conclusion node, and a single root entry point.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Reachability</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Every node can be reached from the root. No orphaned nodes.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Coverage</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Every answer option on every question node has an outgoing edge. No dead ends except conclusion nodes.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Satisfiability</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Every conclusion can be reached under at least one valid set of answers. No logically unreachable conclusions.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Node text</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">All nodes have non-empty text. All question nodes have at least two answer options.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3 text-sm text-ui-ink-muted">
+            While you edit, the sidebar validation panel runs a lighter subset and shows
+            <strong class="font-medium text-ui-ink">How to fix</strong> hints under each issue.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Tools column #}
+        <section id="tools-column-status" aria-labelledby="tools-column-heading">
+          <h2 id="tools-column-heading" class="text-base font-semibold text-ui-ink mb-3">Deploy status: Live and Stale</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            The <strong class="font-medium text-ui-ink">Tools</strong> column on your dashboard compares your
+            <strong class="font-medium text-ui-ink">current saved workflow</strong> with your
+            <strong class="font-medium text-ui-ink">last deployment</strong>. Your AI always evaluates against
+            the deployed version — not unsaved or undeployed edits.
+          </p>
+
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="min-w-full border-collapse text-left text-sm">
+              <thead>
+                <tr class="border-b border-ui-line bg-ui-surface-muted">
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted w-32">Status</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">What it means</th>
+                </tr>
+              </thead>
+              <tbody class="bg-ui-surface divide-y divide-ui-line">
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 font-medium text-ui-ink whitespace-nowrap">
+                    {{ badge("Live", "green") }}
+                  </th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">
+                    Your saved workflow matches the deployed version. Your AI is running the current version.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 font-medium text-ui-ink whitespace-nowrap">
+                    {{ badge("Stale", "amber") }}
+                  </th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">
+                    The graph has changed since the last deploy. Your AI is running the <strong class="font-medium text-ui-ink">older version</strong> until you redeploy.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Deploy button</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">
+                    This workflow has never been deployed. Click <strong class="font-medium text-ui-ink">Deploy</strong> to publish it for the first time.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-4 text-sm text-ui-ink-secondary space-y-3">
+            <div>
+              <h3 class="font-semibold text-ui-ink">Why does my workflow show Stale?</h3>
+              <p class="mt-1 leading-relaxed">
+                Any change to the saved workflow after your last deploy — new nodes, removed nodes, changed edges, edited question text, or modified answer options. Stale is not an error; it means the deployed version no longer matches what you have saved.
+              </p>
+            </div>
+            <div>
+              <h3 class="font-semibold text-ui-ink">What do I do?</h3>
+              <p class="mt-1 leading-relaxed">
+                Click <strong class="font-medium text-ui-ink">Redeploy</strong> on that dashboard row. It updates the deployment from your current saved workflow. The badge returns to <strong class="font-medium text-ui-ink">Live</strong> after a successful redeploy.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Listed / Hidden #}
+        <section aria-labelledby="listed-heading">
+          <h2 id="listed-heading" class="text-base font-semibold text-ui-ink mb-3">Listed and Hidden</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            After a workflow is deployed, the <strong class="font-medium text-ui-ink">Listed</strong> toggle controls whether it appears in the tool list your MCP-connected AI can discover.
+          </p>
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="min-w-full border-collapse text-left text-sm">
+              <thead>
+                <tr class="border-b border-ui-line bg-ui-surface-muted">
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted w-24">State</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted w-32">Visible to AI?</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Notes</th>
+                </tr>
+              </thead>
+              <tbody class="bg-ui-surface divide-y divide-ui-line">
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Listed</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary">Yes</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Appears when your AI calls <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code>. You can invoke it by name.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Hidden</th>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary">No</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Deployed but hidden from your AI's tool list. Use for drafts or workflows you're not ready to surface.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3 text-sm text-ui-ink-muted">
+            Workflows are Hidden by default after deploying. Toggle <strong class="font-medium text-ui-ink">Listed</strong> on the dashboard row when you're ready.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Download workflow #}
+        <section aria-labelledby="download-heading">
+          <h2 id="download-heading" class="text-base font-semibold text-ui-ink mb-3">Downloading a workflow</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Use the download icon in <strong class="font-medium text-ui-ink">Actions</strong> to save the current workflow as a JSON file. This is your editor workflow — not the deployed version your AI uses.
+            <a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your workflow</a> has the full details.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Usage on dashboard #}
+        <section aria-labelledby="usage-heading">
+          <h2 id="usage-heading" class="text-base font-semibold text-ui-ink mb-3">Usage on the dashboard</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            The dashboard shows your plan and monthly meters: active workflows, MCP tool calls, and AI-assisted workflow builds.
+            The <strong class="font-medium text-ui-ink">MCP (mo)</strong> column lists MCP usage per workflow for the current UTC month (weighted by operation type).
+            Meters turn amber at 80% of a cap; at 100% new workflows, AI-assisted builds, or MCP tool calls are blocked until upgrade or reset.
+            See <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> for tier limits.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Delete workflow #}
+        <section aria-labelledby="delete-heading">
+          <h2 id="delete-heading" class="text-base font-semibold text-ui-ink mb-3">Deleting a workflow</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            On the dashboard, the trash icon in <strong class="font-medium text-ui-ink">Actions</strong> permanently removes a workflow and <strong class="font-medium text-ui-ink">every version</strong> in its family — deployed tools, evaluation history, and all. MCP-connected tools will no longer list or evaluate it. This cannot be undone and frees a workflow slot.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed">
+            Deletion is two steps: review what will be removed, then type
+            <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">delete workflow permanently</code>
+            to confirm. In-progress workflows (still generating) have a separate <strong class="font-medium text-ui-ink">Delete</strong> button with a single confirmation.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-muted">
+            <strong class="font-medium text-ui-ink">Hidden is not delete.</strong> Hidden keeps the workflow in your account and off your MCP tool list only.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-muted">
+            To close your entire SMEme account (all workflows, billing, and profile data), use
+            <a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a> from Profile — not the dashboard trash icon.
+          </p>
+        </section>
+
+        {# See also #}
+        <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="space-y-1">
+            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building workflows</a> — create and edit a workflow before deploying</li>
+            <li><a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your workflow</a> — export the saved graph as JSON</li>
+            <li><a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — tier limits and quota behavior</li>
+            <li><a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a> — permanent account closure from Profile</li>
+            <li><a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — add the MCP connector and invoke your listed workflows</li>
+          </ul>
+        </div>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

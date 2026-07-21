@@ -1,0 +1,11 @@
+{# Post-deploy success — shown after redirect with ?reasoning_compiled=1 #}
+{% from "components/macros.html" import callout %}
+{% call callout("success", role="status", id="editor-deploy-success-banner", extra_class="mb-4") %}
+  <p>
+    <strong class="font-medium">Deploy finished</strong> —
+    connected AI tools evaluate against this workflow version.
+    <a href="/docs/mcp#connect-heading"
+       class="font-medium underline decoration-success-700/40 hover:decoration-success-800 dark:decoration-success-400">Connect your agent (MCP)</a>
+    if you haven't yet.
+  </p>
+{% endcall %}

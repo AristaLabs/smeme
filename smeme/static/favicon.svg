@@ -1,0 +1,7 @@
+<svg viewBox="95 55 195 205" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SMEme">
+  <!-- White tile so the mark stays visible on dark browser chrome. -->
+  <rect x="95" y="55" width="195" height="205" fill="#ffffff"/>
+  <line x1="108" y1="60" x2="108" y2="258" stroke="#002868" stroke-width="2.5" stroke-linecap="square"/>
+  <line x1="108" y1="162" x2="336" y2="162" stroke="#002868" stroke-width="2.5" stroke-linecap="square"/>
+  <rect x="276" y="188" width="44" height="52" fill="#002868"/>
+</svg>

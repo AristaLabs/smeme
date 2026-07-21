@@ -1,0 +1,155 @@
+{# Node editor form with auto-save #}
+<div class="mb-2 flex items-center justify-between">
+  <div id="form-error-display"></div>
+  <div id="save-status" class="text-xs font-medium text-ui-ink-muted"></div>
+</div>
+
+<form hx-post="/qnr/editor/update_node" 
+      hx-target="#side-panel-content" 
+      hx-swap="innerHTML"
+      hx-trigger="change delay:500ms, input delay:2s changed"
+      class="space-y-4"
+      id="node-editor-form">
+  <input type="hidden" name="node_id" value="{{ node.id }}">
+  <input type="hidden" name="qnr_id" value="{{ qnr_id }}">
+  
+  <script>
+    (function() {
+      const form = document.getElementById('node-editor-form');
+      const statusEl = document.getElementById('save-status');
+      
+      // Show saving indicator
+      form.addEventListener('htmx:beforeRequest', function() {
+        statusEl.innerHTML = '<span class="text-brand-600 dark:text-brand-300">● Saving...</span>';
+      });
+      
+      // Handle successful save
+      form.addEventListener('htmx:afterSwap', function() {
+        statusEl.innerHTML = '<span class="text-green-600 dark:text-green-400">✓ Saved</span>';
+        setTimeout(() => {
+          statusEl.innerHTML = '';
+        }, 2000);
+      });
+      
+      // Handle validation errors from 422 responses
+      form.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.xhr.status === 422) {
+          statusEl.innerHTML = '<span class="text-red-600 dark:text-red-400">⚠ Error</span>';
+          document.getElementById('form-error-display').innerHTML = evt.detail.xhr.responseText;
+        } else if (evt.detail.xhr.status >= 400) {
+          statusEl.innerHTML = '<span class="text-red-600 dark:text-red-400">⚠ Save failed</span>';
+        } else {
+          document.getElementById('form-error-display').innerHTML = '';
+        }
+      });
+    })();
+  </script>
+  
+  {# Hidden element to trigger validation on form changes #}
+  <div hx-get="/qnr/editor/validate/{{ qnr_id }}"
+       hx-trigger="input from:form delay:1s, change from:form delay:500ms"
+       hx-target="#side-panel-validation"
+       hx-swap="innerHTML"
+       style="display: none;"></div>
+  
+  {% if node.is_question() %}
+    <!-- QUESTION NODE FIELDS -->
+
+    <!-- Question Text -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Question Text</label>
+      <textarea name="text"
+                class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+                rows="3"
+                required>{{ node.data.text }}</textarea>
+    </div>
+
+    <input type="hidden" name="type" value="radio">
+
+    <div class="form-group" id="options-field">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Options (one per line)</label>
+      <textarea name="options"
+                class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+                rows="4"
+                hx-trigger="blur">{% if node.data.options %}{{ node.data.options|join('\n') }}{% endif %}</textarea>
+    </div>
+
+    <!-- Help Text -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Help Text (optional)</label>
+      <input type="text"
+             name="help_text"
+             class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+             value="{{ node.data.help_text or '' }}">
+    </div>
+
+    <!-- Required Field -->
+    <div class="form-group">
+      {# Hidden input ensures 'false' is sent when checkbox is unchecked #}
+      <input type="hidden" name="required" value="false">
+      <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox"
+               name="required"
+               value="true"
+               {% if node.data.required %}checked{% endif %}
+               class="rounded border-ui-line-strong text-blue-600 focus:ring-blue-500">
+        <span class="text-sm font-medium text-ui-ink-secondary">Answer required</span>
+      </label>
+      <p class="text-xs text-ui-ink-muted mt-1 ml-6">
+        If unchecked, users will see a "Skip" button. You must add a default edge (no condition) to handle skips.
+      </p>
+    </div>
+
+  {% elif node.is_conclusion() %}
+    <!-- CONCLUSION NODE FIELDS -->
+
+    <!-- Conclusion Title -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Conclusion Title</label>
+      <input type="text"
+             name="title"
+             class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+             value="{{ node.data.title }}"
+             required>
+      <p class="text-xs text-ui-ink-muted mt-1">A short, descriptive title for this conclusion (e.g., "Form an LLC")</p>
+    </div>
+
+    <!-- Conclusion Summary -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Summary</label>
+      <textarea name="summary"
+                class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+                rows="4"
+                required>{{ node.data.summary }}</textarea>
+      <p class="text-xs text-ui-ink-muted mt-1">Explain what this conclusion means for the user</p>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Recommendations (one per line)</label>
+      <textarea name="recommendations"
+                class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+                rows="6"
+                placeholder="Enter each recommendation on a new line...">{% if node.data.recommendations %}{{ node.data.recommendations|join('\n') }}{% endif %}</textarea>
+      <p class="text-xs text-ui-ink-muted mt-1">Actionable next steps based on this conclusion</p>
+    </div>
+
+    <!-- Severity -->
+    <div class="form-group">
+      <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Severity</label>
+      <select name="severity"
+              class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <option value="info" {% if node.data.severity == 'info' %}selected{% endif %}>Info - Standard recommendation</option>
+        <option value="warning" {% if node.data.severity == 'warning' %}selected{% endif %}>Warning - Important considerations</option>
+        <option value="critical" {% if node.data.severity == 'critical' %}selected{% endif %}>Critical - Urgent action required</option>
+      </select>
+      <p class="text-xs text-ui-ink-muted mt-1">How urgent/important this conclusion is</p>
+    </div>
+
+  {% endif %}
+  
+  <div class="text-xs text-ui-ink-muted italic pt-2 border-t border-ui-line">
+    💡 Changes save automatically
+  </div>
+</form>
+

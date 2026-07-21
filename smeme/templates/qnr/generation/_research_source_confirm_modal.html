@@ -1,0 +1,57 @@
+{# Goal-only research confirm — HTMX OOB into #modal-container #}
+<div class="fixed inset-0 flex items-center justify-center bg-ui-ink/60 p-4 overflow-y-auto z-50"
+     id="research-source-confirm-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="research-source-confirm-title">
+  <div class="relative bg-ui-surface rounded-xl shadow-card border-2 border-amber-300 dark:border-amber-700 p-6 max-w-lg w-full my-auto">
+    <div class="flex items-start gap-3 mb-4">
+      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+            aria-hidden="true">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <h3 id="research-source-confirm-title" class="text-lg font-semibold text-ui-ink">Continue with goal only?</h3>
+          <button type="button"
+                  hx-get="/auth/profile/close-modal"
+                  hx-target="#modal-container"
+                  hx-swap="innerHTML"
+                  class="shrink-0 text-ui-ink-subtle hover:text-ui-ink-muted rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  aria-label="Close">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed">
+          Research will use your goal description and AI knowledge only — no web search or uploaded materials.
+        </p>
+      </div>
+    </div>
+
+    <form method="post"
+          action="/qnr/agentic/generate"
+          hx-post="/qnr/agentic/generate"
+          hx-target=".main-panel-content"
+          hx-swap="innerHTML"
+          class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+      <input type="hidden" name="title" value="{{ form_title | e }}" />
+      <input type="hidden" name="user_prompt" value="{{ form_goal | e }}" />
+      <input type="hidden" name="confirm_goal_only" value="on" />
+      <button type="button"
+              hx-get="/auth/profile/close-modal"
+              hx-target="#modal-container"
+              hx-swap="innerHTML"
+              class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-ui-line-strong bg-ui-surface text-ui-ink-secondary hover:bg-ui-surface-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        Choose a source
+      </button>
+      <button type="submit"
+              class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-lg bg-brand-600 hover:bg-brand-700 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        Continue with goal only
+      </button>
+    </form>
+  </div>
+</div>

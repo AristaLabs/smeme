@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en"{% if theme_pin_light|default(false) %} data-theme-pref="light" data-theme-pin="light"{% else %}{% if theme_dark|default(false) %} class="dark"{% endif %} data-theme-pref="{{ theme_preference|default('system') }}"{% endif %}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ request.state.csrf_token|default('') }}" />
+    <script>
+      (function () {
+        var root = document.documentElement;
+        if (root.getAttribute("data-theme-pin") === "light") {
+          root.classList.remove("dark");
+          root.setAttribute("data-theme-pref", "light");
+          return;
+        }
+        var match = document.cookie.match(/(?:^|; )smeme_theme=([^;]*)/);
+        var pref = match ? decodeURIComponent(match[1]).trim().toLowerCase() : "system";
+        if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+        document.documentElement.setAttribute("data-theme-pref", pref);
+        var dark =
+          pref === "dark" ||
+          (pref === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      })();
+    </script>
+    <title>{% block title %}SMEme Platform{% endblock %}</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/static/favicon.png" sizes="512x512" type="image/png" />
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+    <link rel="manifest" href="/static/site.webmanifest" />
+    <meta name="theme-color" content="#002868" />
+    {# SaaS overlay supplies this optional analytics partial; Core omits it. #}
+    {% include "layouts/_analytics.html" ignore missing %}
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
+
+    <!-- HTMX (before body; hx-* attrs on first paint) -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
+    <script>
+      document.addEventListener("htmx:configRequest", function (event) {
+        var match = document.cookie.match(/(?:^|; )smeme_csrf=([^;]*)/);
+        var token = match ? decodeURIComponent(match[1]) : "";
+        if (!token) {
+          var meta = document.querySelector('meta[name="csrf-token"]');
+          token = meta ? meta.getAttribute("content") || "" : "";
+        }
+        if (token) event.detail.headers["X-CSRF-Token"] = token;
+      });
+    </script>
+
+    <!-- Pre-built, purged Tailwind stylesheet (replaces the Play CDN; see tailwind.input.css / scripts/build_css.sh) -->
+    <link rel="stylesheet" href="/static/css/app.css" />
+
+    {% block head %}{% endblock %}
+  </head>
+  <body class="min-h-screen bg-ui-canvas text-ui-ink antialiased">
+    <!-- Skip to content -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[110] focus:bg-brand-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Skip to main content</a>
+
+    {% block body %}
+    {%- from "components/macros.html" import smeme_logo_link, workflow_launch_link -%}
+    {%- set active = active_page|default('') -%}
+    <div id="app-layout-shift" class="relative z-10 min-h-screen flex flex-col bg-ui-canvas">
+      {% if show_nav|default(true) %}
+      <nav class="bg-ui-surface shadow-sm border-b border-ui-line" role="navigation" aria-label="Main navigation">
+        <div class="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div class="flex min-w-0 justify-start">
+            {{ smeme_logo_link(href='/qnr/dashboard' if user is defined and user else '/') }}
+          </div>
+          <div class="flex min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-8 lg:gap-x-10">
+            {% if user is defined and user %}
+            <a href="/qnr/dashboard"
+               class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 {% if active == 'dashboard' %}bg-brand-50 text-brand-800{% else %}text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink{% endif %}">
+              Dashboard
+            </a>
+            <span class="inline-flex min-h-[44px] items-center self-center">
+              {{ workflow_launch_link(layout="nav") }}
+            </span>
+            <a href="/docs"
+               class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 {% if active == 'docs' or active == 'docs_introduction' or active == 'docs_mcp' or active == 'docs_creator_dashboard' %}bg-brand-50 text-brand-800{% else %}text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink{% endif %}">
+              Docs
+            </a>
+            {% else %}
+            <a href="/auth/login"
+               class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink">
+              Log in
+            </a>
+            {% endif %}
+          </div>
+          <div class="flex items-center justify-end gap-1">
+            <button type="button"
+                    id="theme-toggle"
+                    class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-ui-ink-muted hover:bg-ui-surface-hover hover:text-ui-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                    aria-label="Theme: system (follows device). Click for light."
+                    title="Theme: system">
+              <svg class="theme-icon-light h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+              </svg>
+              <svg class="theme-icon-dark h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+              </svg>
+              <svg class="theme-icon-system h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+              </svg>
+            </button>
+            {% if user is defined and user %}
+            <a href="/auth/profile/dashboard"
+               class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-ui-ink-muted hover:bg-ui-surface-hover hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 {% if active == 'profile' %}bg-brand-50 text-brand-800 ring-2 ring-brand-200{% endif %}"
+               aria-label="Profile">
+              <svg class="h-8 w-8 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a8.966 8.966 0 01-5.982-2.275A8.966 8.966 0 0112 15.75c-1.125 0-2.203.222-3.178.618m10.084 5.107a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </nav>
+      {% endif %}
+
+      <!-- Main content -->
+      <main id="main-content" class="flex-1 {% block main_class %}max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8{% endblock %}">
+        {% block content %}{% endblock %}
+      </main>
+
+      <!-- Footer -->
+      {% if show_footer|default(false) %}
+      <footer class="bg-ui-surface border-t border-ui-line mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-ui-ink-muted space-y-2">
+          <p>&copy; 2026 Arista Labs, LLC. All rights reserved.</p>
+        </div>
+      </footer>
+      {% endif %}
+
+      <!-- HTMX swap target (QNR workflow, payment modal, etc.) -->
+      <div id="root"></div>
+      <!-- Global modal overlay: fixed to viewport, centered content -->
+      <div id="modal-container" class="fixed inset-0 z-[100] flex items-center justify-center p-4" aria-live="polite"></div>
+    </div>
+
+    {% endblock %}
+
+    {% include "partials/_clerk_browser_sync.html" %}
+
+    <script>
+      document.body.addEventListener("refreshWizardBrief", function () {
+        var panel = document.querySelector(".main-panel-content");
+        if (!panel || typeof htmx === "undefined") return;
+        htmx.ajax("GET", "/qnr/agentic/brief-partial", {
+          target: ".main-panel-content",
+          swap: "innerHTML",
+        });
+      });
+    </script>
+
+    {% block scripts %}{% endblock %}
+    <script>
+      (function () {
+        var toggle = document.getElementById("theme-toggle");
+        if (!toggle) return;
+
+        var cookieName = "smeme_theme";
+        var maxAge = 365 * 24 * 3600;
+        var cycle = ["light", "dark", "system"];
+        var labels = {
+          light: "Theme: light. Click for dark.",
+          dark: "Theme: dark. Click for system.",
+          system: "Theme: system (follows device). Click for light.",
+        };
+        var titles = {
+          light: "Theme: light",
+          dark: "Theme: dark",
+          system: "Theme: system",
+        };
+
+        function readPreference() {
+          var match = document.cookie.match(
+            new RegExp("(?:^|; )" + cookieName + "=([^;]*)")
+          );
+          var pref = match ? decodeURIComponent(match[1]).trim().toLowerCase() : "system";
+          if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+          return pref;
+        }
+
+        function systemPrefersDark() {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+
+        function applyPreference(pref) {
+          document.documentElement.setAttribute("data-theme-pref", pref);
+          var dark =
+            pref === "dark" || (pref === "system" && systemPrefersDark());
+          document.documentElement.classList.toggle("dark", dark);
+          toggle.setAttribute("aria-label", labels[pref]);
+          toggle.setAttribute("title", titles[pref]);
+        }
+
+        function writePreference(pref) {
+          document.cookie =
+            cookieName +
+            "=" +
+            encodeURIComponent(pref) +
+            "; path=/; max-age=" +
+            maxAge +
+            "; samesite=lax";
+          applyPreference(pref);
+        }
+
+        function nextPreference(current) {
+          var idx = cycle.indexOf(current);
+          if (idx === -1) idx = cycle.indexOf("system");
+          return cycle[(idx + 1) % cycle.length];
+        }
+
+        applyPreference(readPreference());
+
+        toggle.addEventListener("click", function () {
+          writePreference(nextPreference(readPreference()));
+        });
+
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", function () {
+            if (readPreference() === "system") applyPreference("system");
+          });
+      })();
+    </script>
+  </body>
+</html>
+

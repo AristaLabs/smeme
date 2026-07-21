@@ -1,0 +1,14 @@
+{
+  "name": "SMEme",
+  "short_name": "SMEme",
+  "description": "The expert reasoning layer for agents.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#002868",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/static/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}

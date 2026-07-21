@@ -1,0 +1,22 @@
+{# Vertical docs sidebar navigation. Expects docs_section context var. #}
+<nav aria-label="Docs sections" class="space-y-0.5">
+  <p class="mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-widest text-ui-ink-muted">Documentation</p>
+  {%- set _nav = [
+    ("index",            "/docs",                  "Overview"),
+    ("introduction",     "/docs/introduction",      "Building workflows"),
+    ("plans",              "/docs/plans",             "Plans & usage"),
+    ("creator_dashboard","/docs/creator-dashboard", "Deploy, list, & delete"),
+    ("download_workflow","/docs/download-workflow", "Download workflow"),
+    ("mcp",              "/docs/mcp",               "Connect your agent"),
+    ("delete_account",     "/docs/delete-account",    "Delete your account"),
+    ("changelog",        "/docs/changelog",         "Changelog"),
+  ] %}
+  {%- for _section, _href, _label in _nav %}
+  <a href="{{ _href }}"
+     class="flex items-center rounded-md px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1
+            {%- if docs_section == _section %} bg-brand-50 text-brand-700 font-medium dark:bg-brand-950/40 dark:text-brand-300
+            {%- else %} text-ui-ink-muted hover:text-ui-ink hover:bg-ui-surface-hover{% endif %}">
+    {{ _label }}
+  </a>
+  {%- endfor %}
+</nav>

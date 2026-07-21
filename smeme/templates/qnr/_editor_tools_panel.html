@@ -1,0 +1,88 @@
+<div id="tools-panel" class="max-w-3xl space-y-4">
+{% from "components/macros.html" import callout %}
+  {% set tr = tools_row_state|default('not_built') %}
+
+  <div class="bg-ui-surface rounded-lg shadow-sm border border-ui-line p-4 sm:p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold text-ui-ink">Tools</h2>
+        <p class="text-sm text-ui-ink-muted mt-1 leading-relaxed max-w-xl">
+          Deploy your workflow to make it available to your AI.
+          Run <strong class="font-medium text-ui-ink-secondary">checks</strong> first —
+          all must pass before you can deploy.
+        </p>
+      </div>
+      <div class="shrink-0">
+        {% include 'qnr/_editor_tools_chip.html' %}
+      </div>
+    </div>
+    <p class="mt-3 text-xs text-ui-ink-muted">
+      <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Learn about Deploy and Listed</a>
+      ·
+      <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">MCP setup</a>
+    </p>
+  </div>
+
+  {% if tr == 'stale' and not is_read_only %}
+  {% call callout("warning", title="MCP is still using your previous deploy", variant="prominent", extra_class="shadow-sm mb-0") %}
+    <p>Your recent edits are saved, but they will <strong class="font-medium">not</strong> affect AI tool calls until you redeploy.
+      Connected tools continue to evaluate the older workflow version.</p>
+  {% endcall %}
+  {% elif reasoning_status == 'compiled' and not mcp_discoverable and not is_read_only %}
+  {% call callout("warning", title="Hidden from your AI's tool list", variant="prominent", role="status", extra_class="shadow-sm mb-0") %}
+    <p>This workflow is deployed, but MCP-connected tools will <strong class="font-medium">not</strong> discover or invoke it until you set visibility to Listed.</p>
+  {% endcall %}
+  {% endif %}
+
+  <div id="tools-checks-root">
+    <div id="tools-checks-indicator"
+         class="htmx-indicator hidden text-xs text-ui-ink-muted mb-2"
+         aria-live="polite">
+      Running checks…
+    </div>
+    {% include 'qnr/_tools_checks_section.html' %}
+  </div>
+
+  {% if not is_read_only and tr != 'live' %}
+  <div class="rounded-lg border {% if tr == 'stale' %}border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20{% else %}border-ui-line bg-ui-surface-muted/60{% endif %} px-4 py-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {% if tr != 'stale' %}
+      <p class="text-xs text-ui-ink-muted max-w-md">
+        {% if readiness and readiness.ready %}
+        Checks passed — deploy to make this workflow available to your AI.
+        {% else %}
+        Run checks above and resolve all issues before deploying.
+        {% endif %}
+      </p>
+      {% else %}
+      <p class="text-sm font-medium text-amber-950 dark:text-amber-100 max-w-md">
+        Redeploy now to push your latest changes to MCP.
+      </p>
+      {% endif %}
+      <div id="tools-deploy-row" class="flex shrink-0 justify-end">
+        {% include 'qnr/_tools_deploy_actions.html' %}
+      </div>
+    </div>
+  </div>
+  {% elif is_read_only %}
+  <p class="text-xs text-ui-ink-muted px-1">
+    Read-only view — create a new version to edit and redeploy.
+  </p>
+  {% endif %}
+
+  {% if reasoning_status == 'compiled' and not is_read_only %}
+  <div class="rounded-lg border border-ui-line bg-ui-surface px-4 py-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="max-w-md">
+        <p class="text-sm font-medium text-ui-ink">AI visibility</p>
+        <p class="mt-0.5 text-xs text-ui-ink-muted leading-relaxed">
+          Listed workflows appear in your AI's MCP tool list. Hidden keeps them off the list.
+        </p>
+      </div>
+      {% with qnr_id=qnr_id, mcp_discoverable=mcp_discoverable, select_id='disc-tools-' ~ qnr_id, return_next='tools' %}
+      {% include 'qnr/_mcp_discoverable_select.html' %}
+      {% endwith %}
+    </div>
+  </div>
+  {% endif %}
+</div>

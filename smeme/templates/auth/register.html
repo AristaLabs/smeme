@@ -1,0 +1,37 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import btn, form_input, smeme_logo_link %}
+{% set show_nav = false %}
+{% block title %}Register - SMEme{% endblock %}
+{% block main_class %}flex items-center justify-center min-h-[calc(100vh-4rem)]{% endblock %}
+{% block content %}
+<div class="w-full max-w-md">
+  <div class="text-center mb-8">
+    <div class="flex justify-center mb-2">
+      {{ smeme_logo_link(href='/', img_class='h-32 sm:h-40 w-auto') }}
+    </div>
+    <p class="text-ui-ink-secondary">Expert Reasoning as Automated Workflows</p>
+  </div>
+
+  <div class="bg-ui-surface rounded-xl shadow-card p-8">
+    <div class="space-y-4">
+      <button
+        type="button"
+        onclick="if(window.__clerkOpenSignUp){window.__clerkOpenSignUp();}else{window.location.href='{{ clerk_sign_up_url }}'}"
+        class="block w-full text-center rounded-lg bg-brand-600 text-white font-medium py-3 px-4 hover:bg-brand-700 cursor-pointer"
+      >
+        Create account
+      </button>
+      <p class="text-sm text-ui-ink-muted text-center">Create your account securely, then you will return to SMEme.</p>
+      {% include "legal/_registration_notice.html" %}
+    </div>
+    <div id="status" class="mt-4" aria-live="polite"></div>
+
+    <div class="text-center mt-6 space-y-2">
+      <div>
+        <span class="text-sm text-ui-ink-secondary">Already have an account?</span>
+        <a href="#" onclick="if(window.__clerkOpenSignIn){window.__clerkOpenSignIn();}else{window.location.href='{{ clerk_sign_in_url }}'};return false;" class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 underline-offset-2 hover:underline ml-1">Log in</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

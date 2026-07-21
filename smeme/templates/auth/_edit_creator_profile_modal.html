@@ -1,0 +1,40 @@
+{% from "components/macros.html" import modal, form_input, btn %}
+{% call modal("edit-creator-modal", "Edit Creator Profile") %}
+    <form hx-put="/auth/profile/me" hx-target="#creator-update-status" hx-swap="innerHTML" hx-ext="json-enc" class="space-y-4">
+      <div>
+        <label for="bio" class="block text-sm font-medium text-ui-ink-secondary mb-1">Bio</label>
+        <textarea
+          id="bio"
+          name="bio"
+          rows="3"
+          maxlength="500"
+          placeholder="Tell others about your expertise..."
+          class="w-full border border-ui-line-strong rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+        >{{ user.bio or '' }}</textarea>
+        <p class="mt-1 text-sm text-ui-ink-muted">Max 500 characters</p>
+      </div>
+
+      {{ form_input("website_url", "Website", type="url", value=user.website_url or '', placeholder="https://example.com") }}
+      {{ form_input("linkedin_url", "LinkedIn", type="url", value=user.linkedin_url or '', placeholder="https://linkedin.com/in/yourname") }}
+
+      <hr class="border-ui-line">
+
+      {{ form_input("credential_details", "Professional Credential", type="text", value=user.credential_details or '',
+                     placeholder="e.g. Bar #12345, CPA License #67890",
+                     help_text="Providing a credential promotes your profile to Professional (Self-Attested).") }}
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="show_credential_details" name="show_credential_details"
+               {% if user.show_credential_details %}checked{% endif %}
+               class="rounded border-ui-line-strong text-brand-600 focus:ring-brand-500">
+        <label for="show_credential_details" class="text-sm text-ui-ink-secondary">Show credential on my public profile</label>
+      </div>
+
+      <div id="creator-update-status" aria-live="polite"></div>
+
+      <div class="flex justify-end gap-3 pt-4">
+        {{ btn("Cancel", variant="ghost", attrs='hx-get="/auth/profile/close-modal" hx-target="#modal-container" hx-swap="innerHTML"') }}
+        {{ btn("Save Changes", variant="primary", type="submit") }}
+      </div>
+    </form>
+{% endcall %}

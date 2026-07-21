@@ -1,0 +1,5 @@
+{# Rendered from Python via smeme.core.callout_html.render_callout_html #}
+{% from "components/macros.html" import callout %}
+{% call callout(type, title=title, role=role, variant=variant, show_icon=show_icon, id=id, extra_class=extra_class) %}
+  {{ body | safe }}
+{% endcall %}

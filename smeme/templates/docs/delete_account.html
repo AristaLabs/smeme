@@ -1,0 +1,180 @@
+{% extends "layouts/base.html" %}
+{% block title %}Delete your account — Docs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Delete your account" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    {# Sidebar — desktop #}
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    {# Main content #}
+    <article class="min-w-0 flex-1">
+
+      {# Mobile nav #}
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Delete your account</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          SMEme account closure is self-service from your profile. It permanently removes your account and all data tied to it.
+          This is separate from deleting an individual workflow or managing sign-in in Clerk.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+
+        <section aria-labelledby="where-heading">
+          <h2 id="where-heading" class="text-base font-semibold text-ui-ink mb-3">Where to delete</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Open <a href="/auth/profile/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Profile</a>
+            and scroll to the <strong class="font-medium text-ui-ink">Danger zone</strong> card at the bottom.
+            Click <strong class="font-medium text-ui-ink">Delete account permanently</strong>.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-muted">
+            Account deletion is managed in SMEme — not in Clerk. Clerk handles email, password, and sign-in only.
+            Deleting your account in the Clerk Account Portal is disabled so you always see SMEme's warning first.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="steps-heading">
+          <h2 id="steps-heading" class="text-base font-semibold text-ui-ink mb-3">Confirmation steps</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Deletion uses the same two-step pattern as permanent workflow removal:
+          </p>
+          <ol class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed list-decimal pl-5">
+            <li>
+              <strong class="font-medium text-ui-ink">Review</strong> — a modal lists everything that will be removed, including in-progress workflow generations and an active Pro subscription.
+            </li>
+            <li>
+              <strong class="font-medium text-ui-ink">Confirm</strong> — type
+              <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">delete my account permanently</code>
+              (case and surrounding spaces are ignored) and submit.
+            </li>
+          </ol>
+          <p class="mt-4 text-sm text-ui-ink-muted">
+            After success you are signed out and see a confirmation page. You cannot undo this action.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="removed-heading">
+          <h2 id="removed-heading" class="text-base font-semibold text-ui-ink mb-3">What is removed</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-3">
+            Account deletion hard-deletes your SMEme user record and owned data from active systems, including:
+          </p>
+          <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              All workflows and every version in each family
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Deployed workflows and AI evaluation history
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Sessions, memos, and creator profile data
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              In-progress agentic generations (canceled immediately; not saved)
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Your Clerk identity (sign-in for this account)
+            </li>
+          </ul>
+          <p class="mt-4 text-sm text-ui-ink-secondary leading-relaxed">
+            If you have an active <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Pro subscription</a>,
+            it is <strong class="font-medium text-ui-ink">canceled immediately</strong> as part of deletion — including any time you already paid for
+            in the current billing period.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="subscription-heading">
+          <h2 id="subscription-heading" class="text-base font-semibold text-ui-ink mb-3">Pro subscription &amp; re-signup</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Deleting your SMEme account is <strong class="font-medium text-ui-ink">not</strong> the same as canceling Pro in the
+            Stripe Customer Portal. Portal cancellation normally keeps Pro access until the end of the paid period.
+            <strong class="font-medium text-ui-ink">Account deletion ends Pro access immediately</strong> and forfeits any remaining prepaid time.
+            We do not prorate or refund unused days when you delete your account.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed">
+            If you sign up again with the same email, you get a <strong class="font-medium text-ui-ink">new</strong> SMEme account.
+            We do <strong class="font-medium text-ui-ink">not</strong> reconnect you to a previous Stripe subscription or restore forfeited time.
+            Upgrading again starts a new subscription and new billing period. To keep Pro through a period you already paid for,
+            cancel via the Stripe portal from <a href="/auth/profile/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Profile</a>
+            instead of deleting your account.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="retained-heading">
+          <h2 id="retained-heading" class="text-base font-semibold text-ui-ink mb-3">What may be retained</h2>
+          <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Payment and billing records held by Stripe as required for tax and accounting
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Short-lived database backup copies until your provider's rotation window expires
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Redacted audit events (event types preserved; personal identifiers removed)
+            </li>
+          </ul>
+          <p class="mt-4 text-sm text-ui-ink-muted">
+            See our <a href="/legal/privacy" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Privacy Policy</a>
+            for retention and deletion rights.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="not-workflow-heading">
+          <h2 id="not-workflow-heading" class="text-base font-semibold text-ui-ink mb-3">Not the same as deleting a workflow</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Removing one workflow from the dashboard frees a workflow slot but keeps your account, other workflows, and billing.
+            Confirm phrase:
+            <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">delete workflow permanently</code>.
+            See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a> for workflow removal.
+          </p>
+          <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed">
+            To keep a copy of a graph before closing your account, use
+            <a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your workflow</a>.
+            Export is per workflow and does not include deployed artifacts or session history.
+          </p>
+        </section>
+
+        <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="space-y-1">
+            <li><a href="/auth/profile/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Profile</a> — start account deletion from the Danger zone</li>
+            <li><a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — subscription and quota behavior</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a> — remove a single workflow without closing your account</li>
+          </ul>
+        </div>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

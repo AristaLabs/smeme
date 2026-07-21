@@ -1,0 +1,123 @@
+{# Sticky editor toolbar: title/actions row + segmented view tabs. #}
+{% from "components/macros.html" import btn, badge %}
+
+{% set editor_view = editor_view|default('graph') %}
+{% set tab_seg_active = 'rounded-md px-3 py-1.5 text-sm font-medium bg-ui-surface text-ui-ink shadow-sm ring-1 ring-ui-line transition-colors' %}
+{% set tab_seg_inactive = 'rounded-md px-3 py-1.5 text-sm font-medium text-ui-ink-muted hover:text-ui-ink hover:bg-ui-surface/60 transition-colors' %}
+
+<div id="editor-toolbar" class="editor-toolbar sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-4 bg-ui-canvas/95 backdrop-blur-sm border-b border-ui-line">
+  {# Row 1: navigation, title, status, actions #}
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0 flex-1">
+      <a href="/qnr/dashboard" class="inline-flex items-center gap-1 text-sm text-ui-ink-muted hover:text-ui-ink-secondary mb-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Dashboard
+      </a>
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div id="title-container" class="flex items-center gap-2 min-w-0">
+          <h2 class="text-xl sm:text-2xl font-bold text-ui-ink truncate">{{ qnr_title }}</h2>
+          {% if not is_read_only %}
+          <button class="inline-flex shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-ui-ink-muted bg-ui-surface-hover hover:bg-ui-line rounded-md transition-colors"
+                  hx-post="/qnr/editor/edit_title_form"
+                  hx-vals='{"qnr_id": "{{ qnr_id }}"}'
+                  hx-target="#title-container"
+                  hx-swap="innerHTML"
+                  title="Edit title">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Edit
+          </button>
+          {% endif %}
+        </div>
+        {% if version_number %}
+        {{ badge("v" ~ version_number, "purple") }}
+        {% endif %}
+        <div id="editor-tools-chip">
+          {% include 'qnr/_editor_tools_chip.html' %}
+        </div>
+        <div id="validation-badge">
+          {% include 'qnr/_validation_badge.html' %}
+        </div>
+      </div>
+      <div class="mt-1.5 flex flex-wrap items-center gap-2">
+        {% if parent_qnr %}
+        <span class="text-sm text-ui-ink-muted">
+          Based on:
+          <a href="/qnr/{{ parent_qnr.id }}/editor" class="text-brand-600 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200 underline">
+            {{ parent_qnr.title }}
+          </a>
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="flex shrink-0 flex-wrap gap-2 items-center lg:justify-end">
+      {% if is_owner|default(false) %}
+      <a href="/qnr/{{ qnr_id }}/download"
+         class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 px-4 py-2.5 text-sm bg-ui-surface border border-ui-line-strong text-ui-ink-secondary hover:bg-ui-surface-muted focus-visible:ring-brand-500 shadow-sm"
+         download>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Download
+      </a>
+      {% endif %}
+      {% if not is_read_only %}
+        {% set tr = tools_row_state|default('not_built') %}
+        {% if tr != 'live' %}
+        {% set deploy_qnr_id = qnr_id %}
+        {% set deploy_label = 'Redeploy' if tr == 'stale' else 'Deploy' %}
+        {% set deploy_extra_class = 'px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 border border-transparent rounded-lg hover:bg-brand-700 shadow-sm' %}
+        {% include 'qnr/_deploy_tools_trigger.html' %}
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  {# Row 2: segmented view tabs + add node #}
+  <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="inline-flex rounded-lg bg-ui-surface-muted p-1 border border-ui-line"
+         role="tablist"
+         aria-label="Editor views"
+         data-tab-active-class="{{ tab_seg_active }}"
+         data-tab-inactive-class="{{ tab_seg_inactive }}">
+      <a id="tab-graph"
+         role="tab"
+         href="/qnr/{{ qnr_id }}/editor?view=graph"
+         aria-selected="{% if editor_view == 'graph' %}true{% else %}false{% endif %}"
+         class="{% if editor_view == 'graph' %}{{ tab_seg_active }}{% else %}{{ tab_seg_inactive }}{% endif %}">
+        Graph
+      </a>
+      <a id="tab-checklist"
+         role="tab"
+         href="/qnr/{{ qnr_id }}/editor?view=checklist"
+         aria-selected="{% if editor_view == 'checklist' %}true{% else %}false{% endif %}"
+         class="{% if editor_view == 'checklist' %}{{ tab_seg_active }}{% else %}{{ tab_seg_inactive }}{% endif %}">
+        Checklist
+      </a>
+      {% if is_owner|default(false) %}
+      <a id="tab-tools"
+         role="tab"
+         href="/qnr/{{ qnr_id }}/editor?view=tools"
+         aria-selected="{% if editor_view == 'tools' %}true{% else %}false{% endif %}"
+         class="{% if editor_view == 'tools' %}{{ tab_seg_active }}{% else %}{{ tab_seg_inactive }}{% endif %}">
+        Tools
+      </a>
+      {% endif %}
+    </div>
+    {% if not is_read_only and editor_view|default('graph') != 'tools' %}
+    <button type="button"
+            id="editor-add-node-toolbar-btn"
+            class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 px-3 py-1.5 text-sm bg-ui-surface border border-ui-line-strong text-ui-ink-secondary hover:bg-ui-surface-muted focus-visible:ring-brand-500 shadow-sm self-start sm:self-auto"
+            onclick="editorOpenAddNode()">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add node
+    </button>
+    {% endif %}
+  </div>
+</div>

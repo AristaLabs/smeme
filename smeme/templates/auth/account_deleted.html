@@ -1,0 +1,26 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import btn %}
+{% set show_nav = false %}
+{% block title %}Account deleted - SMEme{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-16 px-4 text-center space-y-6">
+  <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ui-surface-muted text-ui-ink-subtle ring-1 ring-ui-line">
+    <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </svg>
+  </div>
+  <h1 class="text-2xl font-bold text-ui-ink">Your account has been deleted</h1>
+  <p class="text-ui-ink-muted leading-relaxed">
+    Your SMEme account and associated data have been removed from our active systems.
+    Thank you for using SMEme.
+  </p>
+  <p class="text-xs text-ui-ink-subtle">
+    Payment processor records and short-lived backup copies may be retained as described in our
+    <a href="/legal/privacy" class="text-brand-600 hover:underline">Privacy Policy</a>.
+  </p>
+  <div class="pt-4">
+    {{ btn("Return to home", variant="primary", href="/") }}
+  </div>
+</div>
+{% endblock %}

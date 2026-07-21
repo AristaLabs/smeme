@@ -1,0 +1,35 @@
+<svg viewBox="0 0 440 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Remote @import removed so this SVG works as an img src in browsers. -->
+  <!-- Two-tone dark variant: brand-300 (#7d9fd4) proof structure on transparent canvas. -->
+  <!-- Rollback asset: smeme_logo_v15_dark.svg (ink-secondary structure). -->
+
+  <!-- Fitch vertical line - brand-300 -->
+  <line x1="108" y1="60" x2="108" y2="258" stroke="#7d9fd4" stroke-width="1.8" stroke-linecap="square"/>
+
+  <!-- SME - italic, Old Glory red -->
+  <text
+    x="238" y="138"
+    font-family="'DM Serif Display', 'Palatino Linotype', Palatino, Georgia, serif"
+    font-size="84"
+    font-style="italic"
+    fill="#BF0A30"
+    letter-spacing="3"
+    text-anchor="middle">SME</text>
+
+  <!-- Horizontal inference rule - brand-300 -->
+  <line x1="108" y1="162" x2="336" y2="162" stroke="#7d9fd4" stroke-width="1.8" stroke-linecap="square"/>
+
+  <!-- Me - upright, ink primary for legibility on dark -->
+  <text
+    x="198" y="238"
+    font-family="'DM Serif Display', 'Palatino Linotype', Palatino, Georgia, serif"
+    font-size="84"
+    font-style="normal"
+    fill="#f9fafb"
+    letter-spacing="3"
+    text-anchor="middle">Me</text>
+
+  <!-- QED tombstone - brand-300 -->
+  <rect x="276" y="188" width="44" height="52" fill="#7d9fd4"/>
+
+</svg>

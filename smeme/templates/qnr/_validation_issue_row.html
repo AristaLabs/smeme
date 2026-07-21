@@ -1,0 +1,49 @@
+{# Single validation issue row — clickable when tied to a node. #}
+{% if issue.get('node_id') and qnr_id|default(none) %}
+<form hx-post="/qnr/editor/select_node_with_qnr"
+      hx-target="#side-panel-content"
+      hx-swap="innerHTML"
+      class="validation-issue-row block w-full"
+      data-validation-jump="true">
+  <input type="hidden" name="qnr_id" value="{{ qnr_id }}">
+  <input type="hidden" name="node_id" value="{{ issue.get('node_id') }}">
+  <button type="submit"
+          data-node-id="{{ issue.get('node_id') }}"
+          class="w-full text-left rounded-md border px-2.5 py-2 text-xs transition-colors
+                 {% if issue.severity == 'error' %}
+                 border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950/40 text-danger-900 dark:text-danger-100 hover:bg-danger-100 dark:hover:bg-danger-950/60
+                 {% else %}
+                 border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/40 text-warning-900 dark:text-warning-100 hover:bg-warning-100 dark:hover:bg-warning-950/60
+                 {% endif %}">
+    <span class="font-medium uppercase tracking-wide text-[10px]
+                 {% if issue.severity == 'error' %}text-danger-700 dark:text-danger-300{% else %}text-warning-700 dark:text-warning-300{% endif %}">
+      {{ issue.severity }}
+    </span>
+    {% if issue.get('node_id') %}
+    <span class="ml-1.5 font-mono text-[10px] text-ui-ink-muted">{{ issue.get('node_id') }}</span>
+    {% endif %}
+    <p class="mt-0.5 leading-relaxed">{{ issue.message }}</p>
+    {% if issue.get('suggestion') %}
+    <p class="mt-1 text-[11px] leading-snug text-ui-ink-muted italic">How to fix: {{ issue.suggestion }}</p>
+    {% endif %}
+    <span class="mt-1 inline-block text-[10px] font-medium text-brand-700 dark:text-brand-300">Jump to node →</span>
+  </button>
+</form>
+{% else %}
+<div class="rounded-md border px-2.5 py-2 text-xs
+            {% if issue.severity == 'error' %}
+            border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950/40 text-danger-900 dark:text-danger-100
+            {% else %}
+            border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/40 text-warning-900 dark:text-warning-100
+            {% endif %}">
+  <span class="font-medium uppercase tracking-wide text-[10px]
+               {% if issue.severity == 'error' %}text-danger-700 dark:text-danger-300{% else %}text-warning-700 dark:text-warning-300{% endif %}">
+    {{ issue.severity }}
+  </span>
+  <p class="mt-0.5 leading-relaxed">{{ issue.message }}</p>
+  {% if issue.get('suggestion') %}
+  <p class="mt-1 text-[11px] leading-snug text-ui-ink-muted italic">How to fix: {{ issue.suggestion }}</p>
+  {% endif %}
+  <span class="mt-1 inline-block text-[10px] text-ui-ink-subtle">Graph-wide issue</span>
+</div>
+{% endif %}

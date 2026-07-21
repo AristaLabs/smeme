@@ -1,0 +1,45 @@
+{# Edge item in side panel (for outgoing edges) #}
+<div class="border border-ui-line rounded p-2 bg-ui-surface-muted">
+  <div class="flex justify-between items-center">
+    <div>
+      <span class="font-medium text-ui-ink">→ {{ edge.target }}</span>
+      <span class="text-sm text-ui-ink-muted ml-2">
+        {% if edge.condition %}
+          if "{{ edge.condition }}"
+        {% else %}
+          (default)
+        {% endif %}
+      </span>
+    </div>
+    {% if not is_public %}
+    <div class="flex gap-1">
+      <button
+        hx-post="/qnr/editor/update_edge_form"
+        hx-vals='{"source": "{{ edge.source }}", "target": "{{ edge.target }}", "condition": "{{ edge.condition or '' }}", "qnr_id": "{{ qnr_id }}"}'
+        hx-target="#edge-edit-form-{{ edge.target }}"
+        hx-swap="innerHTML"
+        class="px-2 py-1 text-xs font-medium text-ui-ink-secondary bg-ui-surface border border-ui-line-strong rounded hover:bg-ui-surface-muted"
+        title="Edit edge">
+        ✎
+      </button>
+      <form hx-post="/qnr/editor/delete_edge"
+            hx-target="#side-panel-content"
+            hx-swap="innerHTML"
+            style="display: inline;">
+        <input type="hidden" name="qnr_id" value="{{ qnr_id }}">
+        <input type="hidden" name="source" value="{{ edge.source }}">
+        <input type="hidden" name="target" value="{{ edge.target }}">
+        <input type="hidden" name="condition" value="{{ edge.condition or '' }}">
+        <button type="submit"
+        hx-confirm="Delete this edge?"
+        class="px-2 py-1 text-xs font-medium text-white bg-red-600 border border-transparent rounded hover:bg-red-700"
+        title="Delete edge">
+        ×
+      </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  <div id="edge-edit-form-{{ edge.target }}" class="mt-2"></div>
+</div>
+

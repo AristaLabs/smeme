@@ -1,0 +1,32 @@
+{# Lightweight status bar below graph + sidebar workspace. #}
+{% set editor_view = editor_view|default('graph') %}
+{% set node_count = graph.nodes|length if graph and graph.nodes else 0 %}
+{% set edge_count = graph.edges|length if graph and graph.edges else 0 %}
+{% set view_labels = {'graph': 'Graph', 'checklist': 'Checklist', 'lexicon': 'Lexicon', 'tools': 'Tools'} %}
+
+<div id="editor-status-bar"
+     class="editor-status-bar mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-ui-line bg-ui-surface-muted/80 px-3 py-2 text-xs text-ui-ink-muted"
+     aria-live="polite">
+  <span class="tabular-nums">
+    <span class="font-medium text-ui-ink-secondary">{{ node_count }}</span> node{{ 's' if node_count != 1 else '' }}
+  </span>
+  <span class="tabular-nums">
+    <span class="font-medium text-ui-ink-secondary">{{ edge_count }}</span> edge{{ 's' if edge_count != 1 else '' }}
+  </span>
+  <span id="editor-status-validation" class="flex items-center gap-1.5">
+    {% if validation_data and validation_data.get('error_count', 0) > 0 %}
+      <span class="font-medium text-danger-700 dark:text-danger-300">{{ validation_data.error_count }} error{{ 's' if validation_data.error_count != 1 else '' }}</span>
+      {% if validation_data.get('warning_count', 0) > 0 %}
+      <span class="text-ui-ink-subtle">·</span>
+      <span class="text-warning-700 dark:text-warning-300">{{ validation_data.warning_count }} warning{{ 's' if validation_data.warning_count != 1 else '' }}</span>
+      {% endif %}
+    {% elif validation_data and validation_data.get('warning_count', 0) > 0 %}
+      <span class="font-medium text-warning-700 dark:text-warning-300">{{ validation_data.warning_count }} warning{{ 's' if validation_data.warning_count != 1 else '' }}</span>
+    {% elif not is_public %}
+      <span class="font-medium text-success-700 dark:text-success-300">Structurally valid</span>
+    {% endif %}
+  </span>
+  <span class="ml-auto text-ui-ink-subtle hidden sm:inline">
+    View: {{ view_labels.get(editor_view, editor_view|title) }}
+  </span>
+</div>

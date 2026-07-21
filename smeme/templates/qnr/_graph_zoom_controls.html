@@ -1,0 +1,28 @@
+<div class="graph-zoom-panel pointer-events-auto absolute top-0 right-0 flex items-center gap-0.5 rounded-lg border border-ui-line bg-ui-surface/95 p-1 text-xs text-ui-ink-secondary shadow-sm backdrop-blur-sm"
+     role="toolbar"
+     aria-label="Graph zoom">
+  <button type="button"
+          data-graph-zoom="out"
+          class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ui-surface-hover text-ui-ink-muted hover:text-ui-ink"
+          aria-label="Zoom out"
+          title="Zoom out">−</button>
+  <span data-graph-zoom-label
+        class="min-w-[2.75rem] px-1 text-center tabular-nums font-medium text-ui-ink"
+        aria-live="polite">100%</span>
+  <button type="button"
+          data-graph-zoom="in"
+          class="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-ui-surface-hover text-ui-ink-muted hover:text-ui-ink"
+          aria-label="Zoom in"
+          title="Zoom in">+</button>
+  <span class="mx-0.5 h-4 w-px bg-ui-line" aria-hidden="true"></span>
+  <button type="button"
+          data-graph-zoom="reset"
+          class="rounded-md px-2 py-1 hover:bg-ui-surface-hover text-ui-ink-muted hover:text-ui-ink"
+          aria-label="Reset zoom to 100%"
+          title="Reset zoom (Ctrl+0)">100%</button>
+  <button type="button"
+          data-graph-zoom="fit"
+          class="rounded-md px-2 py-1 hover:bg-ui-surface-hover text-ui-ink-muted hover:text-ui-ink"
+          aria-label="Fit graph to pane"
+          title="Fit to pane (shrink only)">Fit</button>
+</div>

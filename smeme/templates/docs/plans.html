@@ -1,0 +1,117 @@
+{% extends "layouts/base.html" %}
+{% block title %}Plans &amp; usage — Docs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Plans & usage" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Plans &amp; usage</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          SMEme bills by plan tier with monthly caps on workflows, MCP tool calls, and AI-assisted workflow builds.
+          <strong class="font-medium text-ui-ink">Free</strong> limits reset monthly on your account anniversary (signup date).
+          <strong class="font-medium text-ui-ink">Pro</strong> limits reset on your Stripe billing date each month.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+        <section aria-labelledby="tiers-heading">
+          <h2 id="tiers-heading" class="text-base font-semibold text-ui-ink mb-3">Tier limits</h2>
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="min-w-full border-collapse text-left text-sm">
+              <thead>
+                <tr class="border-b border-ui-line bg-ui-surface-muted">
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Dimension</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted text-center">Free</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted text-center">Pro ($49/mo)</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted text-center">Business (Coming Soon)</th>
+                </tr>
+              </thead>
+              <tbody class="bg-ui-surface divide-y divide-ui-line">
+                <tr>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">Active workflows</th>
+                  <td class="px-4 py-3 text-center tabular-nums">3</td>
+                  <td class="px-4 py-3 text-center tabular-nums">20</td>
+                  <td class="px-4 py-3 text-center tabular-nums">50</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">MCP tool calls / mo</th>
+                  <td class="px-4 py-3 text-center tabular-nums">150</td>
+                  <td class="px-4 py-3 text-center tabular-nums">1,500</td>
+                  <td class="px-4 py-3 text-center tabular-nums">3,000 / mo</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">AI-assisted workflow builds / mo</th>
+                  <td class="px-4 py-3 text-center tabular-nums">3</td>
+                  <td class="px-4 py-3 text-center tabular-nums">20</td>
+                  <td class="px-4 py-3 text-center tabular-nums">50</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">MCP deploy (Cowork)</th>
+                  <td class="px-4 py-3 text-center">✓</td>
+                  <td class="px-4 py-3 text-center">✓</td>
+                  <td class="px-4 py-3 text-center">✓</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-labelledby="definitions-heading">
+          <h2 id="definitions-heading" class="text-base font-semibold text-ui-ink mb-3">What counts</h2>
+          <dl class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
+            <div>
+              <dt class="font-medium text-ui-ink">Active workflow</dt>
+              <dd class="mt-1">A non-deleted root workflow you own. Deleting a workflow frees a slot immediately. (Archive is a separate feature — availability depends on your deployment.)</dd>
+            </div>
+            <div>
+              <dt class="font-medium text-ui-ink">MCP tool call</dt>
+              <dd class="mt-1">Weighted sum of successful MCP reasoning tool invocations this UTC month. Evidence validation and a standard evaluate each count as <strong class="text-ui-ink">1</strong> (a typical Cowork run uses both). Scenario comparisons (<code class="text-xs bg-ui-surface-muted px-1 rounded">what_if</code>) count as <strong class="text-ui-ink">2</strong>; repair plans (<code class="text-xs bg-ui-surface-muted px-1 rounded">how_to_reach</code>) count as <strong class="text-ui-ink">2.5</strong>. Listing workflows, fetching the outcome catalog, and downloading worksheets count as <strong class="text-ui-ink">0</strong>.</dd>
+            </div>
+            <div>
+              <dt class="font-medium text-ui-ink">AI-assisted workflow build</dt>
+              <dd class="mt-1">One full AI-assisted creation run (research through publish-ready output) per distinct generation ID per month. Retries on the same in-progress generation do not consume extra credits.</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="upgrade-heading">
+          <h2 id="upgrade-heading" class="text-base font-semibold text-ui-ink mb-3">Upgrade &amp; manage billing</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Free users can upgrade from the <a href="/qnr/dashboard" class="text-brand-600 hover:underline font-medium">dashboard</a> or
+            <a href="/auth/profile/dashboard" class="text-brand-600 hover:underline font-medium">profile</a> via Stripe Checkout ($49/mo Pro).
+            Pro subscribers manage payment method and cancellation in the Stripe Customer Portal from profile.
+            Portal cancellation keeps Pro through the end of the current paid period.
+            <strong class="font-medium text-ui-ink">Deleting your SMEme account</strong> is different: it cancels Pro immediately,
+            forfeits any remaining prepaid time, and cannot be restored if you sign up again with the same email — see
+            <a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a>.
+          </p>
+        </section>
+
+        <section aria-labelledby="exceeded-heading">
+          <h2 id="exceeded-heading" class="text-base font-semibold text-ui-ink mb-3">When you hit a cap</h2>
+          <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-disc pl-5">
+            <li><strong class="text-ui-ink">Workflows</strong> — you cannot create a new workflow until you delete/archive one or upgrade.</li>
+            <li><strong class="text-ui-ink">AI builds</strong> — you cannot start a new AI-assisted workflow build when your monthly allowance is exhausted.</li>
+            <li><strong class="text-ui-ink">MCP</strong> — Cowork receives a structured <code class="text-xs bg-ui-surface-muted px-1 rounded">quota_exceeded</code> error with remaining allowance and reset time.</li>
+          </ul>
+          <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more workflows than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through Cowork until you either delete enough workflows to get back under the limit or upgrade again.</p>
+        </section>
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

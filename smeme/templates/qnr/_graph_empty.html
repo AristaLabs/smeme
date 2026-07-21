@@ -1,0 +1,23 @@
+<div class="flex h-full min-h-[20rem] items-center justify-center rounded-lg border border-dashed border-ui-line bg-ui-surface-muted/60 p-8">
+  <div class="max-w-md text-center">
+    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-ui-line bg-ui-surface">
+      <svg class="h-6 w-6 text-ui-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+    </div>
+    <h3 class="text-base font-semibold text-ui-ink">No nodes yet</h3>
+    <p class="mt-1 text-sm text-ui-ink-muted">
+      Start the workflow by adding your first question. You can wire conclusions and branches once the first node exists.
+    </p>
+    {% if not is_read_only %}
+    <button type="button"
+            class="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg border border-ui-line-strong bg-ui-surface px-3 py-1.5 text-sm font-semibold text-ui-ink-secondary shadow-sm transition hover:bg-ui-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            onclick="editorOpenAddNode()">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add your first question
+    </button>
+    {% endif %}
+  </div>
+</div>

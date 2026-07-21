@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+.env
+.env.*
+!.env.example
+!.env.core.example
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Documentation (keep legal pack files copied explicitly by Dockerfile.core)
+docs/
+docs/business/
+docs/ip/
+
+# Markdown files (but keep README.md - needed by hatchling)
+# *.md would exclude README.md which breaks the build
+
+# CI/CD
+.github/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore

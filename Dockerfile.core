@@ -1,0 +1,115 @@
+# Multi-stage Dockerfile for SMEme Core (self-host / public product image)
+#
+# Build:
+#   docker build -f Dockerfile.core -t smeme:local .
+#
+# Runs create_core_app only (no Stripe/landing/legal overlay). Set
+# SMEME_AI_GENERATION_ENABLED=false to boot without OPENAI_API_KEY.
+# See docs/DECISIONS.md D022 / D023 and docs/guides/self-host-quickstart.md
+#
+# Base image is pinned by digest. Refresh deliberately when upgrading Python/Debian.
+
+ARG PYTHON_BASE=python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91
+
+FROM ${PYTHON_BASE} AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev
+
+COPY scripts/collect_python_licenses.py ./scripts/
+RUN python3 scripts/collect_python_licenses.py /app/.venv /app/legal-python
+
+COPY tailwind.config.js tailwind.input.css ./
+COPY smeme/templates ./smeme/templates
+COPY scripts/build_css.sh ./scripts/
+RUN bash scripts/build_css.sh
+
+# Stage the complete monorepo source outside the final image, then prune the
+# SaaS overlay before the runtime stage copies it. Files deleted in this stage
+# are not present in any layer of the published runtime image.
+FROM ${PYTHON_BASE} AS core-source
+
+WORKDIR /src
+
+COPY smeme/ ./smeme/
+
+# Artifact shape (D022/D023): omit SAAS-ONLY packages and Stripe adapters from
+# Core. Billing engine modules (quota/usage/tiers/access_policy/providers) stay.
+RUN rm -rf \
+      smeme/main.py \
+      smeme/saas_overlay.py \
+      smeme/landing \
+      smeme/legal \
+      smeme/billing/routes.py \
+      smeme/billing/stripe_sync.py \
+      smeme/billing/subscription_cancel.py \
+      smeme/billing/downgrade.py \
+      smeme/templates/billing \
+      smeme/templates/landing \
+      smeme/templates/legal \
+      smeme/templates/layouts/_analytics.html
+
+FROM ${PYTHON_BASE} AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libstdc++6 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app/legal && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+RUN chown -R appuser:appuser /app/.venv
+
+COPY --from=core-source --chown=appuser:appuser /src/smeme/ ./smeme/
+COPY --chown=appuser:appuser alembic/ ./alembic/
+COPY --chown=appuser:appuser alembic.ini ./
+COPY --from=builder --chown=appuser:appuser /app/smeme/static/css/app.css ./smeme/static/css/app.css
+
+# First-party license, curated notices, harvested Python licenses, source offer.
+COPY --chown=appuser:appuser LICENSE.md THIRD_PARTY_NOTICES.md ./legal/
+COPY --chown=appuser:appuser legal/SOURCE_OFFER.md ./legal/SOURCE_OFFER.md
+COPY --chown=appuser:appuser legal/third_party ./legal/third_party
+COPY --from=builder --chown=appuser:appuser /app/legal-python ./legal/python
+
+# OS package inventory for corresponding-source requests (before dropping root).
+RUN dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\n' \
+      > /app/legal/debian-packages.txt \
+ && find /usr/share/doc -name copyright | sort \
+      > /app/legal/debian-copyright-index.txt \
+ && chown -R appuser:appuser /app/legal
+
+COPY --chown=appuser:appuser start-core.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+USER appuser
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENV HOME="/home/appuser"
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+ENV SMEME_DISTRO=core
+ENV SMEME_AI_GENERATION_ENABLED=false
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+CMD ["/app/start.sh"]

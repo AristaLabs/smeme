@@ -1,0 +1,20 @@
+{# Reusable subgraph overlay: contextual spinner while LangGraph step runs. #}
+{# Expects: id (for hx-indicator), message (e.g. "Researching..."). #}
+{% set overlay_id = id|default('subgraph-spinner') %}
+{% set overlay_message = message|default('Working...') %}
+<div
+    id="{{ overlay_id }}"
+    class="htmx-indicator subgraph-overlay fixed inset-0 bg-ui-ink/50 flex items-center justify-center z-50"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-label="{{ overlay_message }}"
+>
+    <div class="bg-ui-surface rounded-lg p-6 flex items-center gap-3">
+        <svg class="animate-spin h-6 w-6 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-ui-ink font-medium">{{ overlay_message }}</span>
+    </div>
+</div>

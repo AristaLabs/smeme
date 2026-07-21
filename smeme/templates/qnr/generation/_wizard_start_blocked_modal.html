@@ -1,0 +1,51 @@
+{# Wizard start blocked — HTMX target #modal-container #}
+{% from "components/macros.html" import btn %}
+<div class="fixed inset-0 flex items-center justify-center bg-ui-ink/60 p-4 overflow-y-auto z-50"
+     id="wizard-start-blocked-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="wizard-start-block-title">
+  <div class="relative bg-ui-surface rounded-xl shadow-card border-2 border-amber-300 dark:border-amber-700 p-6 max-w-lg w-full my-auto">
+    <div class="flex items-start gap-3 mb-4">
+      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" aria-hidden="true">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <h3 id="wizard-start-block-title" class="text-lg font-semibold text-ui-ink">{{ wizard_start_block.title }}</h3>
+          <button
+            type="button"
+            hx-get="/auth/profile/close-modal"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="shrink-0 text-ui-ink-subtle hover:text-ui-ink-muted rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            aria-label="Close">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed">{{ wizard_start_block.message }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+      <a href="{{ wizard_start_block.dashboard_href }}"
+         onclick="if (this.getAttribute('href') === window.location.pathname || this.getAttribute('href') === (window.location.pathname + window.location.search) || this.getAttribute('href') === (window.location.pathname + window.location.search + window.location.hash)) { event.preventDefault(); var modal = document.getElementById('modal-container'); if (modal) { modal.innerHTML = ''; } window.location.reload(); }"
+         class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-ui-line-strong bg-ui-surface text-ui-ink-secondary hover:bg-ui-surface-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        Go to dashboard
+      </a>
+      {% if wizard_start_block.show_upgrade and stripe_configured %}
+      <button type="button"
+              hx-get="/billing/upgrade-modal"
+              hx-target="#modal-container"
+              hx-swap="innerHTML"
+              class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-lg bg-brand-600 hover:bg-brand-700 text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        Upgrade to Pro
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>

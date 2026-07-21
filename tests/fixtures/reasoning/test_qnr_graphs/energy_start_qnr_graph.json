@@ -1,0 +1,287 @@
+{
+  "edges": [
+    {
+      "source": "q1",
+      "target": "q2",
+      "condition": "Yes"
+    },
+    {
+      "source": "q1",
+      "target": "conclusion_2",
+      "condition": "No"
+    },
+    {
+      "source": "q1",
+      "target": "q2",
+      "condition": "Unsure"
+    },
+    {
+      "source": "q2",
+      "target": "q3",
+      "condition": "Yes"
+    },
+    {
+      "source": "q2",
+      "target": "conclusion_3",
+      "condition": "No"
+    },
+    {
+      "source": "q3",
+      "target": "q4",
+      "condition": "Yes"
+    },
+    {
+      "source": "q3",
+      "target": "conclusion_4",
+      "condition": "No"
+    },
+    {
+      "source": "q3",
+      "target": "q5",
+      "condition": "Don't Know"
+    },
+    {
+      "source": "q4",
+      "target": "q6",
+      "condition": "Yes"
+    },
+    {
+      "source": "q4",
+      "target": "q6",
+      "condition": "Not Applicable (before 2025)"
+    },
+    {
+      "source": "q4",
+      "target": "conclusion_5",
+      "condition": "No"
+    },
+    {
+      "source": "q5",
+      "target": "q4",
+      "condition": "Yes"
+    },
+    {
+      "source": "q5",
+      "target": "conclusion_7",
+      "condition": "No"
+    },
+    {
+      "source": "q6",
+      "target": "q7",
+      "condition": "Yes"
+    },
+    {
+      "source": "q6",
+      "target": "conclusion_6",
+      "condition": "No"
+    },
+    {
+      "source": "q7",
+      "target": "conclusion_1",
+      "condition": "Yes"
+    },
+    {
+      "source": "q7",
+      "target": "conclusion_8",
+      "condition": "No"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "q1",
+      "data": {
+        "text": "Is the appliance installed in your primary residence?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No",
+          "Unsure"
+        ],
+        "required": true,
+        "help_text": "Your primary residence is the home where you live most of the year.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q2",
+      "data": {
+        "text": "Was the appliance installed between 2023 and 2032?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "Only installations within this timeframe qualify for the tax credit.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q3",
+      "data": {
+        "text": "Does the appliance meet ENERGY STAR specifications or exceed energy efficiency standards?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No",
+          "Don't Know"
+        ],
+        "required": true,
+        "help_text": "Check the appliance's specifications or manufacturer certification for efficiency ratings.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q4",
+      "data": {
+        "text": "Did the manufacturer provide a Qualified Manufacturer Identification Number (QMID)?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No",
+          "Not Applicable (before 2025)"
+        ],
+        "required": true,
+        "help_text": "Post-2025 installations must include a QMID provided by the manufacturer.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q5",
+      "data": {
+        "text": "Can you verify the appliance's efficiency through documentation or certification?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "Proper documentation is necessary to confirm eligibility for the tax credit.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q6",
+      "data": {
+        "text": "Is the cost of the appliance and its installation less than the annual limit of $3,200, considering other credits claimed?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "The credit is limited to a maximum of $3,200 annually.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q7",
+      "data": {
+        "text": "Have you filed IRS Form 5695, Part II for the tax year of placement in service?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "Filing Form 5695 is necessary to claim the residential energy credit.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "conclusion_1",
+      "data": {
+        "title": "Eligible for Full Tax Credit",
+        "summary": "You qualify for a federal tax credit for your energy-efficient appliance purchase. Your appliance meets all criteria.",
+        "severity": "info",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_2",
+      "data": {
+        "title": "Not Eligible - Non-Primary Residence",
+        "summary": "You are not eligible for the tax credit because the appliance is not installed in your primary residence.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_3",
+      "data": {
+        "title": "Not Eligible - Installation Period",
+        "summary": "Installation outside the eligible period (2023-2032) makes you ineligible.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_4",
+      "data": {
+        "title": "Not Eligible - Efficiency Standards",
+        "summary": "The appliance does not meet the required energy efficiency standards.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_5",
+      "data": {
+        "title": "Not Eligible - QMID Missing",
+        "summary": "Missing QMID for post-2025 installations disqualifies eligibility.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_6",
+      "data": {
+        "title": "Not Eligible - Exceeds Credit Limit",
+        "summary": "Total costs exceed the eligible annual credit limit.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_7",
+      "data": {
+        "title": "Not Eligible - Lack of Documentation",
+        "summary": "Inability to verify the appliance's qualifying efficiency through proper documentation.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_8",
+      "data": {
+        "title": "Not Eligible - Failure to File Form 5695",
+        "summary": "Filing the form is necessary for claiming the tax credit.",
+        "severity": "warning",
+        "recommendations": []
+      },
+      "type": "conclusion"
+    }
+  ],
+  "metadata": {
+    "tags": [],
+    "title": "Federal Tax Credit Eligibility Assessment for Energy-Efficient Appliances",
+    "version": "1.0.0",
+    "category": null,
+    "description": "A decision-tree questionnaire to determine eligibility for a federal tax credit for the purchase of energy-efficient appliances.",
+    "estimated_time": null
+  }
+}

@@ -1,0 +1,89 @@
+# Agent Skills (guidance authoring source)
+
+This folder holds **Agent Skill** markdown that is the authoring source for
+``smeme_reasoning_guidance_get`` (and related MCP guidance content). Anthropic’s
+skill shape is a directory with **`SKILL.md`** plus optional `reference.md` /
+`examples.md` (see [Agent Skills best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)).
+
+**This README is repo-only.** There is no installable Cowork plugin zip in product;
+agents load the same contract over MCP via guidance tools. After editing skills,
+regenerate guidance with ``scripts/build_guidance_artifact.py`` and run
+``scripts/validate_cowork_plugin.py``.
+
+## Authoring style
+
+Frontier models and Cowork’s harness can plan tool use. Skills should be **direct, concise, and hard to misread** — not tutorials.
+
+### Agent-safe vocabulary (required)
+
+Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must **not** reveal how SMEme reasons internally.
+
+| Use (product layer) | Do **not** use (implementation layer) |
+|---------------------|----------------------------------------|
+| **reasoning engine**, **server**, **report**, **results**, **outcome** | Z3, SAT, UNSAT, SMT, solver, satisfiable, entailment, theory (except wire `error.code` literals in backticks) |
+| **`report.result_kind`**, **`brief_memo`**, **`candidates`**, **`blockers`** | `SAT_*`, `triggered_edges`, `true_conclusion_id`, guard/clause/reach atom names |
+| Plain-language error meanings (“reasoning engine timed out”) | “Z3 check timed out”, “SAT call budget”, “unsatisfiable” |
+
+**Wire identifiers** (`error.code`, tool names, JSON field names the agent must parse) may appear **in backticks only**. Describe what they mean in product language in the adjacent column — mirror server `error.message` copy from `smeme/mcp/tool_contract.py` / tool handlers, not engineering shorthand from sprint docs.
+
+**Server messages:** `error.message` and `blockers.message` on MCP tool responses follow the same product-vocabulary rules as skills (reasoning engine, report, outcome — not Z3/SAT/entailment). When you change a user-quoted server string, update the matching skill row in the same PR.
+
+`scripts/validate_cowork_plugin.py` enforces a denylist on all shipped skills (prose only — text inside `` `backticks` `` may use wire field names such as ``satisfiable`` or ``blockers.sat_calls``). Generated per-workflow manifests ([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/)) must follow the same rules.
+
+| Do | Don’t |
+|----|--------|
+| State preconditions as **assumptions**; call tools and follow the error map | Ask the user to confirm setup before the first tool call |
+| **`error.code` tables** with plain-language “what to do” (quote `error.message` to the user) | Retry loops, vague “try again”, or re-explaining server logic |
+| Name contracts by meaning (**provenance envelope**, `answers` + `evidence_*`) | Internal planning labels (e.g. “shape C”) |
+| **`smeme_reasoning_capabilities` → `reasoning.tools`** as the tool catalog; note deferred client lists | Infer tool availability from UI or `tool_search` alone |
+| **`raw_answers_json`**: serialized JSON object (`answers`, `evidence_items`, `evidence_refs`); same payload for validate and evaluate; not double-encoded | “JSON string”, duplicate payload examples, full success JSON when a field table suffices |
+| Examples and hedging **only** where ambiguity is real (empty list, double-encoding, deferred `evaluate`) | Good/bad example blocks for obvious behavior |
+| **`_server_plugin_version`** on **success** responses only | Claim every response carries the version watermark |
+| Product vocabulary in prose (**reasoning engine**, **report**, **results**) | Formal-methods or stack terms (Z3, SAT/UNSAT, solver, satisfiable, SMT) |
+
+Blind-evaluation and wire-contract rules: [cowork-plugin-delivery §2.2 + §5](../../docs/planning/cowork-plugin-delivery-sprints.md#5-tool-contracts-for-skills-authoring-canonical). Canonical codes: `smeme/mcp/tool_contract.py`.
+
+After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/validate_cowork_plugin.py``.
+
+## Progressive disclosure (how many skills, when they load)
+
+| Skill | Role | When to load |
+|-------|------|----------------|
+| **`smeme-reasoning-plugin`** | Connect to SMEme, list workflows, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core plugin skill. |
+| **Per-workflow question manifest** | Flat checklist: question ids, text, valid answers for *this* workflow — no topology. | **After** the user (or agent) has chosen a target workflow — from **`template_get`** or CWP-5 file. |
+| **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate`**. |
+| **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate`** returns a **`report`** that is not **`concluded`**. |
+| **`smeme-workflow-author`** | Chat-native authoring: design guidance → iterate Q/options/branches in prose → `smeme_authoring_validate_graph` → `smeme_authoring_create_draft`. Secondary path; wizard remains primary for research-heavy greenfield. | When the user wants to build in chat. Gated by `MCP_AUTHORING_GRAPH_TOOLS_ENABLED`. Calls `smeme_authoring_design_guidance`. |
+
+**Per-workflow skills** should not all sit in the default context. Preferred patterns:
+
+1. **Generated at publish** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + workflow metadata.
+2. **Template fill**: Use `templates/reasoning-question-manifest/SKILL.template.md` in CI or a small script; substitute title, slug, question list, and schema JSON.
+3. **Manual**: Early adopters paste a generated skill into their Cowork project.
+
+## Layout
+
+```
+plugin/cowork-skills/
+├── README.md                          # this file
+├── smeme-reasoning-plugin/SKILL.md          # plugin core
+├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
+├── smeme-reasoning-outcomes/SKILL.md        # non-concluded and conflict report handling
+├── smeme-workflow-author/
+│   ├── SKILL.md                             # chat authoring → validate → create_draft
+│   └── DESIGN.md                            # design standard (build → _generated_design_guidance.py)
+└── templates/reasoning-question-manifest/
+    └── SKILL.template.md              # one copy per workflow after substitution (not loaded until filled)
+```
+
+## MCP error contract
+
+Reasoning tools return structured JSON. Expected failures use `error.code` / `error.message` (see **`smeme-reasoning-plugin`** skill table). Server module: `smeme/mcp/tool_contract.py`. Tools do not raise into the MCP layer; LangGraph on the server MCP path is deferred.
+
+## Related docs
+
+- [Cowork plugin delivery (sprints)](../../docs/planning/cowork-plugin-delivery-sprints.md) — installable `.claude-plugin` bundle, `.mcp.json`, runbooks.
+- [Cowork reasoning runbooks](../../docs/guides/cowork-reasoning-plugin-runbooks.md) — operator checklist, end-user install, one-session list → evaluate → outcomes.
+- [D016 — Auth & MCP plan](../../docs/DECISIONS.md) (OAuth, scopes).
+- [DTQ → reasoning cutover](../../docs/planning/dtq-to-reasoning-cutover.md) — IR-first stack; historical DTQ naming in older docs.
+- [Anthropic Cowork plugin guidance](../../docs/planning/Determinisitc%20Reasoning%20Planning/Anthropic%20Claude%20Cowork%20plugin%20guidance.md) (links).

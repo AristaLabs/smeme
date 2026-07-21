@@ -1,0 +1,200 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import btn, badge, card, credential_badge %}
+{% set show_nav = true %}
+{% block title %}Profile - SMEme{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+  <div class="flex flex-wrap items-start justify-between gap-4 border-b border-ui-line pb-6">
+    <div class="min-w-0 flex-1">
+      <h1 class="text-3xl font-bold text-ui-ink">Profile</h1>
+      <p class="text-ui-ink-muted mt-2 max-w-3xl leading-relaxed">
+      <span class="font-medium text-brand-800">Clerk</span> handles sign-in and identity.
+      {% if stripe_configured %}
+      <span class="font-medium text-slate-800">Stripe</span> manages your Pro subscription and invoices.
+      {% endif %}
+    </p>
+    </div>
+    <div class="shrink-0 pt-1">
+      {{ btn("Log out", variant="old_glory_red", href="/auth/logout", attrs='rel="nofollow"') }}
+    </div>
+  </div>
+
+  <div class="max-w-4xl space-y-6">
+
+      {# ── Clerk: identity & sign-in ───────────────────────────────────── #}
+      {% call card(title="", extra_class="border-l-4 border-l-brand-600 shadow-sm") %}
+        <div class="mb-5">
+          <div class="flex items-start justify-between gap-3">
+            <h2 class="text-xl font-semibold text-ui-ink min-w-0">Account &amp; sign-in</h2>
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wide text-brand-800 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full">Clerk</span>
+          </div>
+          <p class="text-sm text-ui-ink-muted mt-2 max-w-3xl leading-relaxed">Sign-in uses email verification codes. If you prefer, you can &ldquo;Set password&rdquo; in the &ldquo;Security&rdquo; section of your Clerk account.</p>
+        </div>
+
+        {# Identity summary — email is the app handle until Business creator aliases ship #}
+        <div class="flex items-center gap-3 bg-ui-surface-muted rounded-lg border px-4 py-3 mb-5">
+          <div class="flex-shrink-0 w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm select-none" aria-hidden="true">
+            {{ (user.email or "?")[0] | upper }}
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-ui-ink truncate">{{ user.email }}</p>
+          </div>
+          {% if user.last_login_at %}
+          <p class="ml-auto shrink-0 text-xs text-ui-ink-subtle">Last sign-in {{ user.last_login_at.strftime('%b %d') }}</p>
+          {% endif %}
+        </div>
+
+        {# What Clerk manages #}
+        <div class="mb-5">
+          <p class="text-xs font-medium text-ui-ink-secondary uppercase tracking-wide mb-2">Managed in Clerk</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-1.5 text-xs text-ui-ink-secondary bg-ui-surface border border-ui-line px-2.5 py-1 rounded-full">
+              <svg class="w-3 h-3 text-ui-ink-subtle" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+              Email
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs text-ui-ink-secondary bg-ui-surface border border-ui-line px-2.5 py-1 rounded-full">
+              <svg class="w-3 h-3 text-ui-ink-subtle" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+              Password (optional)
+            </span>
+          </div>
+        </div>
+
+        {# CTA #}
+        {% if clerk_account_portal_url %}
+        <a href="{{ clerk_account_portal_url }}" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors w-full justify-center">
+          Manage account in Clerk
+          <svg class="w-3.5 h-3.5 opacity-80 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </a>
+        <p class="mt-2 text-xs text-center text-ui-ink-subtle">Add an optional password or update your name there. You'll return here when done.</p>
+        {% endif %}
+      {% endcall %}
+
+      {# ── Stripe: subscription & usage ─────────────────────────────────── #}
+      {% if stripe_configured %}
+      {% call card(title="", extra_class="border-l-4 border-l-slate-600 shadow-sm") %}
+        <div class="mb-5">
+          <div class="flex items-start justify-between gap-3">
+            <h2 class="text-xl font-semibold text-ui-ink min-w-0">Subscription &amp; usage</h2>
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">Stripe</span>
+          </div>
+          <p class="text-sm text-ui-ink-muted mt-2 max-w-3xl leading-relaxed">
+            {% if usage_summary is defined %}
+            {{ usage_summary.tier_name }} plan{% if usage_summary.resets_on_stripe_period %} — usage resets each billing period (Stripe){% endif %}.
+            {% else %}
+            Pro plan billing and invoices.
+            {% endif %}
+          </p>
+        </div>
+
+        {% if usage_summary is defined %}
+        <div class="grid gap-3 sm:grid-cols-3 mb-5">
+          {% for key, label in [('workflows', 'Workflows'), ('mcp_weighted', 'MCP calls (mo)'), ('wizard_completions', 'AI builds (mo)')] %}
+          {% set dim = usage_summary[key] %}
+          <div class="rounded-lg border px-3 py-2.5 {% if dim.at_warning %}border-amber-300 bg-amber-50/50{% else %}border-ui-line bg-ui-surface-muted/40{% endif %}">
+            <p class="text-xs font-medium text-ui-ink-muted uppercase tracking-wide">{{ label }}</p>
+            <p class="text-lg font-semibold text-ui-ink tabular-nums mt-0.5">
+              {% if key == 'mcp_weighted' %}{{ "%.1f"|format(dim.used) }}{% else %}{{ dim.used|int }}{% endif %}
+              <span class="text-sm font-normal text-ui-ink-muted">/ {% if key == 'mcp_weighted' %}{{ dim.limit|int }}{% else %}{{ dim.limit|int }}{% endif %}</span>
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-ui-ink-muted mb-4">{{ usage_summary.resets_label }} · <a href="/docs/plans" class="text-brand-600 hover:underline">Plans &amp; usage</a></p>
+        {% if pro_ending_banner is defined and pro_ending_banner %}
+        <p class="text-sm font-medium text-amber-900 mb-4">{{ pro_ending_banner }}</p>
+        {% endif %}
+        {% endif %}
+
+        {% if billing_unlinked is defined and billing_unlinked %}
+        <p class="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+          Your previous billing link is no longer valid (for example after switching Stripe from test to live).
+          Upgrade again below to subscribe in production.
+        </p>
+        {% endif %}
+
+        <div class="space-y-4">
+          {% if user.is_premium and user.stripe_customer_id %}
+          <p class="text-sm text-ui-ink-muted">
+            Your plan and receipts live in Stripe’s secure customer portal (SMEme never stores your card).
+          </p>
+          <form method="post" action="/billing/portal" class="w-full">
+            <button type="submit"
+                    formtarget="_blank"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-200 text-slate-900 bg-slate-50/50 hover:bg-slate-100 transition-colors w-full justify-between">
+              <span>Manage subscription in Stripe →</span>
+              <svg class="w-3.5 h-3.5 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </button>
+          </form>
+          {% elif not user.is_premium %}
+          <button type="button"
+                  hx-get="/billing/upgrade-modal"
+                  hx-target="#modal-container"
+                  hx-swap="innerHTML"
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-brand-500 to-info-500 text-white text-sm font-medium hover:from-brand-600 hover:to-info-600 transition w-full justify-center">
+            Upgrade to Pro — $49/mo
+          </button>
+          {% else %}
+          <p class="text-sm text-ui-ink-muted">
+            Billing isn’t linked to this account yet. If you already paid, contact support.
+          </p>
+          {% endif %}
+        </div>
+      {% endcall %}
+      {% endif %}
+
+      {# ── Danger zone: account deletion (SMEme-owned; not Clerk Portal) ─ #}
+      {% call card(title="", extra_class="!border-2 !border-danger-400 !bg-danger-50/80 shadow-md ring-1 ring-danger-200/70") %}
+        <div class="mb-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-danger-200/80 text-danger-800 ring-2 ring-danger-400/40" aria-hidden="true">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+              </div>
+              <h2 class="text-xl font-bold text-danger-900 min-w-0">Danger zone</h2>
+            </div>
+            <span class="shrink-0 text-xs font-bold uppercase tracking-wider text-danger-900 bg-danger-200/70 border border-danger-400 px-2.5 py-1 rounded-full">Irreversible</span>
+          </div>
+          <p class="text-sm font-semibold text-danger-800 mt-3 max-w-3xl leading-relaxed">
+            Permanently delete your SMEme account and <strong class="font-bold text-danger-900">all</strong> associated data.
+            This action <strong class="font-bold text-danger-900">cannot be undone</strong>.
+          </p>
+        </div>
+
+        <div class="rounded-lg border border-danger-300 bg-danger-100/70 px-4 py-3.5 mb-5 space-y-2">
+          <p class="text-xs font-bold uppercase tracking-wide text-danger-900">You will lose everything:</p>
+          <ul class="list-disc pl-5 space-y-1 text-sm font-medium text-danger-900/90">
+            <li>All workflows, versions, deployed reasoning tools, and evaluation history</li>
+            <li>Sessions, memos, and creator profile data</li>
+            <li>Active Pro subscription — canceled immediately; remaining prepaid time is forfeited and cannot be recovered if you sign up again</li>
+          </ul>
+          <p class="text-xs text-danger-800/90 pt-1 border-t border-danger-300/60">
+            To keep Pro until the end of a paid period, cancel in Stripe Customer Portal instead of deleting your account.
+            Account deletion is managed here — not in Clerk. Clerk only handles email and sign-in.
+            <a href="/docs/delete-account" class="text-danger-900 underline underline-offset-2 hover:text-danger-950 font-medium">Delete your account</a> (docs) explains what is removed and how confirmation works.
+          </p>
+        </div>
+
+        {{ btn("Delete account permanently", variant="danger", full_width=true,
+               attrs='hx-get="/auth/profile/delete-account-confirm" hx-target="#delete-account-modal" hx-swap="innerHTML"') }}
+      {% endcall %}
+    </div>
+</div>
+
+<div id="delete-account-modal"></div>
+
+{% if show_cancellation_explainer is defined and show_cancellation_explainer %}
+<div hx-get="/billing/cancellation-explainer"
+     hx-trigger="load"
+     hx-target="#modal-container"
+     hx-swap="innerHTML"></div>
+{% endif %}
+
+{% endblock %}

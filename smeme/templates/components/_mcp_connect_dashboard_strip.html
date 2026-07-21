@@ -1,0 +1,64 @@
+{# MCP connect row — expects mcp_enabled and mcp_* from mcp_connect_template_context #}
+{% from "components/macros.html" import workflow_launch_link %}
+<div class="flex flex-col gap-2">
+  <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-stretch">
+    {{ workflow_launch_link() }}
+
+    {% if mcp_enabled %}
+        <div class="flex w-full flex-col overflow-hidden rounded-xl border border-brand-200/90 bg-ui-surface shadow-sm ring-1 ring-brand-500/10 sm:max-w-md sm:flex-1 sm:flex-row sm:items-stretch">
+          <a href="/docs/mcp#connect-heading"
+             class="inline-flex flex-1 min-w-0 items-center gap-2 bg-ui-surface px-4 py-3 text-sm font-semibold text-ui-ink transition hover:bg-brand-50/50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 sm:py-3">
+            <img src="/static/mcp-logo.svg"
+                 alt=""
+                 width="20"
+                 height="20"
+                 class="h-5 w-5 shrink-0 rounded-[4px]"
+                 aria-hidden="true"
+                 decoding="async" />
+            <span class="min-w-0 text-left leading-tight">MCP connect instructions</span>
+          </a>
+          <div class="relative flex flex-col border-t border-brand-100/90 bg-gradient-to-b from-brand-50/50 to-ui-surface-muted/80 text-sm text-ui-ink-secondary sm:min-w-[10rem] sm:max-w-[14rem] sm:shrink-0 sm:border-l sm:border-t-0">
+            <button type="button"
+                    popovertarget="mcp-connect-details-pop"
+                    class="flex min-h-[3.25rem] w-full cursor-pointer items-center justify-between gap-2 border-0 bg-transparent px-3 py-2.5 text-left text-sm font-semibold text-brand-900 hover:bg-brand-100/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                    aria-haspopup="dialog"
+                    aria-controls="mcp-connect-details-pop">
+              <span class="min-w-0 leading-snug">URL &amp; Client ID</span>
+              <svg class="h-4 w-4 shrink-0 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </button>
+          </div>
+          <div id="mcp-connect-details-pop"
+               popover="auto"
+               class="fixed left-1/2 top-1/2 z-[2147483646] m-0 box-border max-h-[min(90vh,32rem)] w-[min(24rem,calc(100vw-2rem))] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto border-0 bg-transparent p-0 [&::backdrop]:bg-ui-ink/25">
+            <div class="rounded-2xl border border-brand-200/90 bg-ui-surface p-4 text-sm text-ui-ink shadow-2xl ring-1 ring-brand-500/10">
+              <div class="flex items-start justify-between gap-3 border-b border-brand-100/80 pb-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-brand-800">MCP connector</p>
+                  <p class="mt-1 text-xs text-ui-ink-muted">Add a custom remote connector in your AI client.</p>
+                </div>
+                <button type="button"
+                        popovertarget="mcp-connect-details-pop"
+                        popovertargetaction="hide"
+                        class="shrink-0 rounded-lg p-1.5 text-ui-ink-muted hover:bg-ui-surface-hover hover:text-ui-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        aria-label="Close connector details">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Endpoint URL</p>
+              {% if mcp_connector_url_differs %}
+              <p class="mt-1 text-xs text-ui-ink-muted">Production URL (paste into remote MCP clients):</p>
+              {% endif %}
+              <p class="mt-1 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-2.5 py-2 font-mono text-xs leading-relaxed text-ui-ink select-all">{{ mcp_connector_url }}</p>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
+              <p class="mt-1 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-2.5 py-2 font-mono text-xs leading-relaxed text-ui-ink select-all">{{ mcp_oauth_client_id }}</p>
+              <p class="mt-3 text-xs text-ui-ink-muted">Leave client secret blank (PKCE). Full steps: <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">MCP setup guide</a>.</p>
+            </div>
+          </div>
+        </div>
+    {% endif %}
+  </div>
+</div>

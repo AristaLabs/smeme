@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "q1",
+      "type": "question",
+      "data": {
+        "text": "Pick",
+        "type": "radio",
+        "options": ["Yes", "No"],
+        "placeholder": null,
+        "required": true,
+        "help_text": null
+      }
+    },
+    {
+      "id": "c1",
+      "type": "conclusion",
+      "data": {
+        "title": "Out A",
+        "summary": "a",
+        "recommendations": [],
+        "severity": "info"
+      }
+    },
+    {
+      "id": "c2",
+      "type": "conclusion",
+      "data": {
+        "title": "Out B",
+        "summary": "b",
+        "recommendations": [],
+        "severity": "info"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "q1",
+      "target": "c1",
+      "condition": "Yes"
+    },
+    {
+      "source": "q1",
+      "target": "c2",
+      "condition": "No"
+    }
+  ],
+  "metadata": {
+    "title": "sample",
+    "description": null,
+    "category": null,
+    "estimated_time": null,
+    "version": "1.0.0",
+    "tags": []
+  }
+}

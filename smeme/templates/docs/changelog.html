@@ -1,0 +1,173 @@
+{% extends "layouts/base.html" %}
+{% block title %}Docs Changelog — SMEme{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Changelog" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    {# Sidebar — desktop #}
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    {# Main content #}
+    <article class="min-w-0 flex-1">
+
+      {# Mobile nav #}
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Docs changelog</h1>
+        <p class="mt-2 text-sm text-ui-ink-muted">Changes to the in-app documentation.</p>
+      </header>
+
+      <div class="space-y-8">
+
+        {# v1.5.0 #}
+        <section aria-labelledby="v150">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v150" class="text-base font-semibold text-ui-ink">v1.5.0</h2>
+            <span class="text-xs text-ui-ink-muted">June 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — rewrote the tools section: nine tools (up from six), correct descriptions, and a quota-weight column.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — added <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_what_if</code> (scenario comparison) and <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_how_to_reach</code> (repair planning) to the tool reference, tips, and use-case examples.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — connector-first MCP setup (URL + OAuth Client ID). Corrected <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_capabilities</code> description (session bootstrap and authoritative tool catalog). Corrected <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_template_check</code> description (drift check, not the worksheet).
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — quota weights now precise: <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">how_to_reach</code> = <strong class="font-medium text-ui-ink">2.5</strong>, <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">what_if</code> = <strong class="font-medium text-ui-ink">2</strong>. Added dormant workflow behavior on downgrade (grayed out, download-only until under limit). Clarified archive is deployment-dependent.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Docs index — removed incorrect "start from scratch" workflow creation path; creation is wizard-only.
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# v1.4.0 #}
+        <section aria-labelledby="v140">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v140" class="text-base font-semibold text-ui-ink">v1.4.0</h2>
+            <span class="text-xs text-ui-ink-muted">June 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Updated <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — MCP quota: evidence validation now counts as <strong class="font-medium text-ui-ink">1</strong> unit (same as evaluate); typical Cowork run uses both.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Updated <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — clearer public labels: <strong class="font-medium text-ui-ink">MCP tool calls</strong> (weighting explained in definitions) and <strong class="font-medium text-ui-ink">AI-assisted workflow builds</strong> (replacing wizard-completion jargon).
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a> — documents that account deletion forfeits remaining Pro prepaid time (unlike Stripe portal cancel) and is not restored on re-signup.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added <a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a> — profile flow, confirmation phrase, data removed vs retained, and how it differs from workflow delete.
+            </li>
+          </ul>
+        </section>
+
+        {# v1.3.0 #}
+        <section aria-labelledby="v130">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v130" class="text-base font-semibold text-ui-ink">v1.3.0</h2>
+            <span class="text-xs text-ui-ink-muted">June 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — tier limits, weighted MCP metering, wizard credits, and quota behavior.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Updated <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — dashboard usage strip and per-workflow MCP column.
+            </li>
+          </ul>
+        </section>
+
+        {# v1.2.0 #}
+        <section aria-labelledby="v120">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v120" class="text-base font-semibold text-ui-ink">v1.2.0</h2>
+            <span class="text-xs text-ui-ink-muted">June 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added <a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your workflow</a> — how to export the saved graph as JSON from the dashboard or editor.
+            </li>
+          </ul>
+        </section>
+
+        {# v1.1.0 #}
+        <section aria-labelledby="v110">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v110" class="text-base font-semibold text-ui-ink">v1.1.0</h2>
+            <span class="text-xs text-ui-ink-muted">June 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Redesigned docs layout with persistent sidebar navigation and two-column layout on desktop.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added three-step overview to the docs index (Build → Deploy → Invoke).
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added <strong class="font-medium text-ui-ink">Jump to node</strong> and validation issue row documentation in the Building workflows guide.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Added satisfiability check documentation (Z3) to the Deploy, validate &amp; list guide.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Updated Cowork plugin guide with numbered installation steps and MCP tool reference table.
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# v1.0.0 #}
+        <section aria-labelledby="v100">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v100" class="text-base font-semibold text-ui-ink">v1.0.0</h2>
+            <span class="text-xs text-ui-ink-muted">Initial release</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Initial in-app docs: Building workflows, Deploy &amp; list, and Cowork plugin guides.
+            </li>
+          </ul>
+        </section>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

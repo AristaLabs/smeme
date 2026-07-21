@@ -1,0 +1,9 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SMEme">
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#ffffff"/>
+  <!-- Fitch vertical line -->
+  <rect x="150" y="120" width="12" height="272" fill="#002868"/>
+  <!-- Horizontal inference rule -->
+  <rect x="150" y="250" width="218" height="12" fill="#002868"/>
+  <!-- QED tombstone -->
+  <rect x="300" y="300" width="68" height="80" fill="#002868"/>
+</svg>

@@ -1,0 +1,102 @@
+<!-- Main Panel: Conclusions Edit -->
+{% from "components/macros.html" import callout %}
+{% include "qnr/generation/_phase_stepper.html" %}
+
+<div class="content-display mb-8">
+    <h1>Step 2: Review Possible Conclusions</h1>
+    
+    <div class="prose mb-6">
+        <p>
+            Based on the factors you reviewed, here are the possible outcomes or conclusions this workflow could reach.
+            Each conclusion represents a different recommendation based on user responses.
+        </p>
+    </div>
+
+    <!-- Source Indicator -->
+    {% if conclusions_source == "user_provided" %}
+    {% call callout("info", variant="accent-left", extra_class="mb-6", show_icon=false) %}
+        <p class="text-sm"><strong>Source:</strong> These are the conclusions you provided in the initial form.</p>
+    {% endcall %}
+    {% elif conclusions_source == "llm_extracted" %}
+    {% call callout("info", variant="accent-left", extra_class="mb-6") %}
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm"><strong>Source:</strong> These conclusions were extracted by AI from your research factors.</p>
+            {% include "qnr/generation/_conclusions_retry_form.html" %}
+        </div>
+    {% endcall %}
+    {% elif conclusions_source == "llm_failed" %}
+    {% call callout("error", title="AI extraction failed", variant="accent-left", extra_class="mb-6") %}
+        <p class="mb-3">You can retry AI extraction or provide conclusions manually below.</p>
+        {% include "qnr/generation/_conclusions_retry_form.html" %}
+    {% endcall %}
+    {% endif %}
+
+    <!-- Instructions -->
+    {% call callout("info", title="Review & Edit Conclusions", extra_class="mb-6") %}
+        <ul class="space-y-1 list-disc list-inside">
+            <li>Each conclusion should represent a distinct outcome or recommendation</li>
+            <li>Conclusions should be mutually exclusive - only one applies per user</li>
+            <li>You can add, remove, or modify conclusions as needed</li>
+            <li>Ensure the recommendations are actionable and specific</li>
+        </ul>
+    {% endcall %}
+</div>
+
+<!-- Form -->
+<form 
+    hx-post="/qnr/agentic/conclusions/submit" 
+    hx-target="closest .main-panel-content" 
+    hx-swap="innerHTML" 
+    hx-indicator="#conclusions-loading" 
+    class="space-y-6"
+>
+    <input type="hidden" name="thread_id" value="{{ thread_id }}">
+
+    <!-- Conclusions Editor -->
+    <div>
+        <div class="flex items-center justify-between mb-3">
+            <label for="possible_conclusions" class="block text-base font-medium text-ui-ink">
+                Possible Conclusions
+            </label>
+            <span class="text-sm text-ui-ink-muted">Markdown format</span>
+        </div>
+
+        <textarea
+            id="possible_conclusions"
+            name="possible_conclusions_edited"
+            class="w-full border border-ui-line-strong rounded-lg px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm resize-vertical"
+            style="min-height: 500px;"
+            placeholder="Enter the possible conclusions in markdown format..."
+        >{{ possible_conclusions }}</textarea>
+
+        <p class="text-sm text-ui-ink-muted mt-2">
+            Use the format shown above. Each conclusion should start with
+            <code class="bg-ui-surface-hover px-1.5 py-0.5 rounded text-xs">**CONCLUSION_[N]: [Title]**</code> and include
+            Summary, When this applies, Key recommendations, and Severity sections.
+        </p>
+    </div>
+
+    <!-- Action Buttons (Sticky) -->
+    <div class="action-buttons">
+        <a
+            href="/qnr/dashboard"
+            class="btn-secondary"
+        >
+            Cancel
+        </a>
+
+        <button
+            type="submit"
+            class="btn-primary"
+        >
+            Continue to Design
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+    
+    {% with id='conclusions-loading', message='Proceeding to design...' %}
+    {% include 'components/overlay.html' %}
+    {% endwith %}
+</form>

@@ -1,0 +1,127 @@
+{% extends "layouts/base.html" %}
+{% block title %}Download your workflow — Docs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Download your workflow" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    {# Sidebar — desktop #}
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    {# Main content #}
+    <article class="min-w-0 flex-1">
+
+      {# Mobile nav #}
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Download your workflow</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Your workflows are yours. You can download the current saved graph as a JSON file at any time —
+          no email request, no waiting period.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+
+        <section aria-labelledby="how-heading">
+          <h2 id="how-heading" class="text-base font-semibold text-ui-ink mb-3">How to download</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            You must be signed in as the workflow owner. Use either location:
+          </p>
+          <ul class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span><strong class="font-medium text-ui-ink">Dashboard</strong> — in the workflow row, click the download icon in <strong class="font-medium text-ui-ink">Actions</strong> (before Edit).</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span><strong class="font-medium text-ui-ink">Editor</strong> — click <strong class="font-medium text-ui-ink">Download</strong> in the toolbar (top right).</span>
+            </li>
+          </ul>
+          <p class="mt-4 text-sm text-ui-ink-muted">
+            The browser saves a file named like <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">My_Workflow.smeme.json</code>.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="contents-heading">
+          <h2 id="contents-heading" class="text-base font-semibold text-ui-ink mb-3">What's in the file</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            The download is your workflow graph: question nodes, conclusion nodes, edges, conditions, and metadata (title, description, tags, and so on). It also includes basic workflow identity — ID, title, version number, and created/updated timestamps.
+          </p>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            The file uses a small export envelope so future import tools can recognize it:
+          </p>
+          <pre class="overflow-x-auto rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 text-xs font-mono text-ui-ink-secondary leading-relaxed"><code>{
+  "smeme_export_version": "1",
+  "exported_at": "2026-06-11T23:15:00Z",
+  "qnr": {
+    "id": "...",
+    "title": "...",
+    "version_number": 1,
+    "graph": { "nodes": [...], "edges": [...], "metadata": {...} }
+  }
+}</code></pre>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="not-included-heading">
+          <h2 id="not-included-heading" class="text-base font-semibold text-ui-ink mb-3">What's not included</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            The download is the <strong class="font-medium text-ui-ink">editor graph</strong>, not a full account backup. It does not include:
+          </p>
+          <ul class="mt-3 space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Your deployed versions (what your AI evaluates against — not the editor file)
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Session answers, memos, or evaluation history
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Other workflows on your account
+            </li>
+          </ul>
+          <p class="mt-4 text-sm text-ui-ink-muted">
+            Connected AI tools evaluate the <strong class="font-medium text-ui-ink">deployed snapshot in SMEme</strong> — not the JSON file on your computer.
+            If you edit the workflow in the SMEme editor, click <strong class="font-medium text-ui-ink">Redeploy</strong> so your tools pick up the change.
+            <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a> explains Live vs Stale.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="import-heading">
+          <h2 id="import-heading" class="text-base font-semibold text-ui-ink mb-3">Re-import</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Uploading a downloaded file back into SMEme is not available yet. The export format is designed so import can be added later without changing what you download today.
+          </p>
+        </section>
+
+        <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="space-y-1">
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and manage workflows on the dashboard</li>
+            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building workflows</a> — create and edit the graph before downloading</li>
+          </ul>
+        </div>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

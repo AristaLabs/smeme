@@ -1,0 +1,46 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-ui-ink/50 p-4"
+     id="delete-confirmation-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="delete-confirm-phrase-title">
+  <div class="w-full max-w-lg rounded-xl border border-ui-line bg-ui-surface p-6 shadow-card-hover">
+    <h3 id="delete-confirm-phrase-title" class="text-lg font-semibold text-ui-ink">
+      Confirm permanent delete
+    </h3>
+    <p class="mt-2 text-sm text-ui-ink-secondary">
+      Type <strong class="font-medium text-ui-ink">{{ confirm_phrase }}</strong> to delete
+      <strong class="font-medium text-ui-ink">{{ qnr.title }}</strong> and all versions.
+    </p>
+
+    <form class="mt-4 space-y-4"
+          hx-delete="/qnr/{{ qnr.id }}/delete"
+          hx-target="body"
+          hx-swap="outerHTML">
+      <div>
+        <label for="delete-phrase-input" class="sr-only">Confirmation phrase</label>
+        <input id="delete-phrase-input"
+               name="confirm_phrase"
+               type="text"
+               autocomplete="off"
+               spellcheck="false"
+               placeholder="{{ confirm_phrase }}"
+               class="w-full rounded-lg border border-ui-line-strong bg-ui-surface px-3 py-2 text-sm text-ui-ink placeholder:text-ui-ink-subtle focus:border-danger-500 focus:outline-none focus:ring-1 focus:ring-danger-500"
+               oninput="document.getElementById('delete-submit-btn').disabled = this.value !== '{{ confirm_phrase }}'">
+      </div>
+
+      <div class="flex flex-wrap justify-end gap-3">
+        <button type="button"
+                onclick="document.getElementById('delete-modal').innerHTML = ''"
+                class="inline-flex items-center justify-center rounded-lg border border-ui-line-strong bg-ui-surface px-4 py-2 text-sm font-semibold text-ui-ink-secondary hover:bg-ui-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+          Cancel
+        </button>
+        <button id="delete-submit-btn"
+                type="submit"
+                disabled
+                class="inline-flex items-center justify-center rounded-lg bg-danger-600 px-4 py-2 text-sm font-semibold text-white hover:bg-danger-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          Delete workflow
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

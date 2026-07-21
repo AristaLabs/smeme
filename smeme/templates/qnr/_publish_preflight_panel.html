@@ -1,0 +1,24 @@
+<div id="publish-preflight-root" class="rounded-xl border border-ui-line bg-ui-surface text-sm shadow-sm overflow-hidden" aria-live="polite">
+  <div class="border-b border-ui-surface-hover bg-ui-surface-muted/90 px-4 py-3 flex flex-wrap items-start justify-between gap-2">
+    <div>
+      <h3 class="text-sm font-semibold text-ui-ink">Automatic checks</h3>
+      <p class="text-xs text-ui-ink-muted mt-0.5">Structure and logic checks required before deploying.</p>
+    </div>
+    <button type="button"
+            class="shrink-0 text-xs font-medium text-brand-700 hover:text-brand-900 underline"
+            hx-get="/qnr/editor/{{ qnr_id }}/publish-preflight{% if return_next %}?return_next={{ return_next }}{% endif %}"
+            hx-target="#publish-preflight-root"
+            hx-swap="outerHTML"
+            hx-indicator="#publish-preflight-indicator">
+      Run checks
+    </button>
+  </div>
+
+  <div class="px-4 py-3 space-y-4">
+    {% include 'qnr/_publish_readiness_results.html' %}
+  </div>
+</div>
+
+<div id="publish-deploy-actions" hx-swap-oob="innerHTML">
+  {% include 'qnr/_publish_deploy_actions.html' %}
+</div>

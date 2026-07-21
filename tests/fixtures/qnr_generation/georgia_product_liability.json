@@ -1,0 +1,165 @@
+{
+  "name": "georgia_product_liability",
+  "description": "Historical agentic output — long common path; passes Track A with HIGH_PATH_RATIO warning only",
+  "allowed_conclusion_ids": [
+    "CONCLUSION_1",
+    "CONCLUSION_2",
+    "CONCLUSION_3"
+  ],
+  "graph": {
+    "edges": [
+      {"source": "q1", "target": "q2", "condition": "Yes"},
+      {"source": "q1", "target": "conclusion_3", "condition": "No"},
+      {"source": "q1", "target": "q2", "condition": "Unsure"},
+      {"source": "q2", "target": "q3", "condition": "Yes - Manufacturer"},
+      {"source": "q2", "target": "conclusion_2", "condition": "No - Downstream seller"},
+      {"source": "q2", "target": "q3", "condition": "Unsure"},
+      {"source": "q3", "target": "q4", "condition": "Yes - Design defect"},
+      {"source": "q3", "target": "q4", "condition": "Yes - Manufacturing defect"},
+      {"source": "q3", "target": "q4", "condition": "Yes - Warning defect"},
+      {"source": "q3", "target": "conclusion_3", "condition": "No defect"},
+      {"source": "q3", "target": "q4", "condition": "Unsure"},
+      {"source": "q4", "target": "q5", "condition": "Yes"},
+      {"source": "q4", "target": "conclusion_3", "condition": "No"},
+      {"source": "q4", "target": "q5", "condition": "Unsure"},
+      {"source": "q5", "target": "q6", "condition": "Less than 2 years ago"},
+      {"source": "q5", "target": "conclusion_3", "condition": "2 to 4 years ago"},
+      {"source": "q5", "target": "conclusion_3", "condition": "More than 4 years ago"},
+      {"source": "q5", "target": "q6", "condition": "Unsure"},
+      {"source": "q6", "target": "q7", "condition": "Yes"},
+      {"source": "q6", "target": "conclusion_3", "condition": "No"},
+      {"source": "q6", "target": "q7", "condition": "Unsure"},
+      {"source": "q7", "target": "conclusion_1", "condition": "Less than 50% at fault"},
+      {"source": "q7", "target": "conclusion_3", "condition": "50% or more at fault"},
+      {"source": "q7", "target": "conclusion_3", "condition": "Unsure"}
+    ],
+    "nodes": [
+      {
+        "id": "q1",
+        "data": {
+          "text": "Are you dealing with a product-related injury or damage?",
+          "type": "radio",
+          "options": ["Yes", "No", "Unsure"],
+          "required": true,
+          "help_text": "Select Yes if your issue involves a physical product causing injury or damage."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q2",
+        "data": {
+          "text": "Is the entity you are considering taking action against the manufacturer or designer of the product?",
+          "type": "radio",
+          "options": ["Yes - Manufacturer", "No - Downstream seller", "Unsure"],
+          "required": true,
+          "help_text": "Check the product label or documentation to identify the original manufacturer."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q3",
+        "data": {
+          "text": "Does the product have a design, manufacturing, or warning defect?",
+          "type": "radio",
+          "options": [
+            "Yes - Design defect",
+            "Yes - Manufacturing defect",
+            "Yes - Warning defect",
+            "No defect",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "A defect could be a flaw in design, incorrect manufacturing, or inadequate instructions/warnings."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q4",
+        "data": {
+          "text": "Was the defect present when the product entered the stream of commerce?",
+          "type": "radio",
+          "options": ["Yes", "No", "Unsure"],
+          "required": true,
+          "help_text": "Determine whether the defect was inherent to the product before reaching the consumer."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q5",
+        "data": {
+          "text": "How long ago did the injury or damage occur?",
+          "type": "radio",
+          "options": [
+            "Less than 2 years ago",
+            "2 to 4 years ago",
+            "More than 4 years ago",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Use records or receipts to determine the date of the incident."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q6",
+        "data": {
+          "text": "Was the product used in its intended manner or a way that was reasonably foreseeable to the manufacturer?",
+          "type": "radio",
+          "options": ["Yes", "No", "Unsure"],
+          "required": true,
+          "help_text": "Consider if the product was being used as expected or in a way that's predictable."
+        },
+        "type": "question"
+      },
+      {
+        "id": "q7",
+        "data": {
+          "text": "To what extent do you believe you are at fault for the incident?",
+          "type": "radio",
+          "options": ["Less than 50% at fault", "50% or more at fault", "Unsure"],
+          "required": true,
+          "help_text": "Consider all contributing factors and your role in the incident."
+        },
+        "type": "question"
+      },
+      {
+        "id": "conclusion_1",
+        "data": {
+          "title": "Pursue Strict Product Liability Against Manufacturer",
+          "summary": "You have a case for strict product liability as the manufacturer is involved, a defect was present, and you are within the statutory limits using the product as intended with less than 50% fault.",
+          "severity": "info",
+          "recommendations": []
+        },
+        "type": "conclusion"
+      },
+      {
+        "id": "conclusion_2",
+        "data": {
+          "title": "Consider Negligence or Warranty Claim Against Downstream Seller",
+          "summary": "The entity is not the manufacturer, but consider negligence or warranty claims.",
+          "severity": "info",
+          "recommendations": []
+        },
+        "type": "conclusion"
+      },
+      {
+        "id": "conclusion_3",
+        "data": {
+          "title": "No Product Liability",
+          "summary": "Based on your responses, strict product liability cannot be pursued in your situation.",
+          "severity": "info",
+          "recommendations": []
+        },
+        "type": "conclusion"
+      }
+    ],
+    "metadata": {
+      "tags": [],
+      "title": "Determining Strict Product Liability in Georgia",
+      "version": "1.0.0",
+      "category": null,
+      "description": "A guide to assess if strict product liability applies in Georgia based on your responses.",
+      "estimated_time": null
+    }
+  }
+}

@@ -1,0 +1,51 @@
+<!-- Main Panel: Research streaming preview (Release 1) -->
+<div hx-swap-oob="innerHTML:#modal-container"></div>
+{% include "qnr/generation/_phase_stepper.html" %}
+
+<div class="content-display mb-6">
+    {% if workflow_title or user_prompt %}
+    <div class="mb-4 rounded-lg border border-ui-line bg-ui-surface-muted px-4 py-3 text-sm">
+        {% if workflow_title %}
+        <p class="font-medium text-ui-ink">{{ workflow_title }}</p>
+        {% endif %}
+        {% if user_prompt %}
+        <p class="mt-1 text-ui-ink-muted">{{ user_prompt }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <h1 class="text-2xl font-bold text-ui-ink mb-2">{{ loading_title | default('Analyzing factors…') }}</h1>
+    <p id="research-stream-status" class="text-sm text-ui-ink-muted mb-4">Starting research…</p>
+
+    <div
+        id="research-stream-error"
+        class="hidden mb-4 rounded-xl border border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/40 px-4 py-3 text-sm text-warning-950 dark:text-warning-100"
+        role="alert"
+    ></div>
+
+    <p class="text-xs text-ui-ink-subtle mb-2">Draft preview — editable after complete</p>
+    <div
+        id="research-stream-preview"
+        class="prose max-w-none font-mono text-sm whitespace-pre-wrap border border-ui-line rounded-lg p-4 min-h-[12rem] bg-ui-surface-muted/30 text-ui-ink-secondary"
+    ></div>
+</div>
+
+<div class="action-buttons flex gap-4">
+    <a href="/qnr/dashboard" class="btn-secondary">Cancel</a>
+    <button
+        type="button"
+        id="research-stream-cancel-btn"
+        class="btn-secondary"
+        data-thread-id="{{ thread_id }}"
+    >
+        Stop generation
+    </button>
+</div>
+
+<div
+    id="research-stream-config"
+    data-thread-id="{{ thread_id }}"
+    data-stream-url="{{ stream_url }}"
+    data-edit-url="/qnr/agentic/research/edit?thread_id={{ thread_id }}"
+    hidden
+></div>

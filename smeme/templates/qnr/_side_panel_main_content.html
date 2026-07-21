@@ -1,0 +1,220 @@
+<!-- Error display for edge operations -->
+<div id="edge-error-display"></div>
+<div id="new-edge-error-display"></div>
+
+{% if not is_read_only %}
+  {% include 'qnr/_editor_add_node.html' %}
+{% endif %}
+
+{% if selected_node_id %}
+  {% set node = graph.nodes|selectattr('id', 'equalto', selected_node_id)|first %}
+  {% if node %}
+    {% set node_title = node.id %}
+    {% if node.is_question() and node.data and node.data.text %}
+      {% set node_title = node.data.text %}
+    {% elif node.is_conclusion() and node.data and node.data.title %}
+      {% set node_title = node.data.title %}
+    {% endif %}
+    {% set outgoing_edges = graph.edges|selectattr('source', 'equalto', selected_node_id)|list %}
+    {% set incoming_edges = graph.edges|selectattr('target', 'equalto', selected_node_id)|list %}
+    {% set node_issues = node_validation_status.get(selected_node_id, {}) if node_validation_status else {} %}
+
+    <div class="side-panel-header mb-4">
+      <h3 class="text-lg font-semibold text-ui-ink leading-snug">{{ node_title }}</h3>
+      <p class="mt-1 text-xs text-ui-ink-muted font-mono">ID: {{ node.id }}</p>
+    </div>
+
+    <div class="space-y-3">
+      <details open class="rounded-lg border border-ui-line bg-ui-surface shadow-sm">
+        <summary class="cursor-pointer list-none select-none px-3 py-2.5 text-sm font-semibold text-ui-ink-secondary [&::-webkit-details-marker]:hidden">
+          <div class="flex items-center justify-between">
+            <span>Properties</span>
+            <svg class="accordion-chevron h-4 w-4 text-ui-ink-muted transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </summary>
+        <div class="border-t border-ui-line px-3 py-3">
+          {% if node.data %}
+            {% if is_read_only %}
+              <div class="bg-ui-surface-muted border border-ui-line rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-4 h-4 text-ui-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                  <span class="text-sm font-medium text-ui-ink-secondary">Read-only</span>
+                </div>
+                {% if node.is_question() %}
+                  <p class="text-sm text-ui-ink">{{ node.data.text or '(no question text)' }}</p>
+                {% else %}
+                  <p class="text-sm text-ui-ink">{{ node.data.title or '(no conclusion title)' }}</p>
+                {% endif %}
+              </div>
+            {% else %}
+              {% include 'qnr/_node_editor_form.html' %}
+            {% endif %}
+          {% endif %}
+
+          {% if not is_public and not is_read_only %}
+          <details class="mt-3 rounded-md border border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30">
+            <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium text-red-800 dark:text-red-200">
+              Danger zone
+            </summary>
+            <div class="border-t border-red-200 dark:border-red-800 px-3 py-3">
+              <form hx-post="/qnr/editor/delete_node"
+                    hx-target="#side-panel-content"
+                    hx-swap="innerHTML"
+                    hx-confirm="Delete this node? This will also delete all connected edges.">
+                <input type="hidden" name="qnr_id" value="{{ qnr_id }}">
+                <input type="hidden" name="node_id" value="{{ selected_node_id }}">
+                <button type="submit"
+                        class="w-full rounded-md border border-transparent bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                  Delete node
+                </button>
+              </form>
+            </div>
+          </details>
+          {% endif %}
+        </div>
+      </details>
+
+      <details class="rounded-lg border border-ui-line bg-ui-surface shadow-sm">
+        <summary class="cursor-pointer list-none select-none px-3 py-2.5 text-sm font-semibold text-ui-ink-secondary [&::-webkit-details-marker]:hidden">
+          <div class="flex items-center justify-between">
+            <span>Connections</span>
+            <svg class="accordion-chevron h-4 w-4 text-ui-ink-muted transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </summary>
+        <div class="border-t border-ui-line px-3 py-3 space-y-4">
+          <div>
+            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Outgoing</h4>
+            {% if node.is_question() %}
+              {% if outgoing_edges %}
+                <div class="space-y-2">
+                  {% for edge in outgoing_edges %}
+                    {% include 'qnr/_edge_item.html' with context %}
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-sm text-ui-ink-muted">No outgoing edges.</p>
+              {% endif %}
+              {% if not is_read_only %}
+                <form hx-post="/qnr/editor/create_edge_form"
+                      hx-target="#new-edge-form"
+                      hx-swap="innerHTML"
+                      class="mt-2">
+                  <input type="hidden" name="qnr_id" value="{{ qnr_id }}">
+                  <input type="hidden" name="source_node_id" value="{{ selected_node_id }}">
+                  <button type="submit"
+                          class="w-full rounded-md border border-ui-line-strong bg-ui-surface px-3 py-2 text-sm font-medium text-ui-ink-secondary hover:bg-ui-surface-muted">
+                    + Add edge
+                  </button>
+                </form>
+                <div id="new-edge-form" class="mt-2"></div>
+              {% endif %}
+            {% else %}
+              <div class="rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-900/30 p-3 text-sm text-brand-800 dark:text-brand-200">
+                Conclusion nodes are terminal and cannot have outgoing edges.
+              </div>
+            {% endif %}
+          </div>
+
+          <div>
+            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Incoming</h4>
+            {% if incoming_edges %}
+              <div class="space-y-2">
+                {% for edge in incoming_edges %}
+                  <div class="rounded border border-ui-line bg-ui-surface-muted p-2 text-sm">
+                    <span class="font-medium text-ui-ink">← {{ edge.source }}</span>
+                    <span class="ml-2 text-ui-ink-muted">
+                      {% if edge.condition %}if "{{ edge.condition }}"{% else %}(default){% endif %}
+                    </span>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-sm text-ui-ink-muted">No incoming edges (entry point).</p>
+            {% endif %}
+          </div>
+        </div>
+      </details>
+
+      <details class="rounded-lg border border-ui-line bg-ui-surface shadow-sm">
+        <summary class="cursor-pointer list-none select-none px-3 py-2.5 text-sm font-semibold text-ui-ink-secondary [&::-webkit-details-marker]:hidden">
+          <div class="flex items-center justify-between">
+            <span>Validation</span>
+            <svg class="accordion-chevron h-4 w-4 text-ui-ink-muted transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </summary>
+        <div class="border-t border-ui-line px-3 py-3">
+          {% if node_issues.get('errors') or node_issues.get('warnings') %}
+            <div class="space-y-2">
+              {% for error in node_issues.get('errors', []) %}
+                <div class="rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-800 dark:text-red-200">
+                  {{ error }}
+                </div>
+              {% endfor %}
+              {% for warning in node_issues.get('warnings', []) %}
+                <div class="rounded border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 p-2 text-xs text-yellow-900 dark:text-yellow-200">
+                  {{ warning }}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-sm text-ui-ink-muted">No node-specific validation issues.</p>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  {% endif %}
+{% else %}
+  <div class="side-panel-header mb-6">
+    <h3 class="text-lg font-semibold text-ui-ink">Workflow Editor</h3>
+    <p class="mt-1 text-sm text-ui-ink-muted">Graph-based workflow builder</p>
+  </div>
+
+  <div class="space-y-6">
+    <div class="bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-700 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-brand-600 dark:text-brand-300 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <h4 class="text-sm font-semibold text-brand-900 dark:text-brand-200 mb-1">Getting Started</h4>
+          <p class="text-sm text-brand-700 dark:text-brand-300">Use <strong class="font-medium text-brand-900 dark:text-brand-200">Add node</strong> from the toolbar, then select any node to edit properties and connections.</p>
+        </div>
+      </div>
+    </div>
+
+    {% if graph and graph.nodes %}
+    <div>
+      <h4 class="text-sm font-semibold text-ui-ink-secondary mb-2">Graph Overview</h4>
+      <div class="space-y-2 text-sm text-ui-ink-muted">
+        <div class="flex justify-between items-center">
+          <span>Total nodes:</span>
+          <span class="font-medium text-ui-ink">{{ graph.nodes|length }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span>Total edges:</span>
+          <span class="font-medium text-ui-ink">{{ graph.edges|length if graph.edges else 0 }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not (validation_data and (validation_data.get('error_count', 0) > 0 or validation_data.get('warning_count', 0) > 0)) %}
+    <div class="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-lg p-3">
+      <div class="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span class="font-medium">No validation issues</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+{% endif %}

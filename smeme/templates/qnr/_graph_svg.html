@@ -1,0 +1,278 @@
+{# SVG Graph Visualization — width/height scaled client-side via editorGraphZoom #}
+<svg width="{{ visualization.width }}" height="{{ visualization.height }}"
+     data-graph-width="{{ visualization.width }}"
+     data-graph-height="{{ visualization.height }}"
+     viewBox="0 0 {{ visualization.width }} {{ visualization.height }}"
+     xmlns="http://www.w3.org/2000/svg" class="qnr-graph">
+  
+  <!-- Marker definitions for arrowheads -->
+  <defs>
+    <marker id="arrowhead-default" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon class="graph-edge-arrow graph-edge-arrow--default" points="0 0, 10 3, 0 6" />
+    </marker>
+    <marker id="arrowhead-conditional" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon class="graph-edge-arrow graph-edge-arrow--conditional" points="0 0, 10 3, 0 6" />
+    </marker>
+    <marker id="arrowhead-highlighted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon class="graph-edge-arrow graph-edge-arrow--highlighted" points="0 0, 10 3, 0 6" />
+    </marker>
+  </defs>
+  
+  <!-- Render edges first (behind nodes) -->
+  {% for edge in visualization.edges %}
+    {% set source_node = visualization.nodes|selectattr('id', 'equalto', edge.source)|first %}
+    {% set target_node = visualization.nodes|selectattr('id', 'equalto', edge.target)|first %}
+    
+    {% if source_node and target_node %}
+      {% set x1 = source_node.position.x + 100 %}  {# NODE_WIDTH / 2 #}
+      {% set y1 = source_node.position.y + 80 %}   {# NODE_HEIGHT #}
+      {% set x2 = target_node.position.x + 100 %}
+      {% set y2 = target_node.position.y %}
+      
+      {% if edge.is_highlighted %}
+        {% set edge_class = "graph-edge graph-edge--highlighted" %}
+        {% set arrow_marker = "arrowhead-highlighted" %}
+      {% elif edge.is_default %}
+        {% set edge_class = "graph-edge graph-edge--default" %}
+        {% set arrow_marker = "arrowhead-default" %}
+      {% else %}
+        {% set edge_class = "graph-edge graph-edge--conditional" %}
+        {% set arrow_marker = "arrowhead-conditional" %}
+      {% endif %}
+      
+      <path d="M {{ x1 }},{{ y1 }} L {{ x2 }},{{ y2 }}"
+            class="{{ edge_class }}"
+            fill="none"
+            marker-end="url(#{{ arrow_marker }})" />
+      
+      {% if edge.conditions|length > 1 %}
+        {# Multiple conditions - show ellipsis with tooltip #}
+        {% set mid_x = (x1 + x2) / 2 %}
+        {% set mid_y = (y1 + y2) / 2 - 5 %}
+        <g class="edge-label-group" style="cursor: help;">
+          <title>{{ edge.conditions|join('&#10;') }}</title>
+          <!-- Transparent hover area -->
+          <rect x="{{ mid_x - 15 }}" y="{{ mid_y - 12 }}"
+                width="30" height="20"
+                fill="transparent"
+                stroke="none" />
+          <!-- Visible ellipsis -->
+          <text x="{{ mid_x }}" y="{{ mid_y }}"
+                text-anchor="middle"
+                fill="#f59e0b"
+                font-size="12"
+                font-family="system-ui, sans-serif"
+                font-weight="600"
+                pointer-events="none">
+            …
+          </text>
+        </g>
+      {% elif edge.condition %}
+        {# Single condition - show it directly #}
+        {% set mid_x = (x1 + x2) / 2 %}
+        {% set mid_y = (y1 + y2) / 2 - 5 %}
+        {% set label_len = edge.condition|length %}
+        {% set pill_width = (label_len * 7) + 12 %}
+        <g pointer-events="none">
+          <rect x="{{ mid_x - (pill_width / 2) }}"
+                y="{{ mid_y - 12 }}"
+                width="{{ pill_width }}"
+                height="18"
+                rx="9"
+                fill="var(--ui-surface)"
+                stroke="var(--ui-line-strong)"
+                stroke-width="1" />
+          <text x="{{ mid_x }}" y="{{ mid_y }}"
+                text-anchor="middle"
+                fill="#b45309"
+                font-size="12"
+                font-family="system-ui, sans-serif"
+                font-weight="600">
+            {{ edge.condition }}
+          </text>
+        </g>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  
+  <!-- Render nodes (on top of edges) -->
+  {% for node in visualization.nodes %}
+    {% if node.is_selected %}
+      {% set fill_color = "#3b82f6" %}
+      {% set stroke_color = "#1e40af" %}
+      {% set stroke_width = 3 %}
+      {% set text_color = "#ffffff" %}
+    {% elif node.is_entry %}
+      {% set fill_color = "#10b981" %}
+      {% set stroke_color = "#059669" %}
+      {% set stroke_width = 2 %}
+      {% set text_color = "#ffffff" %}
+    {% elif node.is_terminal %}
+      {% set fill_color = "#002868" %}
+      {% set stroke_color = "#001f50" %}
+      {% set stroke_width = 2 %}
+      {% set text_color = "#ffffff" %}
+    {% else %}
+      {% set fill_color = "var(--ui-graph-node)" %}
+      {% set stroke_color = "var(--ui-graph-node-stroke)" %}
+      {% set stroke_width = 2 %}
+      {% set text_color = "var(--ui-ink-secondary)" %}
+    {% endif %}
+    
+    <g class="node" data-node-id="{{ node.id }}"
+       {% if not is_public %}
+       style="cursor: pointer;"
+       onclick="
+         var form = document.createElement('form');
+         form.method = 'POST';
+         form.action = '/qnr/editor/select_node_with_qnr';
+         form.setAttribute('hx-post', '/qnr/editor/select_node_with_qnr');
+         form.setAttribute('hx-target', '#side-panel-content');
+         form.setAttribute('hx-swap', 'innerHTML');
+         var nodeInput = document.createElement('input');
+         nodeInput.type = 'hidden';
+         nodeInput.name = 'node_id';
+         nodeInput.value = '{{ node.id }}';
+         form.appendChild(nodeInput);
+         var qnrInput = document.createElement('input');
+         qnrInput.type = 'hidden';
+         qnrInput.name = 'qnr_id';
+         qnrInput.value = '{{ qnr_id }}';
+         form.appendChild(qnrInput);
+         document.body.appendChild(form);
+         htmx.process(form);
+         form.requestSubmit();
+       "
+       {% else %}
+       style="cursor: not-allowed;"
+       onclick="alert('This assessment is public and cannot be edited directly. Create a new version to make changes.')"
+       {% endif %}
+       >
+      <title>{{ node.tooltip or node.label }}</title>
+      <rect
+        x="{{ node.position.x }}" y="{{ node.position.y }}"
+        width="200" height="80"
+        fill="{{ fill_color }}"
+        stroke="{{ stroke_color }}"
+        stroke-width="{{ stroke_width }}"
+        rx="8"
+        class="node-rect"
+      />
+      <text
+        x="{{ node.position.x + 100 }}" y="{{ node.position.y + 40 }}"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        fill="{{ text_color }}"
+        font-size="{% if node.label|length > 22 %}12{% else %}14{% endif %}"
+        font-family="system-ui, sans-serif"
+        pointer-events="none">
+        {{ node.label }}
+      </text>
+      
+      {# Node type badges #}
+      {% if node.is_entry %}
+        {# Entry badge (green circle, top-left corner) #}
+        <circle
+          cx="{{ node.position.x + 12 }}"
+          cy="{{ node.position.y + 12 }}"
+          r="10"
+          fill="#10b981"
+          stroke="#ffffff"
+          stroke-width="2.5"
+          pointer-events="none">
+          <title>Entry node (Start)</title>
+        </circle>
+        <text
+          x="{{ node.position.x + 12 }}"
+          y="{{ node.position.y + 13 }}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#ffffff"
+          font-size="11"
+          font-weight="bold"
+          font-family="Arial, sans-serif"
+          pointer-events="none">
+          S
+        </text>
+      {% endif %}
+      
+      {% if node.is_terminal %}
+        {# Terminal badge (brand circle, bottom-right corner) #}
+        <circle
+          cx="{{ node.position.x + 188 }}"
+          cy="{{ node.position.y + 68 }}"
+          r="10"
+          fill="#002868"
+          stroke="#ffffff"
+          stroke-width="2.5"
+          pointer-events="none">
+          <title>Terminal node (End)</title>
+        </circle>
+        <text
+          x="{{ node.position.x + 188 }}"
+          y="{{ node.position.y + 69 }}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#ffffff"
+          font-size="11"
+          font-weight="bold"
+          font-family="Arial, sans-serif"
+          pointer-events="none">
+          E
+        </text>
+      {% endif %}
+      
+      {# Validation indicators (top-right corner) #}
+      {% if node.has_errors %}
+        {# Error badge (red dot, top-right corner) #}
+        <circle
+          cx="{{ node.position.x + 190 }}"
+          cy="{{ node.position.y + 10 }}"
+          r="8"
+          fill="#dc2626"
+          stroke="#ffffff"
+          stroke-width="2"
+          pointer-events="none">
+          <title>This node has validation errors</title>
+        </circle>
+        <text
+          x="{{ node.position.x + 190 }}"
+          y="{{ node.position.y + 10 }}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#ffffff"
+          font-size="10"
+          font-weight="bold"
+          font-family="system-ui, sans-serif"
+          pointer-events="none">
+          !
+        </text>
+      {% elif node.has_warnings %}
+        {# Warning badge (yellow/orange dot, top-right corner) #}
+        <circle
+          cx="{{ node.position.x + 190 }}"
+          cy="{{ node.position.y + 10 }}"
+          r="8"
+          fill="#f59e0b"
+          stroke="#ffffff"
+          stroke-width="2"
+          pointer-events="none">
+          <title>This node has validation warnings</title>
+        </circle>
+        <text
+          x="{{ node.position.x + 190 }}"
+          y="{{ node.position.y + 10 }}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#ffffff"
+          font-size="10"
+          font-weight="bold"
+          font-family="system-ui, sans-serif"
+          pointer-events="none">
+          !
+        </text>
+      {% endif %}
+    </g>
+  {% endfor %}
+</svg>
+

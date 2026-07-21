@@ -1,0 +1,25 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import btn %}
+{% block title %}500 - Something went wrong{% endblock %}
+{% block main_class %}flex items-center justify-center min-h-[calc(100vh-8rem)]{% endblock %}
+{% block content %}
+<div class="text-center">
+  <div class="mb-8">
+    <h1 class="text-9xl font-bold text-brand-600">500</h1>
+    <h2 class="text-3xl font-semibold text-ui-ink mt-4">Something went wrong</h2>
+    <p class="text-ui-ink-secondary mt-2 text-lg">
+      An unexpected error occurred on our end. Please try again in a moment.
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-4 justify-center">
+    {{ btn("Go to homepage", variant="primary", size="lg", href="/") }}
+    {{ btn("Go back", variant="secondary", size="lg", href="javascript:history.back()") }}
+  </div>
+
+  <p class="text-sm text-ui-ink-muted mt-8">
+    If this keeps happening,
+    <a href="mailto:contact@aristalabs.ai" class="text-brand-700 dark:text-brand-300 underline underline-offset-2 hover:no-underline font-medium">email us</a>.
+  </p>
+</div>
+{% endblock %}

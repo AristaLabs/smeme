@@ -1,0 +1,18 @@
+{# MCP Listed / Hidden toggle — pass qnr_id + mcp_discoverable; optional select_id, return_next #}
+{% set sid = select_id|default('disc-' ~ qnr_id) %}
+{% set listed = mcp_discoverable|default(false) %}
+<form method="post" action="/qnr/mcp/discoverable" class="inline-flex items-center gap-2">
+  <input type="hidden" name="qnr_id" value="{{ qnr_id }}" />
+  {% if return_next is defined and return_next %}
+  <input type="hidden" name="return_next" value="{{ return_next }}" />
+  {% endif %}
+  <label class="sr-only" for="{{ sid }}">Listed or hidden for MCP tools</label>
+  <select name="enabled"
+          id="{{ sid }}"
+          class="rounded-md px-2.5 py-1.5 text-xs font-medium max-w-[11rem] focus:outline-none focus:ring-1 {% if listed %}border border-emerald-600/15 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-600/15 focus:border-emerald-500 focus:ring-emerald-500{% else %}border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 ring-1 ring-amber-600/20 focus:border-amber-500 focus:ring-amber-500{% endif %}{% if select_extra_class %} {{ select_extra_class }}{% endif %}"
+          title="{% if listed %}Listed — your AI can discover this workflow via MCP.{% else %}Hidden — deployed but not on your AI's tool list. Set to Listed when ready.{% endif %}"
+          onchange="this.form.requestSubmit()">
+    <option value="false" {% if not listed %}selected{% endif %}>Hidden</option>
+    <option value="true" {% if listed %}selected{% endif %}>Listed</option>
+  </select>
+</form>

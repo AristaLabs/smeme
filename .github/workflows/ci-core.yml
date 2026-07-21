@@ -1,0 +1,201 @@
+name: Core CI / GHCR
+
+# Public AristaLabs/smeme pipeline:
+# - PRs / main pushes → CI + Core boundary checks
+# - Version tags v*.*.* → publish ghcr.io/AristaLabs/smeme
+#
+# Intentionally omits SaaS dual-stage / Render deploy jobs.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  ci:
+    name: Core CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies (Core + dev; no saas extra)
+        run: uv sync --extra dev
+
+      - name: §10.2 product-path gate (no legacy DTQ tokens)
+        run: uv run python scripts/check_no_dtq_product_refs.py
+
+      - name: Core entrypoint must not import SAAS-ONLY modules (D023)
+        run: uv run python scripts/check_core_no_saas_imports.py
+
+      - name: Core appliance image boundary
+        run: |
+          docker build -f Dockerfile.core -t smeme:ci .
+          uv run python scripts/check_core_no_saas_imports.py --image smeme:ci
+
+      - name: Core self-host artifacts present
+        run: |
+          test -f Dockerfile.core
+          test -f start-core.sh
+          test -f docker-compose.core.yml
+          test -f smeme/core_entrypoint.py
+          test ! -f smeme/main.py
+          test ! -f smeme/saas_overlay.py
+          test -f CONTRIBUTING.md
+          test -f LICENSE.md
+
+      - name: Run linter
+        run: uv run ruff check smeme
+
+      - name: Run formatter check
+        run: uv run ruff format --check smeme
+
+      - name: Check Alembic revision integrity
+        run: |
+          HEADS=$(uv run alembic heads | wc -l)
+          if [ "$HEADS" -gt 1 ]; then
+            echo "ERROR: Multiple Alembic heads detected!"
+            uv run alembic heads
+            exit 1
+          fi
+
+      - name: Validate Cowork skills
+        run: uv run python scripts/validate_cowork_plugin.py
+
+      - name: Verify guidance artifact is fresh
+        run: uv run python scripts/build_guidance_artifact.py --check
+
+      - name: Verify design guidance artifact is fresh
+        run: uv run python scripts/build_design_guidance_artifact.py --check
+
+      - name: Cowork skills validator unit tests
+        env:
+          SECRET_KEY: github-actions-ci-secret-key-min-32-chars!!
+          JWT_SECRET_KEY: github-actions-ci-jwt-secret-key-min-32b!
+          DATABASE_URL: postgresql+asyncpg://smeme:smeme@localhost:5432/smeme_ci
+          OPENAI_API_KEY: sk-ci-placeholder-not-used-by-validator-unit-tests
+        run: uv run pytest tests/unit/test_validate_cowork_plugin.py -q
+
+  alembic-drift:
+    name: Alembic model drift + golden matrix
+    runs-on: ubuntu-latest
+    needs: ci
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: smeme
+          POSTGRES_PASSWORD: smeme
+          POSTGRES_DB: smeme_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smeme -d smeme_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://smeme:smeme@localhost:5432/smeme_ci
+      SECRET_KEY: github-actions-ci-secret-key-min-32-chars!!
+      JWT_SECRET_KEY: github-actions-ci-jwt-secret-key-min-32b!
+      OPENAI_API_KEY: sk-ci-placeholder-not-used-by-alembic-drift
+      RUN_ALEMBIC_DRIFT: "1"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Check Alembic autogenerate drift
+        run: bash scripts/check_alembic_no_drift.sh
+
+      - name: Golden matrix regression tests
+        run: uv run pytest -m golden_matrix -q
+
+  publish:
+    name: Publish Core image to GHCR
+    runs-on: ubuntu-latest
+    needs: [ci, alembic-drift]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: core-ghcr-publish
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version tag
+        id: tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+            type=raw,value=sha-${{ github.sha }}
+
+      - name: Build and push Core image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.core
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Record digest
+        run: |
+          echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "::notice::Core image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}@${{ steps.build.outputs.digest }}"

@@ -1,0 +1,368 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import callout %}
+{% block title %}Connect your agent (MCP) — Docs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Connect your agent" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    {# Sidebar — desktop #}
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    {# Main content #}
+    <article class="min-w-0 flex-1">
+
+      {# Mobile nav #}
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Connect your agent</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Add the SMEme MCP server to Claude Cowork, Cursor, Microsoft Copilot, or any MCP client.
+          After OAuth, your agent bootstraps the calling contract over the wire via
+          <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code>.
+          Invoke any of your deployed, listed workflows from a plain-language prompt.
+        </p>
+      </header>
+
+      {% if not mcp_enabled %}
+      {% call callout("warning", title="MCP is not enabled on this server", extra_class="mb-8") %}
+        <p>The operator has not enabled the MCP endpoint for this deployment. You can still build and deploy workflows; connection details will appear here once MCP is enabled.</p>
+      {% endcall %}
+      {% endif %}
+
+      <div class="space-y-10">
+
+        {# Prerequisites #}
+        <section aria-labelledby="prereq-heading">
+          <h2 id="prereq-heading" class="text-base font-semibold text-ui-ink mb-3">Before you start</h2>
+          <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>You have at least one workflow that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/qnr/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>You have signed into the <strong class="font-medium text-ui-ink">SMEme web app</strong> at least once so your account links to OAuth.</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Installation — connector first #}
+        <section aria-labelledby="install-steps-heading">
+          <h2 id="install-steps-heading" class="text-base font-semibold text-ui-ink mb-5">Setup</h2>
+
+          <div class="space-y-6">
+
+            {# Step 1 — MCP connector #}
+            <div>
+              <div class="flex items-center gap-3 mb-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300">1</span>
+                <h3 id="connect-heading" class="text-sm font-semibold text-ui-ink">Add the MCP connector</h3>
+              </div>
+              <p class="text-sm text-ui-ink-secondary leading-relaxed mb-3">
+                In your AI client, add a <strong class="font-medium text-ui-ink">custom MCP connector</strong> (remote HTTP) with the values below, then complete OAuth when prompted.
+              </p>
+              {% if mcp_enabled %}
+              {% if mcp_connector_url_differs %}
+              {% call callout("info", extra_class="mb-3") %}
+                <p>You're viewing docs on a local deployment. Remote MCP clients (Claude, ChatGPT, Cursor) must use the <strong class="font-medium">production</strong> URL below — not <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">localhost</code>.</p>
+              {% endcall %}
+              {% endif %}
+              <div class="overflow-hidden rounded-xl border border-brand-200/90 bg-ui-surface shadow-sm ring-1 ring-brand-500/10">
+                <div class="flex items-center gap-2.5 border-b border-brand-100/80 bg-gradient-to-b from-brand-50/60 to-ui-surface px-4 py-3 dark:from-brand-950/30">
+                  <img src="/static/mcp-logo.svg"
+                       alt=""
+                       width="20"
+                       height="20"
+                       class="h-5 w-5 shrink-0 rounded-[4px]"
+                       aria-hidden="true"
+                       decoding="async" />
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-800 dark:text-brand-300">MCP connector values</p>
+                    <p class="mt-0.5 text-xs text-ui-ink-muted leading-snug">Copy these when adding a remote connector in your AI client.</p>
+                  </div>
+                </div>
+                <div class="space-y-4 px-4 py-4">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">MCP endpoint URL</p>
+                    <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
+                       title="Select all to copy">{{ mcp_connector_url }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
+                    <p class="mt-1 text-xs text-ui-ink-muted leading-snug">When your client asks for a Client ID (leave secret blank — PKCE public client):</p>
+                    <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
+                       title="Select all to copy">{{ mcp_oauth_client_id }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-5 space-y-3">
+                <p class="text-sm font-semibold text-ui-ink">Step-by-step by client</p>
+
+                <details id="install-claude" class="group rounded-xl border border-ui-line bg-ui-surface open:ring-1 open:ring-brand-500/20">
+                  <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ui-ink [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+                    <span>Claude (Chat, Cowork, Desktop)</span>
+                    <svg class="h-4 w-4 shrink-0 text-ui-ink-muted transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </summary>
+                  <div class="border-t border-ui-line px-4 py-3">
+                    <ol class="space-y-2.5 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
+                      <li>Open <strong class="font-medium text-ui-ink">Customize → Connectors</strong> at <a href="https://claude.ai/customize/connectors" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">claude.ai/customize/connectors</a> (same list in Claude Chat, Cowork, and Claude Desktop).</li>
+                      <li>Click <strong class="font-medium text-ui-ink">+</strong> → <strong class="font-medium text-ui-ink">Add custom connector</strong>.</li>
+                      <li>Paste the <strong class="font-medium text-ui-ink">MCP endpoint URL</strong> from above.</li>
+                      <li>Open <strong class="font-medium text-ui-ink">Advanced settings</strong> → enter the <strong class="font-medium text-ui-ink">OAuth Client ID</strong> from above. Leave client secret <strong class="font-medium text-ui-ink">blank</strong> (PKCE public client).</li>
+                      <li>Click <strong class="font-medium text-ui-ink">Add</strong>, then complete OAuth. Sign in with the <strong class="font-medium text-ui-ink">same email</strong> you use on SMEme.</li>
+                      <li>In a conversation, click <strong class="font-medium text-ui-ink">+</strong> → <strong class="font-medium text-ui-ink">Connectors</strong> and turn SMEme on for that chat.</li>
+                    </ol>
+                    <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">
+                      <strong class="font-medium text-ui-ink">Team / Enterprise:</strong> an Owner adds the connector under <strong class="font-medium text-ui-ink">Organization settings → Connectors</strong> first; you then click <strong class="font-medium text-ui-ink">Connect</strong>.
+                      <a href="https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">Anthropic help</a>.
+                    </p>
+                  </div>
+                </details>
+
+                <details id="install-chatgpt" class="group rounded-xl border border-ui-line bg-ui-surface open:ring-1 open:ring-brand-500/20">
+                  <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ui-ink [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+                    <span>ChatGPT</span>
+                    <svg class="h-4 w-4 shrink-0 text-ui-ink-muted transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </summary>
+                  <div class="border-t border-ui-line px-4 py-3">
+                    <p class="mb-3 text-xs text-ui-ink-muted leading-relaxed">
+                      Requires <strong class="font-medium text-ui-ink">ChatGPT Pro, Team, Enterprise, or Edu</strong> with <strong class="font-medium text-ui-ink">Developer Mode</strong>. Your agent bootstraps via <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">guidance_get</code> after OAuth.
+                      <strong class="font-medium text-ui-ink">Initial setup is browser-only:</strong> turn on Developer Mode and create the connector at <a href="https://chatgpt.com" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">chatgpt.com</a> — not in the ChatGPT desktop app. After OAuth succeeds, the connector is on your account and SMEme will be available across all platforms and devices.
+                    </p>
+                    <ol class="space-y-2.5 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
+                      <li>In your <strong class="font-medium text-ui-ink">browser</strong>, open <a href="https://chatgpt.com" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">chatgpt.com</a> → <strong class="font-medium text-ui-ink">Settings → Apps &amp; Connectors</strong>.</li>
+                      <li>Scroll to <strong class="font-medium text-ui-ink">Advanced settings</strong> at the bottom of that page → turn <strong class="font-medium text-ui-ink">Developer mode</strong> on and accept the warning.</li>
+                      <li>Click <strong class="font-medium text-ui-ink">Create</strong> (appears after developer mode is on).</li>
+                      <li>Enter a <strong class="font-medium text-ui-ink">name</strong> (e.g. SMEme), paste the <strong class="font-medium text-ui-ink">MCP server URL</strong> from above, and set <strong class="font-medium text-ui-ink">Authentication</strong> to <strong class="font-medium text-ui-ink">OAuth</strong>.</li>
+                      <li>In the <strong class="font-medium text-ui-ink">create dialog</strong>, open <strong class="font-medium text-ui-ink">Advanced settings</strong> → paste the <strong class="font-medium text-ui-ink">OAuth Client ID</strong> from above. Leave client secret <strong class="font-medium text-ui-ink">blank</strong> (PKCE public client). SMEme requires this static Client ID — it is not shown on the main form until you expand Advanced settings here.</li>
+                      <li>Click <strong class="font-medium text-ui-ink">Create</strong> (or <strong class="font-medium text-ui-ink">Scan tools</strong> if shown) → complete OAuth and sign in with the <strong class="font-medium text-ui-ink">same account</strong> you use on SMEme.</li>
+                      <li>Start a <strong class="font-medium text-ui-ink">new chat</strong>, click <strong class="font-medium text-ui-ink">+</strong> in the composer → enable your SMEme connector for that conversation.</li>
+                    </ol>
+                    <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">
+                      <strong class="font-medium text-ui-ink">Two “Advanced settings” panels:</strong> page-level (step 2) enables Developer mode; dialog-level (step 5) is where you paste the OAuth Client ID.
+                      If OAuth fails, confirm both are set and retry. Workspace admins may need to allow custom apps.
+                      <a href="https://developers.openai.com/apps-sdk/deploy/connect-chatgpt" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">OpenAI connect guide</a>.
+                    </p>
+                  </div>
+                </details>
+
+                <p class="text-xs text-ui-ink-muted leading-relaxed">
+                  <strong class="font-medium text-ui-ink">Other clients</strong> (Cursor, Microsoft Copilot, etc.): add a remote MCP server with the same URL and OAuth Client ID in that client’s MCP settings, then complete OAuth.
+                </p>
+              </div>
+              {% else %}
+              <p class="text-sm text-ui-ink-muted">Connection details will appear here once MCP is enabled for this deployment.</p>
+              {% endif %}
+            </div>
+
+            {# Step 2 — Agent bootstrap #}
+            <div>
+              <div class="flex items-center gap-3 mb-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300">2</span>
+                <h3 id="bootstrap-heading" class="text-sm font-semibold text-ui-ink">Let your agent bootstrap</h3>
+              </div>
+              <p class="text-sm text-ui-ink-secondary leading-relaxed mb-3">
+                After OAuth, your agent should call tools in this order (most capable agents do this automatically):
+              </p>
+              <ol class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
+                <li><code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_capabilities</code> — read <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">guidance.content_digest</code> and the tool list.</li>
+                <li>If there is no cached guidance or the digest changed → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code> — cache <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">content_markdown</code> (full calling contract).</li>
+                <li><code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_template_get</code> → validate → evaluate.</li>
+              </ol>
+              <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
+                Public tool reference: <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a>.
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Tools #}
+        <section aria-labelledby="tools-heading">
+          <h2 id="tools-heading" class="text-base font-semibold text-ui-ink mb-3">MCP tools</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Your agent discovers these at connect time. Guidance tools (quota 0) bootstrap the session; the rest follow the sequence in step 2.
+          </p>
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="min-w-full border-collapse text-left text-sm">
+              <thead>
+                <tr class="border-b border-ui-line bg-ui-surface-muted">
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">Tool</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">What it does</th>
+                  <th scope="col" class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ui-ink-muted text-center">Quota</th>
+                </tr>
+              </thead>
+              <tbody class="bg-ui-surface divide-y divide-ui-line">
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_capabilities</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Session bootstrap: service info, MCP surface version, authoritative tool list, and <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">guidance.content_digest</code>.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_guidance_check</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Cheap guidance digest probe — use only when skipping capabilities.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_guidance_get</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Full platform calling contract as markdown — cache when digest matches.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_list</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Returns all your deployed, Listed workflows with their names and descriptions.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_list_conclusions</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Catalog of possible outcomes — used before <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">how_to_reach</code>.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_template_check</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Lightweight worksheet drift check — does not return question bodies.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_template_get</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Authoritative per-workflow worksheet — question IDs, labels, and valid option strings.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_validate_answers</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Validates provenance envelope shape, refs, and consistency before evaluate.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_evaluate</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Runs compiled reasoning; returns <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">report</code> with <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">result_kind</code>.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_what_if</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Scenario comparison: baseline vs override with structured delta.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">2</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_how_to_reach</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Minimal answer edits to reach a target conclusion.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">2.5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">Quota weights count against your monthly MCP tool call allowance. See <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a>.</p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# How to invoke #}
+        <section aria-labelledby="invoke-heading">
+          <h2 id="invoke-heading" class="text-base font-semibold text-ui-ink mb-3">Invoking a workflow</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-3">
+            Once connected, prompt your agent in plain language. Mention the workflow name or describe the task:
+          </p>
+          <div class="space-y-2">
+            <div class="rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 font-mono text-sm text-ui-ink-secondary">
+              "Run the foreign national property tax workflow on the Chen matter using the files in this project."
+            </div>
+            <div class="rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 font-mono text-sm text-ui-ink-secondary">
+              "Evaluate whether this lease qualifies as a triple-net lease."
+            </div>
+            <div class="rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 font-mono text-sm text-ui-ink-secondary">
+              "Use SMEme to determine eligibility and then draft the client letter."
+            </div>
+          </div>
+          <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
+            Your agent should: bootstrap guidance → list workflows → fetch the worksheet → gather evidence → validate → evaluate → return the report.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Tips #}
+        <section aria-labelledby="tips-heading">
+          <h2 id="tips-heading" class="text-base font-semibold text-ui-ink mb-4">Tips</h2>
+          <ul class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
+            <li>
+              <strong class="font-medium text-ui-ink">Connector first.</strong>
+              URL + OAuth Client ID + OAuth connects SMEme. Install the Cowork zip only <em>after</em> MCP works, and only if you want preloaded skills — the zip does not install SMEme.
+            </li>
+            <li>
+              <strong class="font-medium text-ui-ink">Name workflows clearly.</strong>
+              The name is how your agent finds the right tool — e.g. "Foreign national property tax analysis" rather than "QNR 3".
+            </li>
+            <li>
+              <strong class="font-medium text-ui-ink">Redeploy after edits.</strong>
+              Changes saved in the editor don't take effect until you redeploy. If your workflow shows <strong class="font-medium text-ui-ink">Stale</strong> on the dashboard, agents run the old version.
+            </li>
+            <li>
+              <strong class="font-medium text-ui-ink">Use Hidden for drafts.</strong>
+              Keep a workflow Hidden until it's fully tested. Listed workflows are available to your AI immediately.
+            </li>
+            <li>
+              <strong class="font-medium text-ui-ink">Ask follow-ups after evaluation.</strong>
+              Stay in the same conversation for what-if, how-to-reach, or document drafts — scenario comparisons count as <strong class="font-medium text-ui-ink">2</strong> quota units; repair plans as <strong class="font-medium text-ui-ink">2.5</strong>.
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        {# Use cases #}
+        <section aria-labelledby="use-cases-heading">
+          <h2 id="use-cases-heading" class="text-base font-semibold text-ui-ink mb-4">Example use cases</h2>
+          <dl class="grid sm:grid-cols-2 gap-3">
+            <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
+              <dt class="text-sm font-semibold text-ui-ink">Legal matter analysis</dt>
+              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Encode a checklist for a category of matter. Your agent gathers facts, calls SMEme, returns a determined outcome with the full reasoning chain.</dd>
+            </div>
+            <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
+              <dt class="text-sm font-semibold text-ui-ink">Compliance &amp; eligibility screening</dt>
+              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Build workflows for regulatory eligibility questions. Get a yes/no/conditional with the conditions that decided it.</dd>
+            </div>
+            <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
+              <dt class="text-sm font-semibold text-ui-ink">Repeatable triage</dt>
+              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Encode a triage procedure so every intake gets evaluated the same way.</dd>
+            </div>
+            <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
+              <dt class="text-sm font-semibold text-ui-ink">Scenario analysis</dt>
+              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Vary one input and re-run with <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_what_if</code> or find minimal edits with <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_how_to_reach</code>.</dd>
+            </div>
+          </dl>
+        </section>
+
+        {# See also #}
+        <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="space-y-1">
+            <li><a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Public MCP tool reference</a> — wire names, anti-patterns, error codes</li>
+            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building workflows</a> — create and edit your workflows</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and expose your workflows</li>
+          </ul>
+        </div>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

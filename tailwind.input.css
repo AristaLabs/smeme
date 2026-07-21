@@ -1,0 +1,145 @@
+/*
+ * Tailwind source for the pre-built production stylesheet.
+ * Built to smeme/static/css/app.css by scripts/build_css.sh (or `make css`).
+ *
+ * Everything below the @tailwind directives is custom CSS that is NOT expressible
+ * as utilities: the --ui-* design tokens (referenced by the ui.* colors in
+ * tailwind.config.js), base element styling, and a few component classes that were
+ * previously inlined as "critical CSS" in layouts/base.html.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ui-canvas: #f9fafb;
+    --ui-surface: #ffffff;
+    --ui-surface-muted: #f9fafb;
+    --ui-surface-hover: #f3f4f6;
+    --ui-ink: #111827;
+    --ui-ink-secondary: #374151;
+    --ui-ink-muted: #6b7280;
+    --ui-ink-subtle: #9ca3af;
+    --ui-line: #e5e7eb;
+    --ui-line-strong: #d1d5db;
+    --ui-graph-node: #f3f4f6;
+    --ui-graph-node-stroke: #9ca3af;
+    --ui-graph-edge: #6b7280;
+  }
+  html.dark {
+    --ui-canvas: #111827;
+    --ui-surface: #1f2937;
+    --ui-surface-muted: #111827;
+    --ui-surface-hover: #374151;
+    --ui-ink: #f9fafb;
+    --ui-ink-secondary: #e5e7eb;
+    --ui-ink-muted: #9ca3af;
+    --ui-ink-subtle: #6b7280;
+    --ui-line: #374151;
+    --ui-line-strong: #4b5563;
+    --ui-graph-node: #374151;
+    --ui-graph-node-stroke: #6b7280;
+    --ui-graph-edge: #9ca3af;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Preserve the prior body defaults (system font stack, not the Inter heading font). */
+  body {
+    min-height: 100vh;
+    background-color: var(--ui-canvas);
+    color: var(--ui-ink);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  #app-layout-shift {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--ui-canvas);
+  }
+  /* Modal container: pass-through when empty, clickable when it has content */
+  #modal-container:empty {
+    pointer-events: none;
+  }
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--ui-surface-hover);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ui-ink-subtle);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ui-ink-muted);
+  }
+  /* HTMX deploy trigger: spinner on same modal request as open */
+  .deploy-flow-btn {
+    position: relative;
+  }
+  .deploy-flow-spinner.htmx-indicator {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .deploy-flow-spinner.htmx-indicator.htmx-request {
+    opacity: 1;
+  }
+  .deploy-flow-btn.htmx-request {
+    pointer-events: none;
+  }
+  .deploy-flow-btn.htmx-request .deploy-flow-label {
+    opacity: 0.35;
+  }
+  .deploy-submit-spinner.htmx-indicator {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .deploy-submit-spinner.htmx-indicator.htmx-request {
+    opacity: 1;
+  }
+  /* Deploy modal: full-region preflight spinner (sibling of swapped #publish-preflight-root) */
+  #publish-preflight-indicator.htmx-indicator {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+  #publish-preflight-indicator.htmx-indicator.htmx-request {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Wizard subgraph overlay: never paint until HTMX activates it (avoids refresh flash) */
+  .htmx-indicator.subgraph-overlay:not(.htmx-request) {
+    display: none !important;
+  }
+  html.dark .smeme-logo-light {
+    display: none;
+  }
+  html:not(.dark) .smeme-logo-dark {
+    display: none;
+  }
+  html[data-theme-pref="light"] .theme-icon-dark,
+  html[data-theme-pref="light"] .theme-icon-system {
+    display: none;
+  }
+  html[data-theme-pref="dark"] .theme-icon-light,
+  html[data-theme-pref="dark"] .theme-icon-system {
+    display: none;
+  }
+  html[data-theme-pref="system"] .theme-icon-light,
+  html[data-theme-pref="system"] .theme-icon-dark {
+    display: none;
+  }
+}

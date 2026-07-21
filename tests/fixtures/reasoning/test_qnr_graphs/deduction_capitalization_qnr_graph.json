@@ -1,0 +1,159 @@
+{
+  "edges": [
+    {
+      "source": "q1",
+      "target": "conclusion_1",
+      "condition": "Personal use"
+    },
+    {
+      "source": "q1",
+      "target": "q2",
+      "condition": "Trade or business use"
+    },
+    {
+      "source": "q1",
+      "target": "q3",
+      "condition": "Held for investment"
+    },
+    {
+      "source": "q2",
+      "target": "conclusion_2",
+      "condition": "Yes"
+    },
+    {
+      "source": "q2",
+      "target": "conclusion_1",
+      "condition": "No"
+    },
+    {
+      "source": "q3",
+      "target": "q4",
+      "condition": "Yes"
+    },
+    {
+      "source": "q3",
+      "target": "conclusion_1",
+      "condition": "No"
+    },
+    {
+      "source": "q4",
+      "target": "conclusion_3",
+      "condition": "Yes, eligible to capitalize costs"
+    },
+    {
+      "source": "q4",
+      "target": "conclusion_1",
+      "condition": "No, no eligible expenses"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "q1",
+      "data": {
+        "text": "How do you primarily use the property?",
+        "type": "radio",
+        "options": [
+          "Personal use",
+          "Trade or business use",
+          "Held for investment"
+        ],
+        "required": true,
+        "help_text": "Select the primary use of your property. Personal use refers to personal enjoyment and living. Trade or business use means it is used in a business operation. Held for investment means the property is intended to generate income but is not currently in active rental use.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q2",
+      "data": {
+        "text": "Is the property generating any income through its use in trade or business?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "Consider any rents, license fees, or other revenues generated from the property's current use in a trade or business.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q3",
+      "data": {
+        "text": "Is the property classified as held for a long-term investment with the intention to generate future income?",
+        "type": "radio",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "required": true,
+        "help_text": "This refers to properties purchased with the expectation of yielding income from an increase in capital value or future rental income.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "q4",
+      "data": {
+        "text": "Do you have any current expenses related to loans or maintenance that might be capitalized as carrying costs while the property is held for investment?",
+        "type": "radio",
+        "options": [
+          "Yes, eligible to capitalize costs",
+          "No, no eligible expenses"
+        ],
+        "required": true,
+        "help_text": "Carrying costs include interest expenses, property taxes, maintenance expenses, etc., that can be capitalized, increasing the investment basis.",
+        "placeholder": null
+      },
+      "type": "question"
+    },
+    {
+      "id": "conclusion_1",
+      "data": {
+        "title": "No Deduction or Capitalization Available",
+        "summary": "Property taxes cannot be deducted or capitalized as the property is used for personal purposes or does not meet criteria for trade or business or investment capitalization.",
+        "severity": "info",
+        "recommendations": [
+          "Review primary use of property",
+          "Consult tax advisor for possible reclassification options"
+        ]
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_2",
+      "data": {
+        "title": "Deduction Available for Trade or Business Use",
+        "summary": "When the property is actively used in trade or business and generates income, property taxes paid can be deducted in compliance with applicable U.S. tax rules.",
+        "severity": "info",
+        "recommendations": [
+          "Ensure proper record keeping of generated income",
+          "Consult tax professional to apply deductions appropriately"
+        ]
+      },
+      "type": "conclusion"
+    },
+    {
+      "id": "conclusion_3",
+      "data": {
+        "title": "Capitalization of Carrying Costs Available",
+        "summary": "If held strictly for investment purposes with intention for future income and certain costs related to property can be capitalized, then property taxes can be considered as part of capitalization strategy.",
+        "severity": "info",
+        "recommendations": [
+          "Document and track all eligible carrying costs",
+          "Plan capitalization strategy with a tax expert"
+        ]
+      },
+      "type": "conclusion"
+    }
+  ],
+  "metadata": {
+    "tags": [],
+    "title": "Property Tax Deduction and Capitalization Qualification",
+    "version": "1.0.0",
+    "category": null,
+    "description": "Determine if property taxes on foreign-owned real estate can be deducted or capitalized.",
+    "estimated_time": null
+  }
+}

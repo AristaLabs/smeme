@@ -1,0 +1,13 @@
+# Gitleaks config for SMEme Core (public extract).
+# OAuth PKCE client IDs are public identifiers, not secrets.
+
+title = "smeme-core"
+
+[allowlist]
+description = "Public PKCE / connector identifiers documented for SaaS MCP setup"
+regexes = [
+  '''NRdsdBvrio0DW9yo''',
+]
+paths = [
+  '''(?i)EXTRACT_README\.txt$''',
+]
