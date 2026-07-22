@@ -11,6 +11,11 @@ related analysis — without treating full evidence collection as the only path.
 Agents gather evidence and pose questions; the server keeps the decision logic
 and evaluation boundary under operator control.
 
+**Agent bootstrap:** after OAuth, the client asks SMEme for the calling contract
+via MCP (`smeme_reasoning_capabilities` → `smeme_reasoning_guidance_get`). There
+is no installable plugin zip — guidance is served over the wire. Humans edit
+prose under [`agent-skills/`](agent-skills/README.md); CI builds what MCP returns.
+
 ---
 
 ## Tech Stack

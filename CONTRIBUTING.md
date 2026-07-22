@@ -51,7 +51,7 @@ Optional knobs (OpenAI, Tavily, MCP authoring, Clerk) are listed in `.env.core.e
 | Editor, dashboard, Deploy / Listed | Stripe Checkout / Portal / webhooks |
 | Reasoning + MCP tools | Marketing landing, SEO, Business waitlist |
 | Quota *engine* | Upgrade CTAs, downgrade pick-flow |
-| Skills under `plugin/agent-skills/` | Arista legal / subprocessors pages |
+| Skills under `agent-skills/` | Arista legal / subprocessors pages |
 | `create_core_app` / `core_entrypoint` | `saas_overlay` / `create_saas_app` |
 
 ## Code style

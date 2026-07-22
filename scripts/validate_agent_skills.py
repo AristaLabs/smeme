@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ``plugin/agent-skills`` (guidance / rubric authoring source) for CI.
+"""Validate ``agent-skills`` (guidance / rubric authoring source) for CI.
 
 Checks: required skill files exist, agent-safe vocabulary denylist, and that
 ``installed_plugin_version`` in the primary skill matches
@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-SKILLS_SRC = ROOT / "plugin" / "agent-skills"
+SKILLS_SRC = ROOT / "agent-skills"
 
 _SKILL_NAMES = (
     "smeme-reasoning-plugin",
@@ -101,7 +101,7 @@ def _check_skills_agent_safe_vocabulary() -> list[str]:
                 errors.append(
                     f"Agent-unsafe vocabulary {label_term!r} in skill "
                     f"{path} — use product terms (reasoning engine, report, results); "
-                    "see plugin/agent-skills/README.md#agent-safe-vocabulary-required"
+                    "see agent-skills/README.md#agent-safe-vocabulary-required"
                 )
                 break
     return errors

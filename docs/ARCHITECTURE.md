@@ -39,8 +39,7 @@ smeme/
 ├── mcp/             # OAuth discovery, bearer verification, MCP tools
 └── templates/       # Core web templates
 
-plugin/
-└── agent-skills/    # Agent guidance authoring source
+agent-skills/        # Authoring source for MCP guidance markdown
 ```
 
 ## Runtime flow
@@ -61,4 +60,4 @@ plugin/
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)
 - [MCP connector runbooks](guides/cowork-reasoning-plugin-runbooks.md)
 - [Contribution paths](CONTRIBUTION_PATHS.md)
-- [Agent Skills source](../plugin/agent-skills/README.md)
+- [Agent Skills source](../agent-skills/README.md)

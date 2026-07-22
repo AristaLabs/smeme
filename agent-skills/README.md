@@ -1,13 +1,19 @@
 # Agent Skills (guidance authoring source)
 
-This folder holds **Agent Skill** markdown that is the authoring source for
-``smeme_reasoning_guidance_get`` (and related MCP guidance content). Each skill
-is a directory with **`SKILL.md`** plus optional `reference.md` / `examples.md`.
+**Product path:** after OAuth, an MCP client calls
+``smeme_reasoning_capabilities`` (or ``smeme_reasoning_guidance_check``), then
+``smeme_reasoning_guidance_get``, which returns the calling contract as markdown.
+Agents do **not** install a local plugin zip — they ask the server for guidance.
 
-**This README is repo-only.** There is no installable plugin zip in product;
-agents load the same contract over MCP via guidance tools. After editing skills,
-regenerate guidance with ``scripts/build_guidance_artifact.py`` and run
-``scripts/validate_agent_skills.py``.
+This folder is the **human authoring source** for that guidance (and related MCP
+content). Each skill is a directory with **`SKILL.md`** plus optional
+`reference.md` / `examples.md`. CI builds the served artifact from these files
+(``scripts/build_guidance_artifact.py``); run ``scripts/validate_agent_skills.py``
+after edits.
+
+**This README is repo-only** (contributors / operators editing prose). End users
+and agents use the in-app **Connect your agent** page at `/docs/mcp` and the MCP
+tools.
 
 ## Authoring style
 
@@ -69,9 +75,9 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 ## Layout
 
 ```
-plugin/agent-skills/
+agent-skills/
 ├── README.md                          # this file
-├── smeme-reasoning-plugin/SKILL.md          # plugin core
+├── smeme-reasoning-plugin/SKILL.md          # core guidance
 ├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
 ├── smeme-reasoning-outcomes/SKILL.md        # non-concluded and conflict report handling
 ├── smeme-workflow-author/
@@ -87,7 +93,7 @@ Reasoning tools return structured JSON. Expected failures use `error.code` / `er
 
 ## Related docs
 
-- [MCP connector runbook](../../docs/guides/cowork-reasoning-plugin-runbooks.md) —
+- [MCP connector runbook](../docs/guides/cowork-reasoning-plugin-runbooks.md) —
   operator and end-user setup, list → evaluate → outcomes.
-- [Self-host quickstart](../../docs/guides/self-host-quickstart.md) — Core setup
+- [Self-host quickstart](../docs/guides/self-host-quickstart.md) — Core setup
   and operator configuration.

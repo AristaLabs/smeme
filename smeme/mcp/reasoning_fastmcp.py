@@ -172,7 +172,7 @@ logger = get_logger(__name__)
 
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
-# ``<!-- installed_plugin_version -->`` in ``plugin/agent-skills/smeme-reasoning-plugin/SKILL.md``.
+# ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning-plugin/SKILL.md``.
 REASONING_CAPABILITIES_VERSION = "2.18.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 

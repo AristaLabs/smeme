@@ -13,10 +13,10 @@ branch on ``error.code`` when present.
 logged server-side only.
 
 Authoritative list for docs and tests: ``REASONING_TOOL_ERROR_CODES``. Cowork / LLM
-guidance: ``plugin/agent-skills/``.
+guidance: ``agent-skills/``.
 
 **Agent-facing copy:** ``error.message`` and ``blockers.message`` use the same product
-vocabulary as shipped skills (see ``plugin/agent-skills/README.md``) — no Z3/SAT/entailment
+vocabulary as shipped skills (see ``agent-skills/README.md``) — no Z3/SAT/entailment
 wording in user-quoted strings. Wire ``error.code`` literals (e.g. ``solver_timeout``) are
 unchanged.
 

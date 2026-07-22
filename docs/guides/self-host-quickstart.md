@@ -110,6 +110,12 @@ docker compose -f docker-compose.core.yml up --build
 4. Optionally set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true` for chat authoring tools.
 5. Restart the `web` service.
 
+**How agents get skills:** there is no plugin zip to download. After OAuth, the
+client calls **`smeme_reasoning_guidance_get`** (usually after
+`smeme_reasoning_capabilities`) and caches the returned markdown calling
+contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is only
+the authoring source used to build that content. In-app detail: `/docs/mcp`.
+
 ## How this differs from smeme.ai
 
 | | Core (this guide) | Hosted smeme.ai |

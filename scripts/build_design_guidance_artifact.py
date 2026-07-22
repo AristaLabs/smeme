@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate smeme/mcp/_generated_design_guidance.py from plugin/agent-skills source."""
+"""Generate smeme/mcp/_generated_design_guidance.py from agent-skills source."""
 
 from __future__ import annotations
 

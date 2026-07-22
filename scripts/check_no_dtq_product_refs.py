@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""§10.2 — scan smeme/ and plugin/agent-skills/ for legacy DTQ product tokens.
+"""§10.2 — scan smeme/ and agent-skills/ for legacy DTQ product tokens.
 
 Pattern intent (keep in sync with cutover plan §10.2): module paths, alias class
 (`DTQ_TOOL_ERROR_CODES`), env-var prefix (`SMEME_DTQ_*`), deleted MCP/modules
@@ -24,7 +24,7 @@ SKIP_SUFFIXES = {".pyc", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".zip
 
 def main() -> int:
     bad: list[str] = []
-    for base in (ROOT / "smeme", ROOT / "plugin" / "agent-skills"):
+    for base in (ROOT / "smeme", ROOT / "agent-skills"):
         if not base.is_dir():
             continue
         for path in base.rglob("*"):

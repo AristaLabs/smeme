@@ -72,7 +72,7 @@ cp "${ROOT}/README.core.md" "${OUT}/README.md"
 # ---------------------------------------------------------------------------
 copy_path "smeme"
 copy_path "alembic"
-copy_path "plugin/agent-skills"
+copy_path "agent-skills"
 copy_path "legal"
 
 # ---------------------------------------------------------------------------

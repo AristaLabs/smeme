@@ -8,7 +8,7 @@ import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS_ROOT = ROOT / "plugin" / "agent-skills"
+SKILLS_ROOT = ROOT / "agent-skills"
 GENERATED_PATH = Path(__file__).resolve().parent / "_generated_guidance.py"
 
 GUIDANCE_CONTENT_VERSION = "1.1.0"
