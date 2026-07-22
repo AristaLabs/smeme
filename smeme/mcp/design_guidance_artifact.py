@@ -9,7 +9,7 @@ import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS_ROOT = ROOT / "plugin" / "cowork-skills"
+SKILLS_ROOT = ROOT / "plugin" / "agent-skills"
 DESIGN_SOURCE_PATH = SKILLS_ROOT / "smeme-workflow-author" / "DESIGN.md"
 GENERATED_PATH = Path(__file__).resolve().parent / "_generated_design_guidance.py"
 

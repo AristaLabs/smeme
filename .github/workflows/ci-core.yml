@@ -84,7 +84,7 @@ jobs:
           fi
 
       - name: Validate Cowork skills
-        run: uv run python scripts/validate_cowork_plugin.py
+        run: uv run python scripts/validate_agent_skills.py
 
       - name: Verify guidance artifact is fresh
         run: uv run python scripts/build_guidance_artifact.py --check
@@ -98,7 +98,7 @@ jobs:
           JWT_SECRET_KEY: github-actions-ci-jwt-secret-key-min-32b!
           DATABASE_URL: postgresql+asyncpg://smeme:smeme@localhost:5432/smeme_ci
           OPENAI_API_KEY: sk-ci-placeholder-not-used-by-validator-unit-tests
-        run: uv run pytest tests/unit/test_validate_cowork_plugin.py -q
+        run: uv run pytest tests/unit/test_validate_agent_skills.py -q
 
   alembic-drift:
     name: Alembic model drift + golden matrix

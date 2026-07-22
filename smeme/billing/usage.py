@@ -151,8 +151,11 @@ def usage_period_window(
     created_at = getattr(user, "created_at", None)
     epoch = getattr(user, "free_usage_epoch", None)
 
-    # Pick limbo: no Free metering until the user chooses a live workflow.
-    if getattr(user, "workflow_pick_required", False):
+    # Hosted pick limbo: no Free metering until the user chooses a live workflow.
+    # Core ignores stale hosted billing lifecycle fields while enforcement is off.
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    if hosted_quota_enforcement_enabled() and getattr(user, "workflow_pick_required", False):
         if created_at is not None:
             _, period_end, next_reset = signup_anniversary_window(created_at, at=now)
         else:

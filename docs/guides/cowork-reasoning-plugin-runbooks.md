@@ -1,6 +1,6 @@
 # Cowork / Claude Code — SMEme MCP runbooks
 
-**Status (2026-07):** Product path is **connector-only** — MCP URL + OAuth Client ID + **`smeme_reasoning_guidance_get`**. The installable Cowork plugin zip and dashboard download are **removed**. Skills under [`plugin/cowork-skills/`](../../plugin/cowork-skills/) remain the **authoring source** for guidance content (not a user download).
+**Status (2026-07):** Product path is **connector-only** — MCP URL + OAuth Client ID + **`smeme_reasoning_guidance_get`**. The installable Cowork plugin zip and dashboard download are **removed**. Skills under [`plugin/agent-skills/`](../../plugin/agent-skills/) remain the **authoring source** for guidance content (not a user download).
 
 Operator checklist (deploy + Clerk) and end-user connector flow. **Customer org IT / security:** [SMEme MCP — organization IT and security overview](cowork-plugin-superuser-admin-guide.md). Technical protocol: [DR-3 authoritative sources](dr3-mcp-oauth-authoritative-sources.md), [D016 — Auth & MCP](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso). Historical zip packaging notes: [`docs/guides/internal/cowork-plugin-artifacts-and-releases.md`](internal/cowork-plugin-artifacts-and-releases.md) (**archived**).
 
@@ -105,7 +105,7 @@ There is **no plugin zip to install**. After the MCP connector is connected ([§
 2. If needed, call **`smeme_reasoning_guidance_get`** and cache `content_markdown` (full calling contract).
 3. Proceed with list → template → validate → evaluate.
 
-In-app steps: **[Connect your agent](/docs/mcp)**. Skills markdown in [`plugin/cowork-skills/`](../../plugin/cowork-skills/) is maintained for **guidance generation**, not for end-user download.
+In-app steps: **[Connect your agent](/docs/mcp)**. Skills markdown in [`plugin/agent-skills/`](../../plugin/agent-skills/) is maintained for **guidance generation**, not for end-user download.
 
 **Version watermark:** Success tool responses include `_server_plugin_version` (= `REASONING_CAPABILITIES_VERSION`). That is an MCP surface version label, not a zip install version.
 
@@ -176,13 +176,13 @@ Then build **`raw_answers`** from question node ids and call **`smeme_reasoning_
 
 **Optional NL blob path:** When the deployment sets **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** (see [DR-3 guide — environment](../guides/dr3-mcp-oauth-authoritative-sources.md#try-locally-dr-3-p0)), the server also exposes **`smeme_reasoning_evaluate_blob`** — use that for **`evidence_blob_v1`** case text per §2.7. With the default (**`false`**), rely on **`smeme_reasoning_evaluate`** and structured **`raw_answers`** only.
 
-**Alternatives:** hand-fill [`SKILL.template.md`](../../plugin/cowork-skills/templates/reasoning-question-manifest/SKILL.template.md), or (**optional**) publish-time generated file if product ships [CWP-5](../planning/cowork-plugin-delivery-sprints.md#sprint-cwp-5--optional-publish-time-skillmd-file). See [§2.2 production precondition](../planning/cowork-plugin-delivery-sprints.md#22-blind-evaluation-protocol-settled-design-constraint).
+**Alternatives:** hand-fill [`SKILL.template.md`](../../plugin/agent-skills/templates/reasoning-question-manifest/SKILL.template.md), or (**optional**) publish-time generated file if product ships [CWP-5](../planning/cowork-plugin-delivery-sprints.md#sprint-cwp-5--optional-publish-time-skillmd-file). See [§2.2 production precondition](../planning/cowork-plugin-delivery-sprints.md#22-blind-evaluation-protocol-settled-design-constraint).
 
 ### 2.7 Blob evidence evaluate (`smeme_reasoning_evaluate_blob`, opt-in)
 
 **Operator gate:** The MCP tool is registered only when **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** in the server environment (`smeme/core/config.py`). Default **`false`**: connectors do **not** see the tool in **`tools/list`** or **`smeme_reasoning_capabilities`**; **`tools/call`** for that name is not a supported path. Set **`true`** and restart to expose it (CEVI path; see [sprint-cevi-blob-evaluate](../planning/sprint-cevi-blob-evaluate.md)).
 
-**Guidance / skills source:** The default **`plugin/cowork-skills/`** pack documents **`smeme_reasoning_evaluate`** + **`raw_answers`** only. When you turn **blob evaluate on** for a deployment, **update skills in the same release**: extend **`smeme-reasoning-plugin/SKILL.md`** and **`templates/reasoning-question-manifest/SKILL.template.md`**, regenerate guidance (`scripts/build_guidance_artifact.py`), bump **`REASONING_CAPABILITIES_VERSION`**, and run **`scripts/validate_cowork_plugin.py`**. See **`plugin/cowork-skills/README.md`**.
+**Guidance / skills source:** The default **`plugin/agent-skills/`** pack documents **`smeme_reasoning_evaluate`** + **`raw_answers`** only. When you turn **blob evaluate on** for a deployment, **update skills in the same release**: extend **`smeme-reasoning-plugin/SKILL.md`** and **`templates/reasoning-question-manifest/SKILL.template.md`**, regenerate guidance (`scripts/build_guidance_artifact.py`), bump **`REASONING_CAPABILITIES_VERSION`**, and run **`scripts/validate_agent_skills.py`**. See **`plugin/agent-skills/README.md`**.
 
 When the tool **is** enabled, users send **`evidence_blob_v1`** DTOs only (pre-processed client-side / harness-side), not ad hoc “set atom” instructions. The runtime path treats extractors as candidate generators; accepted facts must pass deterministic contract-gated checks.
 
@@ -194,7 +194,7 @@ When the tool **is** enabled, users send **`evidence_blob_v1`** DTOs only (pre-p
 
 **Kill-switch:** If live scouting misbehaves (e.g. suggests too eagerly), set **`MCP_WORKFLOW_SCOUT_ENABLED=false`** and restart — no code deploy required. On Render the env change triggers the restart. Agents holding cached capabilities will then get clean failures (tool not registered).
 
-**Scout skill:** The rubric *content* is server-side (`_generated_candidate_rubric.py`, served by the tool). Behavior prompts live in `plugin/cowork-skills/smeme-workflow-scout/` as guidance authoring source — not a user-facing zip.
+**Scout skill:** The rubric *content* is server-side (`_generated_candidate_rubric.py`, served by the tool). Behavior prompts live in `plugin/agent-skills/smeme-workflow-scout/` as guidance authoring source — not a user-facing zip.
 
 For structured **`raw_answers`** only, use **`smeme_reasoning_evaluate`** as usual.
 
@@ -209,7 +209,7 @@ Expected grounding trace fields in responses/audit are:
 
 For many creators, the MCP-connected agent acts as the **primary harness** (chat + tools) beside the SMEme web app. End-to-end reasoning is **two phases**, then optional **logical analysis** on the same envelope.
 
-The product path is the **MCP connector** plus **guidance tools** (`smeme_reasoning_guidance_get`). Skill markdown under [`plugin/cowork-skills/`](../../plugin/cowork-skills/) is the authoring source for that guidance—revise it when tool contracts change.
+The product path is the **MCP connector** plus **guidance tools** (`smeme_reasoning_guidance_get`). Skill markdown under [`plugin/agent-skills/`](../../plugin/agent-skills/) is the authoring source for that guidance—revise it when tool contracts change.
 
 #### Phase 1 — Gather and validate evidence until **E** is ready
 
@@ -263,13 +263,13 @@ Goal: a new teammate completes **list → validate → evaluate → interpret**,
 
 1. **Connect** MCP (§2.2); finish **OAuth**.
 2. **Open SMEme in the browser** and **sign in** once (§2.3).
-3. Load the **`smeme-reasoning-plugin`** skill ([`plugin/cowork-skills/smeme-reasoning-plugin/SKILL.md`](../../plugin/cowork-skills/smeme-reasoning-plugin/SKILL.md)) — follow tool naming and argument rules (`raw_answers_json` as a **bare object**, optional **`persist=false`** for experiments). For connector gather → provenance envelope, also load **`smeme-reasoning-slot-fill`** ([`plugin/cowork-skills/smeme-reasoning-slot-fill/SKILL.md`](../../plugin/cowork-skills/smeme-reasoning-slot-fill/SKILL.md)) after **`template_get`**.
+3. Load the **`smeme-reasoning-plugin`** skill ([`plugin/agent-skills/smeme-reasoning-plugin/SKILL.md`](../../plugin/agent-skills/smeme-reasoning-plugin/SKILL.md)) — follow tool naming and argument rules (`raw_answers_json` as a **bare object**, optional **`persist=false`** for experiments). For connector gather → provenance envelope, also load **`smeme-reasoning-slot-fill`** ([`plugin/agent-skills/smeme-reasoning-slot-fill/SKILL.md`](../../plugin/agent-skills/smeme-reasoning-slot-fill/SKILL.md)) after **`template_get`**.
 4. Call **`smeme_reasoning_capabilities`** (Bearer + linked SMEme user). Confirm `reasoning.tools` and `harness_next_enum`.
 5. Call **`smeme_reasoning_list`**. An **empty** `reasoning_qnrs` list is valid (no Deployed + Listed workflows for this user), not a broken server.
 6. Pick a **`qnr_id`** you own; obtain **question ids** via **`smeme_reasoning_template_get`** (§2.6).
 7. Build the provenance envelope; call **`smeme_reasoning_validate_answers`**. Proceed only when **`harness_next` is `phase_2_ok`** (resolve `user_input_needed` / `missing_evidence_ref` first).
 8. Call **`smeme_reasoning_evaluate`** with the same envelope.
-9. If the outcome is not a clean unique conclusion, use **`smeme-reasoning-outcomes`** ([`plugin/cowork-skills/smeme-reasoning-outcomes/SKILL.md`](../../plugin/cowork-skills/smeme-reasoning-outcomes/SKILL.md)).
+9. If the outcome is not a clean unique conclusion, use **`smeme-reasoning-outcomes`** ([`plugin/agent-skills/smeme-reasoning-outcomes/SKILL.md`](../../plugin/agent-skills/smeme-reasoning-outcomes/SKILL.md)).
 10. **Logical analysis (pick one):** (a) after evaluate, reuse the envelope → `list_conclusions` → `how_to_reach`; or (b) skip evaluate and call `how_to_reach` with a baseline envelope + `reach_mode=possible`.
 
 Structured error codes: [`smeme/mcp/tool_contract.py`](../../smeme/mcp/tool_contract.py).
@@ -282,7 +282,7 @@ Structured error codes: [`smeme/mcp/tool_contract.py`](../../smeme/mcp/tool_cont
 |------------|---------|
 | [SMEme MCP — organization IT and security overview](cowork-plugin-superuser-admin-guide.md) | Customer IT / security: connector purpose, auth and data flow |
 | [Internal — Cowork plugin artifacts (archived)](internal/cowork-plugin-artifacts-and-releases.md) | Historical zip packaging notes — **not current product** |
-| [`plugin/cowork-skills/README.md`](../../plugin/cowork-skills/README.md) | Guidance / skills authoring source |
+| [`plugin/agent-skills/README.md`](../../plugin/agent-skills/README.md) | Guidance / skills authoring source |
 | [`dr3-mcp-oauth-authoritative-sources.md`](dr3-mcp-oauth-authoritative-sources.md) | Spec pins, local curl, Inspector pitfalls |
 | [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md) | OAuth, CORS, `resource`, Inspector callbacks |
 | [`../planning/cowork-plugin-delivery-sprints.md`](../planning/cowork-plugin-delivery-sprints.md) | Historical CWP roadmap and tool contract §5 |
@@ -297,7 +297,7 @@ Structured error codes: [`smeme/mcp/tool_contract.py`](../../smeme/mcp/tool_cont
 **Current release coupling for MCP surface version:**
 
 1. Bump **`REASONING_CAPABILITIES_VERSION`** in [`smeme/mcp/reasoning_fastmcp.py`](../../smeme/mcp/reasoning_fastmcp.py) when the tool contract / capabilities payload changes.
-2. Keep **`<!-- installed_plugin_version -->`** in [`plugin/cowork-skills/smeme-reasoning-plugin/SKILL.md`](../../plugin/cowork-skills/smeme-reasoning-plugin/SKILL.md) aligned (CI: `scripts/validate_cowork_plugin.py`).
+2. Keep **`<!-- installed_plugin_version -->`** in [`plugin/agent-skills/smeme-reasoning-plugin/SKILL.md`](../../plugin/agent-skills/smeme-reasoning-plugin/SKILL.md) aligned (CI: `scripts/validate_agent_skills.py`).
 3. Regenerate guidance/rubric/design artifacts when skill sources change: `scripts/build_guidance_artifact.py`, `scripts/build_candidate_rubric_artifact.py`, `scripts/build_design_guidance_artifact.py`.
 
 Historical zip packaging detail (do not follow for new releases): [Internal — Cowork plugin artifacts](internal/cowork-plugin-artifacts-and-releases.md).

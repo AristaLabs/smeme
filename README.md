@@ -1,10 +1,13 @@
-# SMEme
+# SMEme Core
 
-**Source-available** decision-workflow platform (fair-code). SMEs **author** interactive **workflows** → users or agents supply structured answers → server-side deterministic reasoning → structured **report**.
+SMEme Core is a source-available application for authoring inspectable
+**decision-trees** and evaluating structured answers through a server-side
+reasoning engine.
 
-- **Self-host Core:** [`docs/guides/self-host-quickstart.md`](docs/guides/self-host-quickstart.md) · image `ghcr.io/AristaLabs/smeme`
-- **License:** [SMEme Sustainable Use License 1.0](LICENSE.md) — see [LICENSING.md](LICENSING.md). Not open source.
-- **Hosted product:** [smeme.ai](https://smeme.ai) is the commercial layer (`smeme-cloud`) on top of the same Core image.
+Experts create decision-trees, **Deploy** a validated version, and connect MCP
+clients that submit structured `raw_answers`. The server returns a structured
+**report** from the deployed artifact. Agents gather evidence; the server keeps
+the decision logic and evaluation boundary under operator control.
 
 ---
 
@@ -44,18 +47,6 @@ uv sync --extra dev
 uv run uvicorn smeme.core_entrypoint:app --reload
 ```
 
-### Private monorepo / hosted SaaS overlay
-
-This checkout may also contain the proprietary `smeme-cloud` overlay (`smeme.main:app`, Stripe, marketing). That surface is **not** part of the public Core distribution:
-
-```bash
-uv sync --extra saas
-docker compose up -d
-uv run uvicorn smeme.main:app --reload
-```
-
----
-
 ## Configure environment
 
 Create a `.env` / `.env.core` file (see `.env.core.example`):
@@ -81,27 +72,21 @@ CLERK_WEBHOOK_SECRET=whsec_...
 MCP_ENABLED=false
 ```
 
-Hosted SaaS overlay additionally uses Stripe / SendGrid — those packages and routes are omitted from Core.
-
----
-
 ## Product vocabulary
 
 | Say | Avoid (legacy) |
 |-----|----------------|
-| **workflow** | questionnaire, QNR |
+| **decision-tree** | questionnaire, QNR |
 | **Deploy** / **Redeploy** | publish (when meaning reasoning artifact) |
 | **Listed** / **Hidden** | MCP discoverability toggle |
-| **report** | memo (downstream agent work) |
+| **report** | an ad-hoc narrative instead of the server engine output |
 
 ---
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
-- [Decisions (ADRs)](docs/DECISIONS.md)
-- [User contract](docs/product/user-contract.md)
-- [Messaging](docs/product/messaging.md)
+- [Engine promises](docs/guides/engine-promises.md)
 - [Self-host quickstart](docs/guides/self-host-quickstart.md)
 - [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md) · [Security](SECURITY.md)
 

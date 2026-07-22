@@ -1,6 +1,8 @@
 # Self-host quickstart (SMEme Core)
 
-Run the **Core** product (editor, Deploy/Listed, reasoning, MCP) with Docker. This is the self-host / public-image path ([D023](../DECISIONS.md#d023-public-core-repo--private-saas-overlay-distribution)). It is **not** the full `smeme.ai` hosted stack (no Stripe, marketing landing, or Arista legal pages).
+Run the **Core** product (editor, Deploy/Listed, reasoning, MCP) with Docker.
+It is not the full hosted stack: Core excludes Stripe, marketing landing pages,
+and Arista Labs legal pages.
 
 ## Requirements
 
@@ -39,7 +41,7 @@ Self-host keeps **Deploy / evaluate / MCP report** on your infrastructure by def
 | **High — web research** | `TAVILY_API_KEY` (only while generation is on) | Search queries / URLs derived from the brief → **Tavily** | Unset (no calls) |
 | **High if re-enabled** | LangSmith (`LANGCHAIN_*`) | Full LangGraph run I/O (prompts, state) → **LangSmith** | **Hard-disabled** at startup — keys have no effect |
 | **Medium — identity** | `CLERK_*` | Auth sessions, user profile sync, OAuth for MCP → **Clerk** (not your trees, but PII/login) | Operator-chosen |
-| **Low / none for trees** | `MCP_ENABLED` + evaluate tools | Answers + reports stay on **your** server; agents do not receive branch topology ([D021](../DECISIONS.md#d021-blind-protocol-retained-for-agent-reliability-not-license-dependent)) | Off until you enable |
+| **Low / none for trees** | `MCP_ENABLED` + evaluate tools | Answers + reports stay on **your** server; agents do not receive branch topology | Off until you enable |
 | **Low for trees** | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Server-owned design guidance / validate / create draft — **no OpenAI** in the current MCP authoring path | Off |
 | **None (trees)** | Manual editor + Deploy + Z3 evaluate | Compiles and reasons locally (Postgres + Z3 in-process) | Always available |
 
@@ -52,7 +54,7 @@ MCP_ENABLED=true   # optional; still on your host
 # configure Clerk (or future OIDC) only for login / MCP OAuth
 ```
 
-Authors build trees in the **editor**; agents call MCP evaluate on your instance. That is the path aligned with the sovereignty story in [`messaging.md`](../product/messaging.md).
+Authors build trees in the **editor**; agents call MCP evaluate on your instance.
 
 **LangSmith note:** the old `tracing.py` helpers were removed. Getting LangSmith working again is not “drop tracing.py back in” alone — you must stop (or gate) `disable_langsmith_tracing()`, set `LANGCHAIN_TRACING_V2` + API key, and accept that generation traces export workflow I/O. Optional metadata helpers can be re-added later; they are not the main switch.
 
@@ -105,7 +107,7 @@ docker compose -f docker-compose.core.yml up --build
 1. Configure Clerk (or your OIDC AS) per [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md).
 2. In `.env.core`: `MCP_ENABLED=true`, set `BASE_URL` to your public HTTPS origin, fill `CLERK_*`.
 3. For DCR-off + static Cowork client: set `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` to that client id; keep `CLERK_OAUTH_DYNAMIC_REGISTRATION=false`.
-4. Optionally `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true` for chat authoring tools.
+4. Optionally set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true` for chat authoring tools.
 5. Restart the `web` service.
 
 ## How this differs from smeme.ai
@@ -117,7 +119,7 @@ docker compose -f docker-compose.core.yml up --build
 | `/` | Redirect to dashboard | Marketing landing |
 | Legal / waitlist | Operator-supplied or none | Arista pages + Business waitlist |
 | Generation / Tavily | Optional operator keys | Same product paths when enabled |
-| Source | Public `AristaLabs/smeme` (target) | Private `smeme-cloud` on pinned image |
+| Source | Public `AristaLabs/smeme` | Private hosted overlay on a pinned image |
 
 ## Build the image alone
 
@@ -137,4 +139,4 @@ scripts/prepare_core_release_evidence.sh smeme:local build/release-evidence
 uv run python scripts/check_core_no_saas_imports.py
 ```
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) and the [extract checklist](../planning/core-public-extract-checklist.md).
+See [CONTRIBUTING.md](../../CONTRIBUTING.md).

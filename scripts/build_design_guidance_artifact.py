@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate smeme/mcp/_generated_design_guidance.py from plugin/cowork-skills source."""
+"""Generate smeme/mcp/_generated_design_guidance.py from plugin/agent-skills source."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
-        print(f"OK: {args.output} matches current cowork skill sources")
+        print(f"OK: {args.output} matches current Agent Skills sources")
         return 0
 
     out = write_generated_module(args.output)

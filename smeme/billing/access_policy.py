@@ -69,11 +69,19 @@ def path_allowed_during_workflow_pick(path: str) -> bool:
 
 
 def is_workflow_pick_required(user: User) -> bool:
-    return bool(getattr(user, "workflow_pick_required", False))
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    return hosted_quota_enforcement_enabled() and bool(
+        getattr(user, "workflow_pick_required", False)
+    )
 
 
 def is_qnr_live(user: User, qnr: QNR) -> bool:
     """Whether the root workflow has full Free/Pro access (not dormant / limbo)."""
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    if not hosted_quota_enforcement_enabled():
+        return True
     if user.is_premium:
         return True
     if user.workflow_pick_required:
@@ -88,14 +96,18 @@ def is_qnr_live(user: User, qnr: QNR) -> bool:
 
 def is_qnr_dashboard_grayed(user: User, qnr: QNR) -> bool:
     """Dashboard row styling: pick limbo or dormant."""
-    if user.workflow_pick_required:
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    if not hosted_quota_enforcement_enabled():
+        return False
+    if is_workflow_pick_required(user):
         return True
     return bool(not user.is_premium and qnr.billing_dormant)
 
 
 def raise_if_workflow_edit_denied(user: User, qnr: QNR) -> None:
     """Block editor, deploy, MCP discoverability toggles on non-live workflows."""
-    if user.workflow_pick_required:
+    if is_workflow_pick_required(user):
         raise HTTPException(
             status_code=403,
             detail=(
@@ -153,13 +165,15 @@ async def count_active_root_workflows(db: AsyncSession, user_id: UUID) -> int:
 
 async def count_live_root_workflows(db: AsyncSession, user: User) -> int:
     """Inventory cap counter: Pro = all active roots; Free = non-dormant live roots."""
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
     conditions = [
         QNR.author_id == user.id,
         QNR.is_current.is_(True),
         QNR.is_archived.is_(False),
         QNR.parent_qnr_id.is_(None),
     ]
-    if not user.is_premium:
+    if hosted_quota_enforcement_enabled() and not user.is_premium:
         conditions.append(QNR.billing_dormant.is_(False))
     result = await db.execute(select(func.count(QNR.id)).where(*conditions))
     return int(result.scalar() or 0)
@@ -265,6 +279,10 @@ def dismiss_cancellation_explainer(user: User) -> None:
 
 def pro_ending_banner_text(user: User, *, active_root_count: int) -> str | None:
     """Pre-expiry scary strip (option C)."""
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    if not hosted_quota_enforcement_enabled():
+        return None
     if not user.subscription_cancel_at_period_end or not user.is_premium:
         return None
     end = user.subscription_period_end
@@ -287,6 +305,15 @@ def billing_lifecycle_context(
     *,
     active_root_count: int,
 ) -> dict[str, Any]:
+    from smeme.billing.providers import hosted_quota_enforcement_enabled
+
+    if not hosted_quota_enforcement_enabled():
+        return {
+            "show_cancellation_explainer": False,
+            "pro_ending_banner": None,
+            "workflow_pick_required": False,
+            "subscription_period_end_label": None,
+        }
     return {
         "show_cancellation_explainer": bool(user.cancellation_explainer_pending),
         "pro_ending_banner": pro_ending_banner_text(user, active_root_count=active_root_count),

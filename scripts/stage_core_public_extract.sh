@@ -48,7 +48,7 @@ for rel in \
   THIRD_PARTY_NOTICES.md \
   CONTRIBUTING.md \
   CONTRIBUTOR_LICENSE_AGREEMENT.md \
-  README.md \
+  SECURITY.md \
   pyproject.toml \
   uv.lock \
   alembic.ini \
@@ -65,12 +65,14 @@ do
   copy_path "${rel}"
 done
 
+cp "${ROOT}/README.core.md" "${OUT}/README.md"
+
 # ---------------------------------------------------------------------------
 # Product + migrations + skills + legal notices
 # ---------------------------------------------------------------------------
 copy_path "smeme"
 copy_path "alembic"
-copy_path "plugin/cowork-skills"
+copy_path "plugin/agent-skills"
 copy_path "legal"
 
 # ---------------------------------------------------------------------------
@@ -84,12 +86,16 @@ for rel in \
   scripts/collect_python_licenses.py \
   scripts/stage_core_public_extract.sh \
   scripts/build_css.sh \
-  scripts/validate_cowork_plugin.py \
+  scripts/validate_agent_skills.py \
   scripts/build_guidance_artifact.py \
   scripts/build_design_guidance_artifact.py \
   scripts/check_no_dtq_product_refs.py \
+  scripts/check_no_dtq_product_refs.sh \
   scripts/check_alembic_no_drift.sh \
-  scripts/check_raw_callout_classes.py
+  scripts/check_raw_callout_classes.py \
+  scripts/eval_branching_fixtures.py \
+  scripts/qnr_reasoning_inspect.py \
+  scripts/smoke_mcp_url.sh
 do
   copy_path "${rel}"
 done
@@ -105,25 +111,14 @@ copy_path "tests"
 for rel in \
   docs/README.md \
   docs/ARCHITECTURE.md \
-  docs/DECISIONS.md \
-  docs/ROADMAP.md \
-  docs/LESSONS_LEARNED.md \
-  docs/architecture \
-  docs/product \
-  docs/reference \
   docs/guides/self-host-quickstart.md \
   docs/guides/getting-started.md \
   docs/guides/installation.md \
-  docs/guides/langgraph-integration.md \
   docs/guides/dr3-mcp-oauth-authoritative-sources.md \
   docs/guides/frontend-css-build.md \
   docs/guides/cowork-reasoning-plugin-runbooks.md \
-  docs/guides/mcp-cost-telemetry.md \
-  docs/guides/mcp-registry-publish.md \
-  docs/guides/wizard-telemetry-drop-off.md \
   docs/guides/data-migration.md \
-  docs/planning/core-public-extract-paths.md \
-  docs/planning/core-public-extract-checklist.md
+  docs/guides/engine-promises.md
 do
   copy_path "${rel}"
 done

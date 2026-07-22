@@ -1,8 +1,8 @@
-# Contributing to SMEme
+# Contributing to SMEme Core
 
-Thanks for helping improve SMEme. This repository is the **public product** (decision-tree authoring, Deploy/Listed, IR/Z3 reasoning, MCP). Hosted `smeme.ai` commercial surfaces (Stripe, marketing landing, waitlist, Arista legal) live in a **private `smeme-cloud` overlay** and are out of scope for public PRs.
-
-Architecture decisions: [`docs/DECISIONS.md`](docs/DECISIONS.md) — especially **D022** (surface inventory) and **D023** (public `smeme` + private overlay).
+Thanks for helping improve the public product: decision-tree authoring,
+Deploy/Listed, server-side reasoning, and MCP. Hosted billing, marketing,
+waitlist, and Arista Labs legal pages are out of scope for public PRs.
 
 **License:** source-available under the [SMEme Sustainable Use License 1.0](LICENSE.md) (Arista Labs, LLC). See [LICENSING.md](LICENSING.md). Do not describe SMEme as “open source.”
 
@@ -12,8 +12,8 @@ By opening a pull request, you agree to the [Contributor License Agreement](CONT
 
 ## How to contribute
 
-1. **Fork** the public `smeme` repo (once published; until then this private tree is the working product + overlay monorepo).
-2. Create a branch from `main` / `dev` as directed in the PR template.
+1. **Fork** the public `smeme` repo.
+2. Create a branch from `main`.
 3. Make changes that belong in the **public product** only. Do not add Stripe Checkout, marketing landing, waitlist, or Arista legal pages here.
 4. Run checks locally (see below).
 5. Open a PR. Maintainers review; CI must pass.
@@ -51,14 +51,14 @@ Optional knobs (OpenAI, Tavily, MCP authoring, Clerk) are listed in `.env.core.e
 | Editor, dashboard, Deploy / Listed | Stripe Checkout / Portal / webhooks |
 | Reasoning + MCP tools | Marketing landing, SEO, Business waitlist |
 | Quota *engine* | Upgrade CTAs, downgrade pick-flow |
-| Skills under `plugin/cowork-skills/` | Arista legal / subprocessors pages |
+| Skills under `plugin/agent-skills/` | Arista legal / subprocessors pages |
 | `create_core_app` / `core_entrypoint` | `saas_overlay` / `create_saas_app` |
 
 ## Code style
 
 - Match existing patterns; prefer small, focused diffs.
-- Product vocabulary: **workflow** in wire IDs is fine; UI/docs prefer decision-tree / Deploy / Listed per `CLAUDE.md`.
-- Do not reintroduce surfaces listed as **REMOVED** in D022.
+- Product vocabulary: wire IDs may retain `qnr`; UI/docs use decision-tree / Deploy / Listed.
+- Do not expand public scope with hosted-only surfaces.
 
 ## License
 

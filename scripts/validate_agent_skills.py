@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ``plugin/cowork-skills`` (guidance / rubric authoring source) for CI.
+"""Validate ``plugin/agent-skills`` (guidance / rubric authoring source) for CI.
 
 Checks: required skill files exist, agent-safe vocabulary denylist, and that
 ``installed_plugin_version`` in the primary skill matches
@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-SKILLS_SRC = ROOT / "plugin" / "cowork-skills"
+SKILLS_SRC = ROOT / "plugin" / "agent-skills"
 
 _SKILL_NAMES = (
     "smeme-reasoning-plugin",
@@ -101,13 +101,13 @@ def _check_skills_agent_safe_vocabulary() -> list[str]:
                 errors.append(
                     f"Agent-unsafe vocabulary {label_term!r} in skill "
                     f"{path} — use product terms (reasoning engine, report, results); "
-                    "see plugin/cowork-skills/README.md#agent-safe-vocabulary-required"
+                    "see plugin/agent-skills/README.md#agent-safe-vocabulary-required"
                 )
                 break
     return errors
 
 
-def validate_cowork_plugin_tree() -> list[str]:
+def validate_agent_skills_tree() -> list[str]:
     """Return human-readable validation errors (empty list means OK).
 
     Name kept for CI / Makefile compatibility; validates skills source only.
@@ -140,13 +140,13 @@ def validate_cowork_plugin_tree() -> list[str]:
 
 
 def main() -> int:
-    errors = validate_cowork_plugin_tree()
+    errors = validate_agent_skills_tree()
     if errors:
         for msg in errors:
             print(msg, file=sys.stderr)
         return 1
 
-    print("Cowork skills OK (vocabulary + capabilities version coupling).")
+    print("Agent Skills OK (vocabulary + capabilities version coupling).")
     return 0
 
 

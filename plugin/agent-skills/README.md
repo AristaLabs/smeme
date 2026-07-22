@@ -1,18 +1,18 @@
 # Agent Skills (guidance authoring source)
 
 This folder holds **Agent Skill** markdown that is the authoring source for
-``smeme_reasoning_guidance_get`` (and related MCP guidance content). Anthropic’s
-skill shape is a directory with **`SKILL.md`** plus optional `reference.md` /
-`examples.md` (see [Agent Skills best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)).
+``smeme_reasoning_guidance_get`` (and related MCP guidance content). Each skill
+is a directory with **`SKILL.md`** plus optional `reference.md` / `examples.md`.
 
-**This README is repo-only.** There is no installable Cowork plugin zip in product;
+**This README is repo-only.** There is no installable plugin zip in product;
 agents load the same contract over MCP via guidance tools. After editing skills,
 regenerate guidance with ``scripts/build_guidance_artifact.py`` and run
-``scripts/validate_cowork_plugin.py``.
+``scripts/validate_agent_skills.py``.
 
 ## Authoring style
 
-Frontier models and Cowork’s harness can plan tool use. Skills should be **direct, concise, and hard to misread** — not tutorials.
+Agent hosts and their harnesses can plan tool use. Skills should be **direct,
+concise, and hard to misread** — not tutorials.
 
 ### Agent-safe vocabulary (required)
 
@@ -28,7 +28,11 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 **Server messages:** `error.message` and `blockers.message` on MCP tool responses follow the same product-vocabulary rules as skills (reasoning engine, report, outcome — not Z3/SAT/entailment). When you change a user-quoted server string, update the matching skill row in the same PR.
 
-`scripts/validate_cowork_plugin.py` enforces a denylist on all shipped skills (prose only — text inside `` `backticks` `` may use wire field names such as ``satisfiable`` or ``blockers.sat_calls``). Generated per-workflow manifests ([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/)) must follow the same rules.
+`scripts/validate_agent_skills.py` enforces a denylist on all shipped skills
+(prose only — text inside `` `backticks` `` may use wire field names such as
+``satisfiable`` or ``blockers.sat_calls``). Generated per-workflow manifests
+([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/))
+must follow the same rules.
 
 | Do | Don’t |
 |----|--------|
@@ -41,9 +45,10 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 | **`_server_plugin_version`** on **success** responses only | Claim every response carries the version watermark |
 | Product vocabulary in prose (**reasoning engine**, **report**, **results**) | Formal-methods or stack terms (Z3, SAT/UNSAT, solver, satisfiable, SMT) |
 
-Blind-evaluation and wire-contract rules: [cowork-plugin-delivery §2.2 + §5](../../docs/planning/cowork-plugin-delivery-sprints.md#5-tool-contracts-for-skills-authoring-canonical). Canonical codes: `smeme/mcp/tool_contract.py`.
+Blind-evaluation and wire-contract rules are enforced by the server and its
+agent-facing tool contracts. Canonical codes: `smeme/mcp/tool_contract.py`.
 
-After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/validate_cowork_plugin.py``.
+After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/validate_agent_skills.py``.
 
 ## Progressive disclosure (how many skills, when they load)
 
@@ -59,12 +64,12 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 1. **Generated at publish** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + workflow metadata.
 2. **Template fill**: Use `templates/reasoning-question-manifest/SKILL.template.md` in CI or a small script; substitute title, slug, question list, and schema JSON.
-3. **Manual**: Early adopters paste a generated skill into their Cowork project.
+3. **Manual**: Early adopters add a generated skill to their agent project.
 
 ## Layout
 
 ```
-plugin/cowork-skills/
+plugin/agent-skills/
 ├── README.md                          # this file
 ├── smeme-reasoning-plugin/SKILL.md          # plugin core
 ├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
@@ -82,8 +87,7 @@ Reasoning tools return structured JSON. Expected failures use `error.code` / `er
 
 ## Related docs
 
-- [Cowork plugin delivery (sprints)](../../docs/planning/cowork-plugin-delivery-sprints.md) — installable `.claude-plugin` bundle, `.mcp.json`, runbooks.
-- [Cowork reasoning runbooks](../../docs/guides/cowork-reasoning-plugin-runbooks.md) — operator checklist, end-user install, one-session list → evaluate → outcomes.
-- [D016 — Auth & MCP plan](../../docs/DECISIONS.md) (OAuth, scopes).
-- [DTQ → reasoning cutover](../../docs/planning/dtq-to-reasoning-cutover.md) — IR-first stack; historical DTQ naming in older docs.
-- [Anthropic Cowork plugin guidance](../../docs/planning/Determinisitc%20Reasoning%20Planning/Anthropic%20Claude%20Cowork%20plugin%20guidance.md) (links).
+- [MCP connector runbook](../../docs/guides/cowork-reasoning-plugin-runbooks.md) —
+  operator and end-user setup, list → evaluate → outcomes.
+- [Self-host quickstart](../../docs/guides/self-host-quickstart.md) — Core setup
+  and operator configuration.

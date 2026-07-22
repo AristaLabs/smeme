@@ -172,7 +172,7 @@ logger = get_logger(__name__)
 
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
-# ``<!-- installed_plugin_version -->`` in ``plugin/cowork-skills/smeme-reasoning-plugin/SKILL.md``.
+# ``<!-- installed_plugin_version -->`` in ``plugin/agent-skills/smeme-reasoning-plugin/SKILL.md``.
 REASONING_CAPABILITIES_VERSION = "2.18.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
@@ -1010,7 +1010,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         bind_mcp_user(user, request=request)
 
-                        from smeme.billing.access_policy import is_qnr_live
+                        from smeme.billing.access_policy import (
+                            is_qnr_live,
+                            is_workflow_pick_required,
+                        )
 
                         result = await db.execute(select_qnrs_for_assistant_tools_list(user.id))
                         qnrs = result.scalars().all()
@@ -1025,7 +1028,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 "intended_audience": q.intended_audience,
                                 "use_case": q.use_case,
                             }
-                            if user.workflow_pick_required or not is_qnr_live(user, q):
+                            if is_workflow_pick_required(user) or not is_qnr_live(user, q):
                                 entry["accessible"] = False
                                 entry["status"] = "account_downgrade_pending"
                             reasoning_qnrs.append(entry)
