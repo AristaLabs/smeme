@@ -258,7 +258,7 @@ Any single model is:
 
 ## 2.9 Author journey — QNR validation vs IR (product)
 
-**Editing:** [`validate_graph_for_editing`](../../qnr/helpers/validation.py) in `smeme/qnr/helpers/validation.py` — errors + warnings for drafts; sidebar issues may include programmatic fix hints ([`docs/architecture/qnr/validation.md`](../../docs/architecture/qnr/validation.md#fix-hints)).
+**Editing:** [`validate_graph_for_editing`](../../qnr/helpers/validation.py) in `smeme/qnr/helpers/validation.py` — errors + warnings for drafts; sidebar issues may include programmatic fix hints.
 
 **Publish (app gate):** [`assess_publish_readiness`](publish_readiness.py) — **`validate_graph_for_publication`**, **`compile_qnr_to_ir`**, **`validate_ir`**, **`enumerate_conclusion_sat_queries`**. Editor routes: **`GET …/publish-preflight`**, **`POST …/publish`**.
 

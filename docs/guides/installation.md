@@ -226,8 +226,8 @@ docker-compose logs postgres
 ## Next Steps
 
 - [Getting Started Guide](getting-started.md) - Complete setup walkthrough
-- [Architecture Overview](../architecture/overview.md) - Understand the system
-- [Contributing Guide](../contributing/) - Development guidelines
+- [Architecture](../ARCHITECTURE.md) - Core system map
+- [Contributing Guide](../../CONTRIBUTING.md) - Development guidelines
 
 ---
 

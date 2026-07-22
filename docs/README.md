@@ -40,9 +40,10 @@ Quick navigation to guides, architecture, and reference docs.
 
 ---
 
-## Architecture deep-dives (`docs/architecture/`)
+## Architecture
 
-Detailed topic files for database schema, workflow breakdowns, and QNR internals. Use after reading `ARCHITECTURE.md` for working context.
+Use [ARCHITECTURE.md](ARCHITECTURE.md) for the Core system map. Deeper historical
+topic drafts are not part of this public tree.
 
 ---
 
