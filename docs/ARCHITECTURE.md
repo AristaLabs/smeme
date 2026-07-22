@@ -10,7 +10,9 @@ running them through a server-side **logical analysis engine**.
   artifact supports evaluation (structured answers → **report**) and graph-level
   questions (what-if, reachability, and related analysis).
 - **Remote MCP:** OAuth-protected tools let an owner list, validate, evaluate, and
-  analyze their Listed decision-trees.
+  analyze their Listed decision-trees. After connect, the agent **fetches calling
+  guidance over MCP** (`smeme_reasoning_guidance_get`) — there is no installable
+  plugin zip.
 - **PostgreSQL:** stores users, decision-tree graphs, deployed artifacts, and
   evaluation records.
 
@@ -47,8 +49,9 @@ agent-skills/        # Authoring source for MCP guidance markdown
 1. An author saves a decision-tree.
 2. **Deploy** validates it and persists a compiled reasoning artifact.
 3. An MCP client authenticates with the configured OAuth provider.
-4. The client calls `smeme_reasoning_guidance_get` (via capabilities/check) to
-   load the calling contract — agents do not install a local plugin zip.
+4. The client loads the calling contract via **`smeme_reasoning_guidance_get`**
+   (after capabilities / guidance digest check) — served from content built out
+   of `agent-skills/`, not a local skill install.
 5. The client evaluates structured answers and/or asks graph-level questions
    about a Listed, deployed decision-tree.
 6. The server answers from the deployed artifact (report and/or analysis).

@@ -1,6 +1,6 @@
 # Cowork / Claude Code — SMEme MCP runbooks
 
-**Status (2026-07):** Product path is **connector-only** — MCP URL + OAuth Client ID + **`smeme_reasoning_guidance_get`**. The installable Cowork plugin zip and dashboard download are **removed**. Skills under [`agent-skills/`](../../agent-skills/) remain the **authoring source** for guidance content (not a user download).
+**Status (2026-07):** Product path is **connector-only** — MCP URL + OAuth Client ID + **`smeme_reasoning_guidance_get`**. After OAuth, the agent asks the server for the calling contract (capabilities → guidance); there is no installable Cowork plugin zip or dashboard download. Markdown under [`agent-skills/`](../../agent-skills/) is the authoring source used to build that guidance, not something end users install.
 
 Operator checklist (deploy + Clerk) and end-user connector flow. Technical
 protocol: [DR-3 authoritative sources](dr3-mcp-oauth-authoritative-sources.md).
@@ -177,33 +177,14 @@ Reasoning evaluation sends **`raw_answers_json`**: a **JSON object** keyed by **
 
 Then build **`raw_answers`** from question node ids and call **`smeme_reasoning_evaluate`**. Same OAuth Bearer + linked-user rules as **`smeme_reasoning_list`**.
 
-**Optional NL blob path:** When the deployment sets **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** (see [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md)), the server also exposes **`smeme_reasoning_evaluate_blob`** — use that for **`evidence_blob_v1`** case text per §2.7. With the default (**`false`**), rely on **`smeme_reasoning_evaluate`** and structured **`raw_answers`** only.
-
 **Alternatives:** hand-fill [`SKILL.template.md`](../../agent-skills/templates/reasoning-question-manifest/SKILL.template.md), or keep a private per-workflow worksheet outside the repo.
 
-### 2.7 Blob evidence evaluate (`smeme_reasoning_evaluate_blob`, opt-in)
+### 2.7 Retired MCP surfaces
 
-**Operator gate:** The MCP tool is registered only when **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** in the server environment (`smeme/core/config.py`). Default **`false`**: connectors do **not** see the tool in **`tools/list`** or **`smeme_reasoning_capabilities`**; **`tools/call`** for that name is not a supported path. Set **`true`** and restart to expose it.
-
-**Guidance / skills source:** The default **`agent-skills/`** pack documents **`smeme_reasoning_evaluate`** + **`raw_answers`** only. When you turn **blob evaluate on** for a deployment, **update skills in the same release**: extend **`smeme-reasoning-plugin/SKILL.md`** and **`templates/reasoning-question-manifest/SKILL.template.md`**, regenerate guidance (`scripts/build_guidance_artifact.py`), bump **`REASONING_CAPABILITIES_VERSION`**, and run **`scripts/validate_agent_skills.py`**. See **`agent-skills/README.md`**.
-
-When the tool **is** enabled, users send **`evidence_blob_v1`** DTOs only (pre-processed client-side / harness-side), not ad hoc “set atom” instructions. The runtime path treats extractors as candidate generators; accepted facts must pass deterministic contract-gated checks.
-
-### 2.7a Workflow-candidate scouting (`smeme_authoring_candidate_guidance`)
-
-**Status:** retired from the Core product path. The flag
-`MCP_WORKFLOW_SCOUT_ENABLED` may still exist in config for compatibility, but
-Core defaults it **off** and no scout skill pack ships under
-`agent-skills/`. Leave it disabled unless you maintain your own prompts.
-
-For structured **`raw_answers`** only, use **`smeme_reasoning_evaluate`** as usual.
-
-Expected grounding trace fields in responses/audit are:
-
-- canonical fact id (`fact:*`) and projected solver symbol (`ir_*`) when applicable;
-- source pointer (`source_item_id`, span offsets/snippet);
-- binding rule id (`bridge_rule_id`) and confidence;
-- for text facts, both human-readable `canon_text` and stable `text_digest`.
+Natural-language blob evaluation and proactive workflow scouting are not Core
+product surfaces. Use structured **`raw_answers`** with
+**`smeme_reasoning_evaluate`**. For deliberate chat authoring, operators may
+enable `MCP_AUTHORING_GRAPH_TOOLS_ENABLED`.
 
 ### 2.8 User happy path (two product phases)
 
@@ -214,7 +195,7 @@ The product path is the **MCP connector** plus **guidance tools** (`smeme_reason
 #### Phase 1 — Gather and validate evidence until **E** is ready
 
 1. **Collect** — The user (via their agent) pulls context from **other** MCP connectors, local files, and chat. Raw sources generally **stay client-side**; only derived payloads are sent to SMEme (see [§2.5](#25-what-data-leaves-the-device)).
-2. **Shape** — The agent maps that context into SMEme’s **published** shapes: question ids and allowed answers from **`smeme_reasoning_template_get`** / manifest templates ([§2.6](#26-question-ids-and-text-worksheet-manifest)), and—where deployments enable it—**`evidence_blob_v1`** + contract-backed bridge rules ([§2.7](#27-blob-evidence-evaluate-smeme_reasoning_evaluate_blob-opt-in)).
+2. **Shape** — The agent maps that context into SMEme’s **published** shapes: question ids and allowed answers from **`smeme_reasoning_template_get`** / manifest templates ([§2.6](#26-question-ids-and-text-worksheet-manifest)).
 
    **Prompting discipline (shape step):** Skill text and harness prompts should **explicitly bound** the agent to an **NLP / slot-filling** role only: given whatever evidence the session has assembled—user-provided files or pasted text, **and/or** data the harness retrieved via **its own tool use** (other MCP servers such as mail, cloud drives, calendars, or issue trackers; local or project folders; session context)—produce **answers per isolated worksheet question id**, without inferring **branch order**, **edge conditions**, **conclusion targets**, or “repairing” the questionnaire. During **evidence gathering and validation**, the harness should **not** treat this step as prep for the solver: avoid anticipating **theories**, **logical reasoning** over the graph, or **`smeme_reasoning_evaluate`** (or outcomes) altogether—no dry-run “what if we evaluated now,” no mental model of **T(IR)**, and no steering answers toward a hoped-for conclusion. Those belong **only** in Phase 2 / analysis, after a valid **E** exists. This keeps the product positioning clear: the bundle is **connector + skills**, where skills teach **how to use our tools**, not a shadow decision engine.
 
