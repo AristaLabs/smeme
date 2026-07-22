@@ -1,21 +1,21 @@
 # SMEme Core architecture
 
 SMEme Core is a self-hosted application for authoring **decision-trees** and
-evaluating structured answers through a server-side reasoning engine.
+running them through a server-side **logical analysis engine**.
 
 ## Product shape
 
 - **Web application:** authors create, edit, and Deploy decision-trees.
-- **Reasoning engine:** Deploy validates and compiles a tree; evaluation uses the
-  deployed artifact and returns a structured report.
-- **Remote MCP:** OAuth-protected tools let an owner list, validate answers for,
-  and evaluate their Listed decision-trees.
+- **Logical analysis engine:** Deploy validates and compiles a tree; the deployed
+  artifact supports evaluation (structured answers → **report**) and graph-level
+  questions (what-if, reachability, and related analysis).
+- **Remote MCP:** OAuth-protected tools let an owner list, validate, evaluate, and
+  analyze their Listed decision-trees.
 - **PostgreSQL:** stores users, decision-tree graphs, deployed artifacts, and
   evaluation records.
 
-The server owns evaluation. MCP clients gather evidence and provide structured
-`raw_answers`; they do not receive branch topology or decision rules on the
-default evaluate path.
+The server owns reasoning. MCP clients gather evidence and pose questions; they
+do not receive branch topology or decision rules on the default MCP path.
 
 ## Core boundaries
 
@@ -48,8 +48,9 @@ plugin/
 1. An author saves a decision-tree.
 2. **Deploy** validates it and persists a compiled reasoning artifact.
 3. An MCP client authenticates with the configured OAuth provider.
-4. The client submits structured answers for a Listed, deployed decision-tree.
-5. The server evaluates the artifact and returns a report.
+4. The client evaluates structured answers and/or asks graph-level questions
+   about a Listed, deployed decision-tree.
+5. The server answers from the deployed artifact (report and/or analysis).
 
 ## Operator references
 

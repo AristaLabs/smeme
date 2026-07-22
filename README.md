@@ -1,13 +1,15 @@
 # SMEme Core
 
 SMEme Core is a source-available application for authoring inspectable
-**decision-trees** and evaluating structured answers through a server-side
-reasoning engine.
+**decision-trees** and running them through a server-side **logical analysis
+engine**.
 
 Experts create decision-trees, **Deploy** a validated version, and connect MCP
-clients that submit structured `raw_answers`. The server returns a structured
-**report** from the deployed artifact. Agents gather evidence; the server keeps
-the decision logic and evaluation boundary under operator control.
+clients that can (1) submit structured `raw_answers` for a **report**, and
+(2) ask questions about the deployed tree itself — what-if, reachability, and
+related analysis — without treating full evidence collection as the only path.
+Agents gather evidence and pose questions; the server keeps the decision logic
+and evaluation boundary under operator control.
 
 ---
 
