@@ -83,15 +83,14 @@ Download [Docker Desktop for Windows](https://www.docker.com/products/docker-des
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/smeme_v2.git
-cd smeme_v2
+git clone https://github.com/AristaLabs/smeme.git
+cd smeme
 ```
 
 ### 2. Install Dependencies
 
 ```bash
-# Private monorepo: development tools + hosted overlay adapters
-uv sync --extra dev --extra saas
+uv sync --extra dev
 
 # Verify installation
 uv run python --version
@@ -207,7 +206,7 @@ lsof -i :8000  # macOS/Linux
 netstat -ano | findstr :8000  # Windows
 
 # Kill process or use different port
-uvicorn smeme.main:app --port 8001
+uvicorn smeme.core_entrypoint:app --port 8001
 ```
 
 ### Database connection failed

@@ -42,7 +42,7 @@ cp .env.core.example .env.core
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-Optional knobs (OpenAI, Tavily, MCP authoring, Clerk) are listed in `.env.core.example` and [`docs/guides/self-host-quickstart.md`](docs/guides/self-host-quickstart.md).
+Optional knobs (OpenAI, Tavily, MCP authoring, Clerk) are listed in `.env.core.example` and [`docs/guides/self-host-quickstart.md`](docs/guides/self-host-quickstart.md). Contribution themes: [`docs/CONTRIBUTION_PATHS.md`](docs/CONTRIBUTION_PATHS.md).
 
 ## What belongs in public `smeme` vs `smeme-cloud`
 

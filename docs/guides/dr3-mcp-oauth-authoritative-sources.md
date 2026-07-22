@@ -45,7 +45,7 @@ OAuth 2.1 defines **four roles** and states that the **authorization server may 
 - **Scaling & rotation:** Token signing keys, client registries, and login UX can evolve on the AS without redeploying every RS instance; RS nodes only need verification material (JWKS, shared secret, or introspection URL).
 - **MCP alignment:** MCP treats the protected MCP server as an OAuth 2.1 **resource server** and expects **RFC 9728** metadata to point at one or more **authorization servers**—a **logical** split is already the interoperability model, even if both share a hostname in small deployments.
 
-**SMEme posture ([D016](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso)):** Prefer a **logical** AS separable from the MCP **resource** worker for security and portability; a **single FastAPI app** may still host **both** URL families in early DR-3 (same issuer origin, distinct routes) as long as code paths keep **issuance** vs **MCP request handling** clearly separated so a later move to a dedicated AS (or edge gateway) is a config change, not a rewrite.
+**SMEme posture (D016):** Prefer a **logical** AS separable from the MCP **resource** worker for security and portability; a **single FastAPI app** may still host **both** URL families in early DR-3 (same issuer origin, distinct routes) as long as code paths keep **issuance** vs **MCP request handling** clearly separated so a later move to a dedicated AS (or edge gateway) is a config change, not a rewrite.
 
 ## Official Python SDK (SMEme implementation)
 
@@ -71,7 +71,7 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
 3. **MCP URL:** `{effective_base_url}{MCP_HTTP_PATH}` — e.g. `http://localhost:8000/api/v1/mcp`. **Do not expect a normal browser tab to “load” this page.** Streamable HTTP requires clients to send **`Accept: application/json, text/event-stream`** ([transports spec](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports.md)); a browser **GET** uses a different `Accept`, so you may see **406** with a JSON-RPC body such as `Not Acceptable: Client must accept text/event-stream` — that means the server is enforcing the spec, not that the mount is broken.
 
-   **Trailing slash:** Starlette’s `Mount` matches **`…/mcp/`** (with slash), not bare **`…/mcp`**. Without middleware, the app returns **307** to add the slash; some clients repeat **POST** after redirect **without** the required `Accept` header and get **406**. SMEme enables **`McpMountPathNormalizeMiddleware`** when `MCP_ENABLED` to rewrite bare `{MCP_HTTP_PATH}` to the slash form before routing (see [LESSONS_LEARNED — MCP mount path](../LESSONS_LEARNED.md#mcp-mount-path-307-trailing-slash-redirect-and-post-406-starlette-mount)).
+   **Trailing slash:** Starlette’s `Mount` matches **`…/mcp/`** (with slash), not bare **`…/mcp`**. Without middleware, the app returns **307** to add the slash; some clients repeat **POST** after redirect **without** the required `Accept` header and get **406**. SMEme enables **`McpMountPathNormalizeMiddleware`** when `MCP_ENABLED` to rewrite bare `{MCP_HTTP_PATH}` to the slash form before routing.
 
    **Recommended curl (finishes — use this first):** OAuth / RFC 9728 metadata is a normal JSON **GET** that completes. Replace the origin with yours (no trailing slash on the origin):
 
@@ -79,7 +79,7 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
    Expect **`200`**. Repo helper: `bash scripts/smoke_mcp_url.sh https://smeme-dev.onrender.com`
 
-   **Why `GET …/api/v1/mcp/` “times out” in curl:** That URL starts the **standalone SSE** leg of Streamable HTTP. The server keeps the response open to push events, so **`curl` waits for the body to end** until **`--max-time`** fires → **`curl: (28) Operation timed out`** and often **`0 bytes received`** on the wire for the **body** (headers may still have been parsed). **`-w "%{http_code}"` showing `200` usually means the TCP connection and HTTP status line succeeded** — it does **not** mean curl “failed to reach” the server. **Do not use this GET as your only uptime check**; use well-known above. See [LESSONS_LEARNED — curl vs MCP GET](../LESSONS_LEARNED.md#curl-get-to-mcp-endpoint-times-out-exit-28).
+   **Why `GET …/api/v1/mcp/` “times out” in curl:** That URL starts the **standalone SSE** leg of Streamable HTTP. The server keeps the response open to push events, so **`curl` waits for the body to end** until **`--max-time`** fires → **`curl: (28) Operation timed out`** and often **`0 bytes received`** on the wire for the **body** (headers may still have been parsed). **`-w "%{http_code}"` showing `200` usually means the TCP connection and HTTP status line succeeded** — it does **not** mean curl “failed to reach” the server. **Do not use this GET as your only uptime check**; use well-known above.
 
    **Shell pitfall:** Line continuation must be **backslash immediately followed by newline**. A **space after `\`** (`\␠` before newline) **breaks** the command; headers may not attach to `curl` and behavior becomes misleading.
 
@@ -92,7 +92,7 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
    - Run **`npx @modelcontextprotocol/inspector`** with **no** URL argument. Configure the backend in the UI: transport **Streamable HTTP**, server URL e.g. `http://127.0.0.1:8000/api/v1/mcp`. A positional URL is treated as **stdio** (spawn a command), not HTTP.
    - The UI may default to **`http://localhost:3001/sse`** (legacy SSE samples / `localStorage`); change transport and URL to match SMEme.
    - Open the link that includes **`MCP_PROXY_AUTH_TOKEN`** (or paste the token in Configuration). Leave **optional HTTP headers** (e.g. Authorization) **disabled** unless you set a real value; an enabled-but-empty Authorization row causes Inspector-side validation errors.
-   - **SDK + reconnect:** Stateless Streamable HTTP in the Python `mcp` package uses **`event_store=None`**. Clients that send **`Last-Event-ID`** on SSE reconnect can hit an upstream bug (no HTTP response → 500). SMEme wraps the mounted MCP app with **`StripLastEventIdMiddleware`** (`smeme/mcp/reasoning_fastmcp.py`), which strips that header so reconnect works at the cost of **no SSE replay** for this mount. See [LESSONS_LEARNED — Considerations](../LESSONS_LEARNED.md#mcp-streamable-http-last-event-id-python-sdk-and-striplasteventidmiddleware).
+   - **SDK + reconnect:** Stateless Streamable HTTP in the Python `mcp` package uses **`event_store=None`**. Clients that send **`Last-Event-ID`** on SSE reconnect can hit an upstream bug (no HTTP response → 500). SMEme wraps the mounted MCP app with **`StripLastEventIdMiddleware`** (`smeme/mcp/reasoning_fastmcp.py`), which strips that header so reconnect works at the cost of **no SSE replay** for this mount.
 
 4. **Metadata (GET)** — only registered when **`MCP_ENABLED`** is true:
    - `/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource{MCP_HTTP_PATH}` (e.g. `/.well-known/oauth-protected-resource/api/v1/mcp`)
@@ -104,7 +104,7 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
 Third-party summaries often conflate specs—**protected resource metadata** is **[RFC 9728](https://www.rfc-editor.org/rfc/rfc9728.html)**; **[RFC 8414](https://www.rfc-editor.org/rfc/rfc8414.html)** is **authorization server** metadata. Cowork still needs **both**: MCP clients read **9728** for the MCP URL, then **8414** (or OIDC discovery) for the AS.
 
-**Architecture (aligned with [D016](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso))**
+**Architecture (aligned with D016)**
 
 - **Authorization server:** **Clerk** — login, consent, PKCE, short-lived access tokens + refresh. **SaaS prod (2026-06-18):** **Clerk instance DCR on** + **`CLERK_OAUTH_DYNAMIC_REGISTRATION=true`** on SMEme; mirrored metadata includes **`registration_endpoint`**. **`SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` blank** — DCR client ids are not statically allowlistable. **Self-hosted DCR-off:** static Client ID (`MCP_SAAS_OAUTH_CLIENT_ID` / users paste into connector) + optional allowlist. See [Dynamic Client Registration](#dynamic-client-registration-clerk_oauth_dynamic_registration) and [runbooks](cowork-reasoning-plugin-runbooks.md).
 - **Resource server:** **SMEme** — Streamable HTTP MCP at **`MCP_HTTP_PATH`** (default **`/api/v1/mcp`**, not Clerk’s doc examples at **`/mcp`**); validate **`Authorization: Bearer`** with **Clerk JWKS** (Backend SDK or generic JWT library + issuer/audience checks); map **`sub`** → **`users`**; enforce **`dtq:*` scopes** as Clerk exposes them (custom OAuth scopes — **spike required**).
@@ -125,14 +125,13 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 |--------|-----|-----|
 | Anthropic — connect remote MCP | https://modelcontextprotocol.io/docs/develop/connect-remote-servers.md | Hosted MCP URL, OAuth-oriented setup |
 | **Clerk** — connect MCP clients | https://clerk.com/docs/guides/ai/mcp/connect-mcp-client | DCR (instance-level) vs static **Client ID**; Cursor / VS Code / Claude Code / Desktop+`mcp-remote`; pair with [Build an MCP server](https://clerk.com/docs/guides/ai/mcp/build-mcp-server) (stack may differ from this repo’s FastAPI **`mcp` SDK**) |
-| SMEme **D016** | [docs/DECISIONS.md](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso) | AS/RS split, scopes, refresh tokens, narrow legacy REST |
+| SMEme auth/MCP posture | (internal ADR; not in public tree) | AS/RS split, scopes, refresh tokens, narrow legacy REST |
 
 ## SMEme implementation status (DR-3 wedge)
 
-- **Done in repo (this phase):** Streamable HTTP MCP endpoint (opt-in **`MCP_ENABLED`**), **RFC 9728** protected resource metadata for the MCP URL, **RFC 8414-style** AS metadata + **OIDC discovery** mirrored inline from the Clerk issuer (no 302 to Clerk — CORS), **conditional** **`registration_endpoint`** via **`CLERK_OAUTH_DYNAMIC_REGISTRATION`** (see [below](#dynamic-client-registration-clerk_oauth_dynamic_registration)), **`StripLastEventIdMiddleware`** around the MCP mount (workaround for Python SDK + `Last-Event-ID` without `event_store` in stateless mode; see [LESSONS_LEARNED](../LESSONS_LEARNED.md#mcp-streamable-http-last-event-id-python-sdk-and-striplasteventidmiddleware)), **P2** Clerk JWT in tools (`get_mcp_user`), and **transport-layer** **401** + **`WWW-Authenticate`** with **`resource_metadata`** when Clerk is configured (see [Transport-layer auth and HTMX middleware](#transport-layer-auth-and-htmx-middleware) below).
-- **Validated connectors:** **MCP Inspector**; **Anthropic** (Chat / Cowork / Desktop) with **DCR** or **custom connector** + static Client ID; **Cursor** with DCR. See [LESSONS_LEARNED](../LESSONS_LEARNED.md#anthropic-plugin-import-drops-oauthclientid).
-- **Sprint plan (Clerk OAuth app + fix AS metadata → Clerk):** [docs/planning/sprint-dr3-clerk-oauth-as-metadata.md](../planning/sprint-dr3-clerk-oauth-as-metadata.md) — Clerk Dashboard checklist, engineering tasks (settings, 9728, AS redirect vs mirror, tests), spikes, exit criteria.
-- **Next — [D016](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso):** **P3** **`dtq:*` scope enforcement** at transport when Clerk issues custom scopes; API keys + narrow REST; **P5** optional second Render service for MCP RS.
+- **Done in repo (this phase):** Streamable HTTP MCP endpoint (opt-in **`MCP_ENABLED`**), **RFC 9728** protected resource metadata for the MCP URL, **RFC 8414-style** AS metadata + **OIDC discovery** mirrored inline from the Clerk issuer (no 302 to Clerk — CORS), **conditional** **`registration_endpoint`** via **`CLERK_OAUTH_DYNAMIC_REGISTRATION`** (see [below](#dynamic-client-registration-clerk_oauth_dynamic_registration)), **`StripLastEventIdMiddleware`** around the MCP mount (workaround for Python SDK + `Last-Event-ID` without `event_store` in stateless mode.
+- **Validated connectors:** **MCP Inspector**; **Anthropic** (Chat / Cowork / Desktop) with **DCR** or **custom connector** + static Client ID; **Cursor** with DCR.
+- **Next — D016:** **P3** **`dtq:*` scope enforcement** at transport when Clerk issues custom scopes; API keys + narrow REST; **P5** optional second Render service for MCP RS.
 - **Before full deployment (product / infra):** Clerk + Render tier limits; second **Render** Web Service for MCP **RS** when blast radius or scale warrants it (same app OK for MVP).
 
 ## Dynamic Client Registration (`CLERK_OAUTH_DYNAMIC_REGISTRATION`) {#dynamic-client-registration-clerk_oauth_dynamic_registration}
@@ -150,13 +149,13 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 
 **Code:** `smeme/core/config.py` (`clerk_oauth_dynamic_registration`); `smeme/mcp/discovery_routes.py` (`_clerk_as_metadata`, `_clerk_oidc_config`). **Tests:** `tests/unit/mcp/test_dr3_discovery.py::test_well_known_routes_clerk_dcr_advertises_registration_endpoint`.
 
-**Full narrative:** [LESSONS_LEARNED — DCR and Cursor](../LESSONS_LEARNED.md#mcp-dcr-registration-endpoint-and-cursor).
+
 
 ## Transport-layer auth and HTMX middleware
 
 **Shipped:** FastMCP **`AuthSettings`** + **`ClerkMcpTokenVerifier`** (`mcp` SDK **`RequireAuthMiddleware`**) when `clerk_oauth_issuer` is set. Unauthenticated Streamable HTTP requests to the MCP mount get **401** with **`WWW-Authenticate`** including **`resource_metadata`** (RFC 9728 challenge path). Shared JWT verification: **`decode_clerk_oauth_access_token`** in `smeme/mcp/bearer_auth.py`.
 
-**Checkpoint A (capabilities):** **`smeme_reasoning_capabilities`** uses the same **Bearer** token and linked **`User`** row as **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** — no unauthenticated capabilities probe in production. See `smeme/mcp/reasoning_fastmcp.py` and **D016** post-P2 retrofit in [DECISIONS.md](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso).
+**Checkpoint A (capabilities):** **`smeme_reasoning_capabilities`** uses the same **Bearer** token and linked **`User`** row as **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** — no unauthenticated capabilities probe in production. See `smeme/mcp/reasoning_fastmcp.py` .
 
 **Verifier vs application auth:** **`ClerkMcpTokenVerifier`** is stateless (signature, `iss`, `exp`, JWKS only). **`get_mcp_user`** loads **`User`** from **`users.clerk_user_id`**; a valid JWT with no row still returns tool-level **`auth_error`**, not transport **401**.
 

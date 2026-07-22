@@ -1,91 +1,30 @@
-# SMEme v2 — Documentation Index
+# SMEme Core documentation
 
-Quick navigation to guides, architecture, and reference docs.
+Thin operator and contributor surface for the public Core tree.
 
-> **Historical sprint docs and superseded plans** live in `docs/historical/` — treat them as archive, not current reference.
-
----
-
-## Working-memory set (read these first)
+## Start here
 
 | Doc | Purpose |
 |-----|---------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Current system map — Clerk, MCP, reasoning IR, feature flags |
-| [DECISIONS.md](DECISIONS.md) | ADRs — D016 (auth/MCP/Cowork), D017 (IR-first reasoning) |
-| [LESSONS_LEARNED.md](LESSONS_LEARNED.md) | Gotchas, failures, non-obvious patterns |
-| [ROADMAP.md](ROADMAP.md) | Engineering priorities and backlog |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Core system map |
+| [Self-host quickstart](guides/self-host-quickstart.md) | Docker / compose appliance |
+| [Engine promises](guides/engine-promises.md) | What Deploy and evaluate guarantee |
+| [Contribution paths](CONTRIBUTION_PATHS.md) | Themes welcome in public PRs |
+| [Contributing](../CONTRIBUTING.md) | PR / CLA process |
 
----
-
-## Guides
+## Operator guides
 
 | Guide | Use when |
 |-------|---------|
-| [Self-host quickstart](guides/self-host-quickstart.md) | Docker `smeme` image / compose (D023) |
-| [Public extract checklist](planning/core-public-extract-checklist.md) | Public `smeme` + `smeme-cloud` pin |
-| [Sprint: public release](planning/sprint-core-public-release.md) | SUL + extract A→C |
-| [Getting Started](guides/getting-started.md) | Local development setup |
-| [Installation](guides/installation.md) | Dependency and environment setup |
-| [Deployment](guides/deployment.md) | CI/CD, Docker, Render |
-| [CI/CD Setup](guides/ci-cd-setup.md) | GitHub Actions dual-stage pipeline |
-| [Go-Live Checklist](guides/go-live-checklist.md) | Pre-production env checklist |
-| [Render Env Checklist](guides/render-env-checklist.md) | Render environment variables |
-| [SendGrid Dependencies](guides/sendgrid-dependencies.md) | What SendGrid is still used for (post-Clerk cutover) |
-| [LangGraph Integration](guides/langgraph-integration.md) | Workflow patterns, state design, HTMX integration |
-| [MCP / OAuth (DR-3)](guides/dr3-mcp-oauth-authoritative-sources.md) | MCP endpoint, RFC 9728, Clerk Bearer, scopes |
-| [Cowork Plugin Runbooks](guides/cowork-reasoning-plugin-runbooks.md) | Operator + end-user steps for the Cowork plugin |
-| [Cowork Superuser Admin](guides/cowork-plugin-superuser-admin-guide.md) | IT/security overview for plugin deployment |
-| [Data Migration](guides/data-migration.md) | Schema vs data migrations, safe backfill patterns |
-| [Wizard Telemetry](guides/wizard-telemetry-drop-off.md) | Drop-off reporting, telemetry route |
+| [Getting started](guides/getting-started.md) | Local Core development |
+| [Installation](guides/installation.md) | Dependencies and environment |
+| [MCP / OAuth](guides/dr3-mcp-oauth-authoritative-sources.md) | MCP endpoint, RFC 9728, Clerk Bearer |
+| [MCP connector runbooks](guides/cowork-reasoning-plugin-runbooks.md) | Connect agents; guidance via MCP tools |
+| [Frontend CSS build](guides/frontend-css-build.md) | Tailwind pre-build (`make css`) |
+| [Data migration](guides/data-migration.md) | Schema vs data migrations |
 
----
+## Agent guidance authoring
 
-## Architecture
+Skill markdown under [`plugin/agent-skills/`](../plugin/agent-skills/) is the **authoring source** for MCP guidance (`smeme_reasoning_guidance_get`). Agents load that contract over MCP after OAuth — there is no installable plugin zip in Core.
 
-Use [ARCHITECTURE.md](ARCHITECTURE.md) for the Core system map. Deeper historical
-topic drafts are not part of this public tree.
-
----
-
-## Reference
-
-| Doc | Notes |
-|-----|-------|
-| [Auth routes](reference/api/auth-routes.md) | Clerk-based auth routes (login, register, profile) |
-| [QNR routes](reference/api/qnr-routes.md) | Dashboard, editor, agentic generation, sessions |
-| [Memo routes](reference/api/memo-routes.md) | Memo generation endpoint |
-| [Data schema notes](reference/data-schema.md) | Key models — spot-check against `smeme/core/models.py` for latest |
-
----
-
-## Product
-
-| Doc | Purpose |
-|-----|---------|
-| [User contract](product/user-contract.md) | Product narrative for stakeholders and user testing |
-
-## Business & GTM
-
-| Doc | Purpose |
-|-----|---------|
-| [Distribution & GEO GTM](business/distribution-and-geo-gtm.md) | Current distribution, GEO, monetization phasing |
-| [Expert agency narrative & content plan](business/expert-agency-narrative-and-content-plan.md) | Arista Labs mission alignment + blog series |
-| [Business marketplace access plan](planning/business-marketplace-access-plan.md) | Future **Business tier** engineering spec (sharing, grants — **not current GTM**; Free + Pro only today) |
-
----
-
-## Planning
-
-`docs/planning/` contains active specs and sprint plans. `docs/historical/` contains superseded plans, old sprint logs, and migration notes — **not promises**.
-
----
-
-## Pre-deploy checklist
-
-```bash
-uv run ruff check smeme tests
-uv run pytest
-uv run alembic heads   # must be exactly one head
-```
-
-**Last Updated**: 2026-06-09
+After editing skills, regenerate with `scripts/build_guidance_artifact.py` and run `scripts/validate_agent_skills.py`.

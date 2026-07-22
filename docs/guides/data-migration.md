@@ -888,8 +888,8 @@ Before committing a data migration:
 - [Alembic Documentation - Cookbook](https://alembic.sqlalchemy.org/en/latest/cookbook.html)
 - [PostgreSQL ALTER TABLE Performance](https://www.postgresql.org/docs/current/sql-altertable.html)
 - [Zero-Downtime Postgres Migrations](https://github.com/ankane/strong_migrations)
-- [MIGRATION_ADVISORY_LOCK.md](./MIGRATION_ADVISORY_LOCK.md) - Concurrent migration safety
-- [MIGRATION_BEST_PRACTICES.md](./MIGRATION_BEST_PRACTICES.md) - Schema migration patterns
+- Alembic env advisory locks — see `alembic/env.py`
+- Schema migration patterns — prefer two-phase nullable → backfill → tighten
 
 ---
 

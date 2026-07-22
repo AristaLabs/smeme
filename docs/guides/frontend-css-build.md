@@ -2,7 +2,7 @@
 
 How SMEme's CSS is produced and served. The app uses **Tailwind CSS pre-built to a static,
 purged stylesheet** — not the Play CDN. Rationale and alternatives:
-[DECISIONS.md D020](../DECISIONS.md#d020-pre-built-tailwind-css-over-the-play-cdn).
+pre-built Tailwind over the Play CDN.
 
 > **TL;DR** — After you add or change Tailwind classes in a template, run **`make css`**.
 > Production rebuilds automatically in the Docker build. No npm or Node is involved.
@@ -105,6 +105,5 @@ The build needs network access (to fetch the CLI binary) — available during Do
 
 ## Related
 
-- [DECISIONS.md D020](../DECISIONS.md#d020-pre-built-tailwind-css-over-the-play-cdn) — decision + alternatives.
-- [PRE_GTM_CHECKLIST.md §12](../PRE_GTM_CHECKLIST.md) — performance basics / launch context.
-- [Design System & Component Library (LESSONS_LEARNED §12)](../LESSONS_LEARNED.md#design-system--component-library) — the `--ui-*` token system and macros.
+- This guide — pre-built Tailwind over the Play CDN
+- Templates under `smeme/templates/` — `--ui-*` tokens and macros

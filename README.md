@@ -87,9 +87,12 @@ MCP_ENABLED=false
 
 ## Documentation
 
+- [Docs index](docs/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engine promises](docs/guides/engine-promises.md)
 - [Self-host quickstart](docs/guides/self-host-quickstart.md)
+- [MCP connector runbooks](docs/guides/cowork-reasoning-plugin-runbooks.md) — after OAuth, agents fetch guidance via `smeme_reasoning_guidance_get`
+- [Contribution paths](docs/CONTRIBUTION_PATHS.md)
 - [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md) · [Security](SECURITY.md)
 
 ## License

@@ -2,7 +2,10 @@
 
 **Status (2026-07):** Product path is **connector-only** — MCP URL + OAuth Client ID + **`smeme_reasoning_guidance_get`**. The installable Cowork plugin zip and dashboard download are **removed**. Skills under [`plugin/agent-skills/`](../../plugin/agent-skills/) remain the **authoring source** for guidance content (not a user download).
 
-Operator checklist (deploy + Clerk) and end-user connector flow. **Customer org IT / security:** [SMEme MCP — organization IT and security overview](cowork-plugin-superuser-admin-guide.md). Technical protocol: [DR-3 authoritative sources](dr3-mcp-oauth-authoritative-sources.md), [D016 — Auth & MCP](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso). Historical zip packaging notes: [`docs/guides/internal/cowork-plugin-artifacts-and-releases.md`](internal/cowork-plugin-artifacts-and-releases.md) (**archived**).
+Operator checklist (deploy + Clerk) and end-user connector flow. Technical
+protocol: [DR-3 authoritative sources](dr3-mcp-oauth-authoritative-sources.md).
+After OAuth, agents load the calling contract with
+`smeme_reasoning_guidance_get` (see capabilities → guidance flow on `/docs/mcp`).
 
 ---
 
@@ -24,7 +27,7 @@ RFC 9728 **`resource`** in protected-resource metadata is built from **`effectiv
 | **`BASE_URL`** | Canonical public origin for local or custom hosting (no trailing slash). |
 | **`RENDER_EXTERNAL_URL`** | On Render, if set, **overrides** `BASE_URL` for `effective_base_url`. |
 
-**Rule:** The HTTPS (or dev HTTP) origin in **`BASE_URL` / `RENDER_EXTERNAL_URL`** must be the **same host and scheme** users and connectors use in the MCP URL. If they differ, OAuth discovery may advertise the wrong `resource` and clients will reject the connection. See [LESSONS_LEARNED — resource must match connection URL](../LESSONS_LEARNED.md#mcp-inspector-resource-field-must-match-connection-url-exactly).
+**Rule:** The HTTPS (or dev HTTP) origin in **`BASE_URL` / `RENDER_EXTERNAL_URL`** must be the **same host and scheme** users and connectors use in the MCP URL. If they differ, OAuth discovery may advertise the wrong `resource` and clients will reject the connection.
 
 ### 1.3 MCP path
 
@@ -39,7 +42,7 @@ RFC 9728 **`resource`** in protected-resource metadata is built from **`effectiv
   Also: `/.well-known/oauth-protected-resource` (root) and `/.well-known/oauth-authorization-server`.  
   **Do not** treat **`curl --max-time` against `…/api/v1/mcp/`** as down — that path **streams**; exit **28** with **`http_code` 200** often means the server answered. Details: [DR-3 Try locally](dr3-mcp-oauth-authoritative-sources.md#try-locally-dr-3-p0).
 - **Streamable HTTP:** clients must send `Accept: application/json, text/event-stream` — a normal browser tab may show **406**; that can still mean the mount is correct.
-- **Trailing slash / 307 / 406:** If logs show `POST …/mcp` **307** then `POST …/mcp/` **406**, see [LESSONS_LEARNED — MCP mount path](../LESSONS_LEARNED.md#mcp-mount-path-307-trailing-slash-redirect-and-post-406-starlette-mount). SMEme normalizes bare `{MCP_HTTP_PATH}` when `MCP_ENABLED`; connector URLs ending in **`…/mcp/`** are also safe.
+- **Trailing slash / 307 / 406:** If logs show `POST …/mcp` **307** then `POST …/mcp/` **406**,. SMEme normalizes bare `{MCP_HTTP_PATH}` when `MCP_ENABLED`; connector URLs ending in **`…/mcp/`** are also safe.
 
 ### 1.5 Clerk OAuth application (MCP connector)
 
@@ -51,11 +54,11 @@ In the [Clerk Dashboard](https://dashboard.clerk.com/) → **OAuth applications*
 |--------|------------------|
 | **Cowork (production)** | `https://claude.ai/api/mcp/auth_callback` |
 | **ChatGPT (custom app / connector)** | `https://chatgpt.com/connector_platform_oauth_redirect` (legacy; register first). Per-app URI `https://chatgpt.com/connector/oauth/{callback_id}` is shown in ChatGPT app settings after create — add that exact URI if OAuth fails with `redirect_uri` mismatch. See [OpenAI Apps SDK auth](https://developers.openai.com/apps-sdk/build/auth). |
-| **Cursor (IDE)** | **Per Cursor release** — not the Cowork URL; capture from Clerk error or follow [LESSONS_LEARNED — Cursor IDE](../LESSONS_LEARNED.md#cursor-ide-mcp-oauth) |
+| **Cursor (IDE)** | **Per Cursor release** — not the Cowork URL; capture the redirect URI from the Clerk error or client docs |
 | **MCP Inspector — Quick flow** | `http://localhost:6274/oauth/callback` |
 | **MCP Inspector — Guided flow** | `http://localhost:6274/oauth/callback/debug` |
 
-Register **both** Inspector URIs or Guided flow fails with `redirect_uri does not match`. Details: [LESSONS_LEARNED](../LESSONS_LEARNED.md#mcp-inspector-has-two-different-oauth-callback-urls).
+Register **both** Inspector URIs or Guided flow fails with `redirect_uri does not match`.
 
 **Optional (Claude Code):** If you pin a localhost callback port, register `http://localhost:<port>/callback` to match the client. See [Claude Code MCP — OAuth](https://code.claude.com/docs/en/mcp.md).
 
@@ -65,17 +68,17 @@ Register **both** Inspector URIs or Guided flow fails with `redirect_uri does no
 
 **Self-hosted (DCR off):** Leave **Clerk instance-level Dynamic Client Registration disabled** if you accept only static clients. Document the static Client ID users paste into connectors (SaaS default: **`NRdsdBvrio0DW9yo`** / `MCP_SAAS_OAUTH_CLIENT_ID` in [`smeme/mcp/urls.py`](../../smeme/mcp/urls.py)). Optionally set **`SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS`** to that same id so only your declared OAuth app can call MCP.
 
-**GTM (July 2026):** Product default is **DCR off** + **custom connector** (URL + static Client ID) + **`guidance_get`** bootstrap — see [connector-first `/docs/mcp`](/docs/mcp) and [CIMD research snapshot](../planning/cimd-mcp-client-registration-research-2026-07.md) (CIMD not implemented; Clerk has no visible support).
+**GTM (July 2026):** Product default is **DCR off** + **custom connector** (URL + static Client ID) + **`guidance_get`** bootstrap — see [connector-first `/docs/mcp`](/docs/mcp) and CIMD research snapshot (CIMD not implemented; Clerk has no visible support).
 
-**Secrets:** The OAuth **client secret** is between the **MCP client** and **Clerk** — not stored in SMEme. SMEme only validates Bearer JWTs via JWKS ([LESSONS_LEARNED](../LESSONS_LEARNED.md#clerk-oauth-client-secret-is-between-mcp-client-and-clerk-not-smeme)).
+**Secrets:** The OAuth **client secret** is between the **MCP client** and **Clerk** — not stored in SMEme. SMEme only validates Bearer JWTs via JWKS.
 
 ### 1.6 CORS (development)
 
-If browser-based MCP clients fail discovery from another origin, you may need to add Inspector’s origin to **`ALLOWED_ORIGINS`**. Do not widen production origins without intent. See [LESSONS_LEARNED — CORS preflight](../LESSONS_LEARNED.md#cors-preflight-options-400-vs-actual-get-200).
+If browser-based MCP clients fail discovery from another origin, you may need to add Inspector’s origin to **`ALLOWED_ORIGINS`**. Do not widen production origins without intent.
 
 ### 1.7 Token expiry and “random” auth failures
 
-[D016](../DECISIONS.md#d016-authentication--permissions--final-plan-cowork-launch-remote-mcp-sso) notes real-world reports of **short-lived access tokens** and connectors showing errors until **re-authentication**. On the SMEme side, tools return structured **`auth_error`** when the Bearer is missing, invalid, or expired; users should **re-connect** the MCP connector (OAuth) rather than assuming the server is down. Align skills with [tool contracts — §5](../planning/cowork-plugin-delivery-sprints.md#5-tool-contracts-for-skills-authoring-canonical).
+D016 notes real-world reports of **short-lived access tokens** and connectors showing errors until **re-authentication**. On the SMEme side, tools return structured **`auth_error`** when the Bearer is missing, invalid, or expired; users should **re-connect** the MCP connector (OAuth) rather than assuming the server is down. Align skills with tool contracts — §5.
 
 ### 1.8 Dogfood matrix (staging + Cowork)
 
@@ -142,13 +145,13 @@ Server **`instructions`** and guidance tools are the product bootstrap path. The
 
 ### 2.3 Sign in to SMEme on the web once
 
-Before **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** succeed, the user must have logged into **SMEme’s web app** at least once so a **`users`** row exists with **`clerk_user_id`** matching the Clerk token **`sub`**. Otherwise tools return **`auth_error`**. See [LESSONS_LEARNED](../LESSONS_LEARNED.md#bearer-token-sub-must-match-usersclerk_user_id).
+Before **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** succeed, the user must have logged into **SMEme’s web app** at least once so a **`users`** row exists with **`clerk_user_id`** matching the Clerk token **`sub`**. Otherwise tools return **`auth_error`**.
 
 ### 2.4 If tools return `auth_error`
 
 1. **Do not** retry the same call in a tight loop.
 2. **Re-connect** the MCP connector (or complete OAuth again) and confirm web sign-in.
-3. Optionally call **`smeme_reasoning_capabilities`** **after OAuth** (same Bearer as other tools) to confirm reachability and tool names — see [§5 tool contracts](../planning/cowork-plugin-delivery-sprints.md#5-tool-contracts-for-skills-authoring-canonical).
+3. Optionally call **`smeme_reasoning_capabilities`** **after OAuth** (same Bearer as other tools) to confirm reachability and tool names — see §5 tool contracts.
 
 ### 2.4a If tools return `concurrency_limit`
 
@@ -161,7 +164,7 @@ Before **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** succeed, the 
 
 ### 2.5 What data leaves the device
 
-Reasoning evaluation sends **`raw_answers_json`**: a **JSON object** keyed by **question node id** with discrete answer values. Values may include **user-typed strings** (e.g. free-text questions). There is **no** server-side **`raw_blob`** or document upload channel; emails, PDFs, and other source material stay on the client while the agent maps facts into that object. Blind-protocol framing: [§2.2](../planning/cowork-plugin-delivery-sprints.md#22-blind-evaluation-protocol-settled-design-constraint).
+Reasoning evaluation sends **`raw_answers_json`**: a **JSON object** keyed by **question node id** with discrete answer values. Values may include **user-typed strings** (e.g. free-text questions). There is **no** server-side **`raw_blob`** or document upload channel; emails, PDFs, and other source material stay on the client while the agent maps facts into that object. Blind-protocol framing: §2.2.
 
 ### 2.6 Question IDs and text (worksheet manifest)
 
@@ -174,27 +177,24 @@ Reasoning evaluation sends **`raw_answers_json`**: a **JSON object** keyed by **
 
 Then build **`raw_answers`** from question node ids and call **`smeme_reasoning_evaluate`**. Same OAuth Bearer + linked-user rules as **`smeme_reasoning_list`**.
 
-**Optional NL blob path:** When the deployment sets **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** (see [DR-3 guide — environment](../guides/dr3-mcp-oauth-authoritative-sources.md#try-locally-dr-3-p0)), the server also exposes **`smeme_reasoning_evaluate_blob`** — use that for **`evidence_blob_v1`** case text per §2.7. With the default (**`false`**), rely on **`smeme_reasoning_evaluate`** and structured **`raw_answers`** only.
+**Optional NL blob path:** When the deployment sets **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** (see [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md)), the server also exposes **`smeme_reasoning_evaluate_blob`** — use that for **`evidence_blob_v1`** case text per §2.7. With the default (**`false`**), rely on **`smeme_reasoning_evaluate`** and structured **`raw_answers`** only.
 
-**Alternatives:** hand-fill [`SKILL.template.md`](../../plugin/agent-skills/templates/reasoning-question-manifest/SKILL.template.md), or (**optional**) publish-time generated file if product ships [CWP-5](../planning/cowork-plugin-delivery-sprints.md#sprint-cwp-5--optional-publish-time-skillmd-file). See [§2.2 production precondition](../planning/cowork-plugin-delivery-sprints.md#22-blind-evaluation-protocol-settled-design-constraint).
+**Alternatives:** hand-fill [`SKILL.template.md`](../../plugin/agent-skills/templates/reasoning-question-manifest/SKILL.template.md), or keep a private per-workflow worksheet outside the repo.
 
 ### 2.7 Blob evidence evaluate (`smeme_reasoning_evaluate_blob`, opt-in)
 
-**Operator gate:** The MCP tool is registered only when **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** in the server environment (`smeme/core/config.py`). Default **`false`**: connectors do **not** see the tool in **`tools/list`** or **`smeme_reasoning_capabilities`**; **`tools/call`** for that name is not a supported path. Set **`true`** and restart to expose it (CEVI path; see [sprint-cevi-blob-evaluate](../planning/sprint-cevi-blob-evaluate.md)).
+**Operator gate:** The MCP tool is registered only when **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** in the server environment (`smeme/core/config.py`). Default **`false`**: connectors do **not** see the tool in **`tools/list`** or **`smeme_reasoning_capabilities`**; **`tools/call`** for that name is not a supported path. Set **`true`** and restart to expose it.
 
 **Guidance / skills source:** The default **`plugin/agent-skills/`** pack documents **`smeme_reasoning_evaluate`** + **`raw_answers`** only. When you turn **blob evaluate on** for a deployment, **update skills in the same release**: extend **`smeme-reasoning-plugin/SKILL.md`** and **`templates/reasoning-question-manifest/SKILL.template.md`**, regenerate guidance (`scripts/build_guidance_artifact.py`), bump **`REASONING_CAPABILITIES_VERSION`**, and run **`scripts/validate_agent_skills.py`**. See **`plugin/agent-skills/README.md`**.
 
 When the tool **is** enabled, users send **`evidence_blob_v1`** DTOs only (pre-processed client-side / harness-side), not ad hoc “set atom” instructions. The runtime path treats extractors as candidate generators; accepted facts must pass deterministic contract-gated checks.
 
-### 2.7a Workflow-candidate scouting (`smeme_authoring_candidate_guidance`, opt-in) — live dogfood
+### 2.7a Workflow-candidate scouting (`smeme_authoring_candidate_guidance`)
 
-**Operator gate:** Registered only when **`MCP_WORKFLOW_SCOUT_ENABLED=true`** (`smeme/core/config.py`, default **`false`**). One flag gates the **whole surface**: the `smeme_authoring_candidate_guidance` tool, the `candidate_rubric` block in `smeme_reasoning_capabilities`, and the `smeme_reasoning_list` empty-state scout nudge. The flag is read when the FastMCP singleton is built at process start, so **toggling takes effect on restart**, not in-place.
-
-**Current status (2026-07-06):** set **`true` in production for live dogfood** (config default remains `false`). Effective on the next deploy that includes the scout code.
-
-**Kill-switch:** If live scouting misbehaves (e.g. suggests too eagerly), set **`MCP_WORKFLOW_SCOUT_ENABLED=false`** and restart — no code deploy required. On Render the env change triggers the restart. Agents holding cached capabilities will then get clean failures (tool not registered).
-
-**Scout skill:** The rubric *content* is server-side (`_generated_candidate_rubric.py`, served by the tool). Behavior prompts live in `plugin/agent-skills/smeme-workflow-scout/` as guidance authoring source — not a user-facing zip.
+**Status:** retired from the Core product path. The flag
+`MCP_WORKFLOW_SCOUT_ENABLED` may still exist in config for compatibility, but
+Core defaults it **off** and no scout skill pack ships under
+`plugin/agent-skills/`. Leave it disabled unless you maintain your own prompts.
 
 For structured **`raw_answers`** only, use **`smeme_reasoning_evaluate`** as usual.
 
@@ -219,11 +219,11 @@ The product path is the **MCP connector** plus **guidance tools** (`smeme_reason
    **Prompting discipline (shape step):** Skill text and harness prompts should **explicitly bound** the agent to an **NLP / slot-filling** role only: given whatever evidence the session has assembled—user-provided files or pasted text, **and/or** data the harness retrieved via **its own tool use** (other MCP servers such as mail, cloud drives, calendars, or issue trackers; local or project folders; session context)—produce **answers per isolated worksheet question id**, without inferring **branch order**, **edge conditions**, **conclusion targets**, or “repairing” the questionnaire. During **evidence gathering and validation**, the harness should **not** treat this step as prep for the solver: avoid anticipating **theories**, **logical reasoning** over the graph, or **`smeme_reasoning_evaluate`** (or outcomes) altogether—no dry-run “what if we evaluated now,” no mental model of **T(IR)**, and no steering answers toward a hoped-for conclusion. Those belong **only** in Phase 2 / analysis, after a valid **E** exists. This keeps the product positioning clear: the bundle is **connector + skills**, where skills teach **how to use our tools**, not a shadow decision engine.
 
 3. **Validate** — Call **`smeme_reasoning_validate_answers`** with the provenance envelope (`answers` + `evidence_items` + `evidence_refs`). Success returns **`status`**, **`warnings[]`**, and **`harness_next`** (`phase_1_continue` | `phase_2_ok` | `user_input_needed`). **Exit criterion:** **`harness_next` is `phase_2_ok`** (typically after resolving `missing_evidence_ref` under `user_input_needed`).
-4. **Iterate on failure** — Structured **`error.code`** / warning objects tell the harness *what* to fix (which questions, which sources), without exposing graph topology ([blind protocol §2.2](../planning/cowork-plugin-delivery-sprints.md#22-blind-evaluation-protocol-settled-design-constraint)).
+4. **Iterate on failure** — Structured **`error.code`** / warning objects tell the harness *what* to fix (which questions, which sources), without exposing graph topology (blind protocol §2.2).
 
 #### Phase 2 — Evaluate **T(IR) ∧ E**
 
-1. **Evaluate** — Call **`smeme_reasoning_evaluate`** only after Phase 1 exits with **`harness_next: phase_2_ok`**; choose **`persist`** deliberately (`reasoning_evaluation_runs` audit when `true`). Optional **`force_reachable_ids` / `force_unreachable_ids`** (assumptions \(\phi\); see [ALGEBRA §18](../../ALGEBRA.md)).
+1. **Evaluate** — Call **`smeme_reasoning_evaluate`** only after Phase 1 exits with **`harness_next: phase_2_ok`**; choose **`persist`** deliberately (`reasoning_evaluation_runs` audit when `true`). Optional **`force_reachable_ids` / `force_unreachable_ids`** (assumptions \(\phi\); see reasoning docs under `smeme/reasoning/`).
 2. **Interpret** — Branch on **`report.result_kind`** and documented report fields. Load **`smeme-reasoning-outcomes`** when not **`concluded`**.
 3. **Logical analysis (optional)** — **`what_if`**, **`how_to_reach`**, **`decisive_support`**, **`edit_affects_path`**, **`list_conclusions`** ([§2.9](#29-logical-analysis-tools)). These **often follow** evaluate on the same envelope; they **do not require** a prior evaluate when the user asks analysis up front (still need a baseline envelope).
 
@@ -280,26 +280,20 @@ Structured error codes: [`smeme/mcp/tool_contract.py`](../../smeme/mcp/tool_cont
 
 | Doc / path | Purpose |
 |------------|---------|
-| [SMEme MCP — organization IT and security overview](cowork-plugin-superuser-admin-guide.md) | Customer IT / security: connector purpose, auth and data flow |
-| [Internal — Cowork plugin artifacts (archived)](internal/cowork-plugin-artifacts-and-releases.md) | Historical zip packaging notes — **not current product** |
 | [`plugin/agent-skills/README.md`](../../plugin/agent-skills/README.md) | Guidance / skills authoring source |
 | [`dr3-mcp-oauth-authoritative-sources.md`](dr3-mcp-oauth-authoritative-sources.md) | Spec pins, local curl, Inspector pitfalls |
-| [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md) | OAuth, CORS, `resource`, Inspector callbacks |
-| [`../planning/cowork-plugin-delivery-sprints.md`](../planning/cowork-plugin-delivery-sprints.md) | Historical CWP roadmap and tool contract §5 |
-| [`../planning/sprint-mcp-two-phase-evidence-and-evaluate.md`](../planning/sprint-mcp-two-phase-evidence-and-evaluate.md) | **Planning:** two-phase harness (evidence → **E**, then evaluate) |
+| [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | Core system map |
+| In-app `/docs/mcp` | End-user connector + `guidance_get` bootstrap |
 
 ---
 
-## 5. Release sign-off (operators) — plugin zip removed
+## 5. Release sign-off (operators)
 
-**The installable Cowork plugin zip, `/downloads/cowork-plugin/`, and `PLUGIN_BUNDLE_*` operator triple are removed.** Clear those env vars on Render if still set.
+**There is no installable plugin zip in Core.** Agents use the MCP connector plus
+`smeme_reasoning_guidance_get`.
 
 **Current release coupling for MCP surface version:**
 
 1. Bump **`REASONING_CAPABILITIES_VERSION`** in [`smeme/mcp/reasoning_fastmcp.py`](../../smeme/mcp/reasoning_fastmcp.py) when the tool contract / capabilities payload changes.
 2. Keep **`<!-- installed_plugin_version -->`** in [`plugin/agent-skills/smeme-reasoning-plugin/SKILL.md`](../../plugin/agent-skills/smeme-reasoning-plugin/SKILL.md) aligned (CI: `scripts/validate_agent_skills.py`).
-3. Regenerate guidance/rubric/design artifacts when skill sources change: `scripts/build_guidance_artifact.py`, `scripts/build_candidate_rubric_artifact.py`, `scripts/build_design_guidance_artifact.py`.
-
-Historical zip packaging detail (do not follow for new releases): [Internal — Cowork plugin artifacts](internal/cowork-plugin-artifacts-and-releases.md).
-
-<!-- Archived zip subsections §5.1–5.3 removed from the live operator path; see internal archive doc. -->
+3. Regenerate guidance artifacts when skill sources change: `scripts/build_guidance_artifact.py` (and design/rubric builders when those sources change).

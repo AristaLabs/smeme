@@ -48,13 +48,17 @@ plugin/
 1. An author saves a decision-tree.
 2. **Deploy** validates it and persists a compiled reasoning artifact.
 3. An MCP client authenticates with the configured OAuth provider.
-4. The client evaluates structured answers and/or asks graph-level questions
+4. The client calls `smeme_reasoning_guidance_get` (via capabilities/check) to
+   load the calling contract — agents do not install a local plugin zip.
+5. The client evaluates structured answers and/or asks graph-level questions
    about a Listed, deployed decision-tree.
-5. The server answers from the deployed artifact (report and/or analysis).
+6. The server answers from the deployed artifact (report and/or analysis).
 
 ## Operator references
 
 - [Engine promises](guides/engine-promises.md)
 - [Self-host quickstart](guides/self-host-quickstart.md)
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)
+- [MCP connector runbooks](guides/cowork-reasoning-plugin-runbooks.md)
+- [Contribution paths](CONTRIBUTION_PATHS.md)
 - [Agent Skills source](../plugin/agent-skills/README.md)
