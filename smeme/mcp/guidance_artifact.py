@@ -1,4 +1,4 @@
-"""Build connector-safe guidance markdown from cowork skill sources."""
+"""Build connector-safe guidance markdown from agent-skills sources."""
 
 from __future__ import annotations
 

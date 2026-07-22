@@ -68,7 +68,7 @@ Authors build trees in the **editor**; agents call MCP evaluate on your instance
 | | `TAVILY_API_KEY` | Optional web research for agentic generation; ignored if generation is off |
 | | `SHOW_QNR_GENERATION_REGION_SELECTOR` | Tavily country control on the brief form (default on) |
 | **Auth** | `CLERK_*` | Sign-in/up/out, publishable/secret keys, webhook secret, optional `CLERK_OAUTH_ISSUER` |
-| | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | Usually `false` for self-host + static Cowork client |
+| | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | Usually `false` for self-host with a static OAuth client |
 | **MCP** | `MCP_ENABLED` | Streamable HTTP MCP + discovery |
 | | `MCP_HTTP_PATH` | Default `/api/v1/mcp` |
 | | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Chat authoring tools (`smeme_authoring_*`); default off |
@@ -106,14 +106,14 @@ docker compose -f docker-compose.core.yml up --build
 
 1. Configure Clerk (or your OIDC AS) per [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md).
 2. In `.env.core`: `MCP_ENABLED=true`, set `BASE_URL` to your public HTTPS origin, fill `CLERK_*`.
-3. For DCR-off + static Cowork client: set `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` to that client id; keep `CLERK_OAUTH_DYNAMIC_REGISTRATION=false`.
+3. For DCR-off + a static OAuth client: set `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` to that client id; keep `CLERK_OAUTH_DYNAMIC_REGISTRATION=false`.
 4. Optionally set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true` for chat authoring tools.
 5. Restart the `web` service.
 
-**How agents get skills:** there is no plugin zip to download. After OAuth, the
+**How agents get guidance:** there is no plugin zip to download. After OAuth, the
 client calls **`smeme_reasoning_guidance_get`** (usually after
 `smeme_reasoning_capabilities`) and caches the returned markdown calling
-contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is only
+contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is
 the authoring source used to build that content. In-app detail: `/docs/mcp`.
 
 ## How this differs from smeme.ai

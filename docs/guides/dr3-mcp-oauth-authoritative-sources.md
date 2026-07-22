@@ -62,8 +62,6 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
 1. **Environment** (e.g. `.env`):
    - `MCP_ENABLED=true`
-   - Optional: **`MCP_REASONING_BLOB_TOOL_ENABLED`** — when **`true`**, the server registers **`smeme_reasoning_evaluate_blob`** (NL **`evidence_blob_v1`** + CEVI contract) and lists it in **`smeme_reasoning_capabilities`**. Default is **`false`**: the tool is **not** in the MCP catalog and is not invocable; the Python implementation remains in-repo for tests and future opt-in. Restart after changing.
-   - Optional: **`REASONING_REST_EVALUATE_ENABLED`** — when **`true`**, **`POST /api/v1/qnr/{id}/reasoning/evaluate`** is active (cookie/JWT JSON evaluate). Default **`false`**: product path is **MCP** **`smeme_reasoning_evaluate`** only; enable for **integration tests** or **operator** HTTP tooling.
    - Optional: `MCP_HTTP_PATH=/api/v1/mcp` (this is the **default** if unset)
    - Set **`BASE_URL`** to the origin clients use (default `http://localhost:8000`). If the app runs on another host/port, `BASE_URL` must match or **RFC 9728** `resource` URLs in metadata will be wrong. On Render, **`RENDER_EXTERNAL_URL`** overrides when set (`Settings.effective_base_url` in `smeme/core/config.py`).
 

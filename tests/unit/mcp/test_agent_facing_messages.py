@@ -13,7 +13,7 @@ from smeme.mcp.tool_contract import REASONING_TOOL_ERROR_CODES
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SMEme_ROOT = REPO_ROOT / "smeme"
 
-# Same denylist intent as plugin/cowork-skills/README.md (message prose only).
+# Same denylist intent as agent-skills/README.md (message prose only).
 _FORBIDDEN_MESSAGE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bZ3\b", re.IGNORECASE), "Z3"),
     (re.compile(r"\bSAT\b", re.IGNORECASE), "SAT"),
