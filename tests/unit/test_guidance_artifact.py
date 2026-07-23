@@ -45,7 +45,7 @@ def test_connector_safe_transform_removes_zip_only_copy() -> None:
     )
     out = connector_safe_transform(body)
     assert "installed_plugin_version" not in out
-    assert "Plugin version check" not in out
+    assert "Capabilities version check" not in out
     assert "Download the latest bundle" not in out
     assert "## Workflow (happy path)" in out
 
