@@ -26,9 +26,10 @@ prose under [`agent-skills/`](agent-skills/README.md); CI builds what MCP return
 | Templates | Jinja2 + HTMX (no JS frameworks) |
 | Database | PostgreSQL 16+ (JSONB) |
 | ORM | SQLModel (SQLAlchemy 2.0 + Pydantic V2) |
-| AI Workflows | LangGraph (optional generation) |
+| Reasoning | Deterministic IR compiler + Z3 theorem prover |
+| AI-assisted authoring | LangGraph (optional; generation is off by default in Core) |
 | LLM | OpenAI SDK (optional; off by default in Core image) |
-| Auth | Clerk profile (first OIDC); FastAPI-Users cookie/JWT for session |
+| Auth | Clerk session JWT for browser identity; OAuth 2.1 Bearer tokens for remote MCP |
 | MCP | Streamable HTTP MCP + RFC 9728 OAuth discovery |
 | Package Manager | uv |
 
