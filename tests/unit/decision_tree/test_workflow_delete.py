@@ -232,11 +232,11 @@ async def test_delete_removes_entire_family_and_related_rows(
     assert r.status_code == 200
     assert b"permanently deleted" in r.content
     assert title.encode() in r.content  # success flash
-    assert b"No workflows yet" in r.content
+    assert b"No decision trees yet" in r.content
 
     async with test_session_factory() as session:
-        remaining_qnrs = await session.execute(select(DecisionTree.id).where(DecisionTree.id.in_(family_ids)))
-        assert remaining_qnrs.scalars().all() == []
+        remaining_decision_trees = await session.execute(select(DecisionTree.id).where(DecisionTree.id.in_(family_ids)))
+        assert remaining_decision_trees.scalars().all() == []
 
         remaining_sessions = await session.execute(
             select(func.count(DecisionTreeSession.id)).where(DecisionTreeSession.decision_tree_id.in_(family_ids))

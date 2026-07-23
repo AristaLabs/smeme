@@ -36,7 +36,7 @@ smeme/
 ├── app_factory.py   # Core application composition
 ├── core/            # settings, database, middleware, models
 ├── auth/            # browser identity and MCP user resolution
-├── qnr/             # decision-tree dashboard, editor, viewer, generation
+├── decision_tree/   # decision-tree dashboard, editor, viewer, generation
 ├── reasoning/       # IR, validation, compilation, runtime evaluation
 ├── mcp/             # OAuth discovery, bearer verification, MCP tools
 └── templates/       # Core web templates
@@ -52,7 +52,7 @@ agent-skills/        # Authoring source for MCP guidance markdown
    research, design, and build; LangGraph interrupts for human edits.
 2. **MCP chat** (`smeme-decision-tree-author` skill) — agent iterates in prose,
    validates `dt_graph_json`, creates a dashboard draft; no server LLM egress.
-3. Both paths persist the same **DTGraph** in `QNR.graph_data`, then converge on
+3. Both paths persist the same **DTGraph** in `DecisionTree.graph_data`, then converge on
    the **editor**.
 
 ### Deploy, list, evaluate

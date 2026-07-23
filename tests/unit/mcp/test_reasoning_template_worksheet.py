@@ -8,6 +8,14 @@ from uuid import UUID
 
 import pytest
 
+from smeme.decision_tree.models import (
+    ConclusionData,
+    DTGraph,
+    DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
+    QuestionData,
+)
 from smeme.mcp.reasoning_template_worksheet import (
     REASONING_TEMPLATE_SUCCESS_MAX_UTF8_BYTES,
     build_manifest_core,
@@ -16,14 +24,6 @@ from smeme.mcp.reasoning_template_worksheet import (
     render_manifest_markdown,
     safe_worksheet_slug,
     worksheet_payload_too_large,
-)
-from smeme.decision_tree.models import (
-    ConclusionData,
-    GraphEdge,
-    GraphNode,
-    DTGraph,
-    DTGraphMetadata,
-    QuestionData,
 )
 
 
@@ -47,9 +47,7 @@ def _golden_radio_graph() -> DTGraph:
 
 
 _GOLDEN_DECISION_TREE_ID = UUID("00000000-0000-4000-8000-000000000001")
-_GOLDEN_DIGEST = (
-    "294568d6d6c7e5ab4bdb9c91273b6e9620d64b30db8d2e67efc95eed82aa760d"
-)
+_GOLDEN_DIGEST = "5dd33e91672b9330759953694e853a154bd9279cbfc1bfef21daca2082e58e5e"
 
 
 def test_manifest_core_digest_golden_matches_fixture() -> None:
@@ -199,7 +197,9 @@ def test_radio_question_has_options_in_manifest() -> None:
             GraphNode(
                 id="t1",
                 type="question",
-                data=QuestionData(text="Explain", type="radio", options=["ok", "no"], required=True),
+                data=QuestionData(
+                    text="Explain", type="radio", options=["ok", "no"], required=True
+                ),
             ),
             GraphNode(id="c1", type="conclusion", data=ConclusionData(title="A", summary="s")),
             GraphNode(id="c2", type="conclusion", data=ConclusionData(title="B", summary="t")),

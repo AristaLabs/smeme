@@ -59,11 +59,11 @@
 
 {#- ── Deploy / Redeploy button tooltip (modal + inline submit controls) ─ -#}
 {%- macro deploy_button_title() -%}
-Verify workflow structure and make it available to MCP-connected agents
+Verify decision tree structure and make it available to MCP-connected agents
 {%- endmacro -%}
 
 
-{#- ── Workflow launch (dashboard CTAs) ───────────────────────────────── -#}
+{#- ── Decision tree launch (dashboard CTAs) ───────────────────────────────── -#}
 {#- Rich gradient card-link for agentic generation entry.
     layout: compact | nav (top bar, compact width) | featured
     show_label: when layout is featured, set false for icon-only (use aria-label; blurb lives above).
@@ -124,7 +124,7 @@ Verify workflow structure and make it available to MCP-connected agents
 {%- endif -%}
 <a href="{{ href }}"
    class="group relative {% if nav_bar %}inline-flex w-auto shrink-0{% else %}flex w-full sm:w-auto{% endif %} min-w-0 overflow-hidden {{ corner }} bg-gradient-to-br from-brand-600 via-brand-700 to-info-800 text-white {{ shadow_cls }} ring-1 ring-inset ring-white/15 transition-all duration-200 hover:ring-white/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-ui-ink {{ extra_class }}"
-   {%- if featured_visual_only %} aria-label="Start new workflow: research, design, and build with AI"{%- endif -%}>
+   {%- if featured_visual_only %} aria-label="Start new decision tree: research, design, and build with AI"{%- endif -%}>
   <span class="pointer-events-none absolute {{ blur_cls }} rounded-full bg-ui-surface/10 blur-2xl transition-opacity duration-300 group-hover:opacity-90" aria-hidden="true"></span>
   <span class="relative {% if layout == "nav" %}inline-flex{% else %}flex flex-1{% endif %} items-center {% if featured_visual_only %}justify-center{% endif %} {{ inner_gap }} {{ inner_pad }}">
     <span class="flex {{ icon_box }} shrink-0 items-center justify-center bg-ui-surface/15 ring-1 ring-white/25 backdrop-blur-sm transition-colors duration-200 group-hover:bg-ui-surface/20" aria-hidden="true">
@@ -134,7 +134,7 @@ Verify workflow structure and make it available to MCP-connected agents
     </span>
     {%- if layout == "compact" or layout == "nav" or (layout == "featured" and show_label) -%}
     <span class="min-w-0 {% if layout != "nav" %}flex-1{% endif %} text-left {% if show_subtitle %}leading-tight{% else %}leading-none{% endif %}">
-      <span class="block {{ title_cls }}">New Workflow</span>
+      <span class="block {{ title_cls }}">New Decision tree</span>
       {%- if show_subtitle -%}
       <span class="mt-1 block font-medium text-white/80 {{ sub_cls }}">Web research, structured design, then build</span>
       {%- endif -%}
@@ -153,7 +153,7 @@ Verify workflow structure and make it available to MCP-connected agents
 
 
 {#- ── Wizard create CTA (dashboard empty state) ──────────────────────── -#}
-{% macro wizard_create_cta(text="Create New Workflow", variant="gradient", size="lg", full_width=false, wizard_start_block=none) %}
+{% macro wizard_create_cta(text="Create New Decision tree", variant="gradient", size="lg", full_width=false, wizard_start_block=none) %}
 {% if wizard_start_block %}
 {{ btn(text, variant=variant, size=size, full_width=full_width, attrs='hx-get="/decision-trees/agentic/wizard-start-blocked-modal" hx-target="#modal-container" hx-swap="innerHTML"') }}
 {% else %}

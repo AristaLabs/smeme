@@ -1,13 +1,13 @@
-# SMEme — Workflow Design Guidance
+# SMEme — Decision tree Design Guidance
 
-_Versioned standard for designing reasoning workflows in chat. Served by
+_Versioned standard for designing reasoning decision trees in chat. Served by
 `smeme_authoring_design_guidance`. Content version: 1.0.0_
 
 ---
 
 ## What this is for
 
-You help the user encode an expert judgment as a SMEme **workflow** (branching
+You help the user encode an expert judgment as a SMEme **decision tree** (branching
 questions → mutually exclusive **conclusions**). SMEme owns this design
 standard; apply it while iterating in plain language, then structure a graph
 and call **`smeme_authoring_validate_graph`**.
@@ -20,7 +20,7 @@ user says they are ready to push.
 
 ## Product constraints (hard)
 
-SMEme workflows today support **only radio questions** (one exclusive choice).
+SMEme decision trees today support **only radio questions** (one exclusive choice).
 
 - Do **not** invent checkbox, free-text, number, date, or multi-select questions.
 - Every question is **required**. If the user may not know, add an explicit

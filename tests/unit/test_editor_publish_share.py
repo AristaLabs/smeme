@@ -205,10 +205,10 @@ async def test_publish_sets_reasoning_status_compiled(
 
     async with test_session_factory() as session:
         result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
-        updated_qnr = result.scalar_one()
+        updated_decision_tree = result.scalar_one()
 
-    assert updated_qnr.reasoning_status == "compiled"
-    assert updated_qnr.is_public is False
+    assert updated_decision_tree.reasoning_status == "compiled"
+    assert updated_decision_tree.is_public is False
 
 
 async def test_publish_redirects_to_dashboard_when_return_next_dashboard(
@@ -302,9 +302,9 @@ async def test_publish_does_not_set_is_public(
 
     async with test_session_factory() as session:
         result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
-        updated_qnr = result.scalar_one()
+        updated_decision_tree = result.scalar_one()
 
-    assert updated_qnr.is_public is False
+    assert updated_decision_tree.is_public is False
 
 
 async def test_publish_allows_free_user(
@@ -327,9 +327,9 @@ async def test_publish_allows_free_user(
 
     async with test_session_factory() as session:
         result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
-        updated_qnr = result.scalar_one()
+        updated_decision_tree = result.scalar_one()
 
-    assert updated_qnr.reasoning_status == "compiled"
+    assert updated_decision_tree.reasoning_status == "compiled"
 
 
 async def test_publish_returns_403_for_non_owner(client, app_with_db, premium_owner, other_user):
@@ -341,7 +341,7 @@ async def test_publish_returns_403_for_non_owner(client, app_with_db, premium_ow
     assert r.status_code == 403
 
 
-async def test_publish_returns_404_for_unknown_qnr(client, app_with_db, premium_owner):
+async def test_publish_returns_404_for_unknown_decision_tree(client, app_with_db, premium_owner):
     unknown_id = uuid4()
 
     with auth_as(app_with_db, premium_owner["user"]):

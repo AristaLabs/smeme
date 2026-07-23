@@ -17,7 +17,7 @@
     </button>
     {% endif %}
   </span>
-  <span class="text-ui-ink-secondary tabular-nums">Workflows: {{ usage_summary.decision_trees.used|int }}/{{ usage_summary.decision_trees.limit|int }}</span>
+  <span class="text-ui-ink-secondary tabular-nums">Decision trees: {{ usage_summary.decision_trees.used|int }}/{{ usage_summary.decision_trees.limit|int }}</span>
   <span class="text-ui-ink-secondary tabular-nums">MCP (mo): {{ "%.1f"|format(usage_summary.mcp_weighted.used) }}/{{ usage_summary.mcp_weighted.limit|int }}</span>
   <span class="text-ui-ink-secondary tabular-nums {% if usage_summary.wizard_completions.at_cap %}text-danger-800 dark:text-danger-200 font-semibold{% endif %}">AI builds (mo): {{ usage_summary.wizard_completions.used|int }}/{{ usage_summary.wizard_completions.limit|int }}{% if usage_summary.wizard_completions.at_cap %} — limit reached{% endif %}</span>
   <span class="text-ui-ink-muted text-xs">{{ usage_summary.resets_label }}</span>

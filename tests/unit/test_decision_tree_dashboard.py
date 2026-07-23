@@ -16,9 +16,10 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
 
-from smeme.core.models import DecisionTree, DecisionTreeSession, User
 from smeme.app_factory import create_core_app as create_app
-from smeme.mcp.urls import MCP_SAAS_PUBLIC_MCP_URL
+from smeme.core.config import settings as process_settings
+from smeme.core.models import DecisionTree, DecisionTreeSession, User
+from smeme.mcp.urls import mcp_connector_url
 from tests.conftest import auth_as
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
@@ -32,10 +33,10 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 def _minimal_graph(title: str = "Test Decision Tree") -> dict:
     from smeme.decision_tree.models import (
         ConclusionData,
-        GraphEdge,
-        GraphNode,
         DTGraph,
         DTGraphMetadata,
+        GraphEdge,
+        GraphNode,
         QuestionData,
     )
 
@@ -77,7 +78,7 @@ async def dashboard_user(test_session_factory):
         await session.commit()
         await session.refresh(user)
 
-        my_qnr = DecisionTree(
+        my_decision_tree = DecisionTree(
             author_id=user.id,
             title=f"My DecisionTree {uid}",
             graph_data=_minimal_graph(f"My DecisionTree {uid}"),
@@ -85,15 +86,15 @@ async def dashboard_user(test_session_factory):
             is_current=True,
             is_archived=False,
         )
-        session.add(my_qnr)
+        session.add(my_decision_tree)
         await session.commit()
-        await session.refresh(my_qnr)
+        await session.refresh(my_decision_tree)
 
-    yield {"user": user, "my_qnr": my_qnr}
+    yield {"user": user, "my_decision_tree": my_decision_tree}
 
     async with test_session_factory() as session:
-        await session.execute(delete(DecisionTreeSession).where(DecisionTreeSession.decision_tree_id == my_qnr.id))
-        await session.execute(delete(DecisionTree).where(DecisionTree.id == my_qnr.id))
+        await session.execute(delete(DecisionTreeSession).where(DecisionTreeSession.decision_tree_id == my_decision_tree.id))
+        await session.execute(delete(DecisionTree).where(DecisionTree.id == my_decision_tree.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
 
@@ -141,7 +142,7 @@ async def test_dashboard_requires_auth(client):
 
 async def test_dashboard_shows_authored_decision_tree_title(client, app_with_db, dashboard_user):
     """The user's own current non-archived DecisionTree title appears in the response body."""
-    title = dashboard_user["my_qnr"].title
+    title = dashboard_user["my_decision_tree"].title
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/decision-trees/dashboard")
     assert r.status_code == 200
@@ -154,7 +155,7 @@ async def test_dashboard_prunes_completed_generation_rows(monkeypatch, dashboard
     from smeme.decision_tree.generation.agentic import workflow as workflow_module
     from smeme.decision_tree.generation.agentic.services import checkpoint_manager
 
-    decision_tree_id = dashboard_user["my_qnr"].id
+    decision_tree_id = dashboard_user["my_decision_tree"].id
     generation = SimpleNamespace(
         id=uuid4(),
         langgraph_thread_id="completed-thread",
@@ -266,16 +267,19 @@ async def test_docs_mcp_returns_200(client, app_with_db, dashboard_user):
     assert r.status_code == 200
     assert b"Connect your agent" in r.content
     assert b"smeme_reasoning" in r.content
-    assert b"install-claude" in r.content
-    assert b"install-chatgpt" in r.content
-    assert b"Developer mode" in r.content
-    assert b"create dialog" in r.content
-    assert b"Advanced settings" in r.content
-    assert b"Customize" in r.content
-    assert b"chatgpt.com" in r.content
-    assert b"browser" in r.content
-    assert MCP_SAAS_PUBLIC_MCP_URL.encode() in r.content
     assert b"does not install SMEme" in r.content
+    if process_settings.mcp_enabled:
+        assert b"install-claude" in r.content
+        assert b"install-chatgpt" in r.content
+        assert b"Developer mode" in r.content
+        assert b"create dialog" in r.content
+        assert b"Advanced settings" in r.content
+        assert b"Customize" in r.content
+        assert b"chatgpt.com" in r.content
+        assert b"browser" in r.content
+        assert mcp_connector_url(process_settings).encode() in r.content
+    else:
+        assert b"MCP is not enabled on this server" in r.content
 
 
 async def test_mcp_discoverable_toggle_requires_owner(client, app_with_db, dashboard_user, test_session_factory):
@@ -296,7 +300,7 @@ async def test_mcp_discoverable_toggle_requires_owner(client, app_with_db, dashb
         await session.commit()
         await session.refresh(other)
 
-    qid = dashboard_user["my_qnr"].id
+    qid = dashboard_user["my_decision_tree"].id
     with auth_as(app_with_db, other):
         r = await client.post(
             "/decision-trees/mcp/discoverable",
@@ -325,7 +329,7 @@ async def test_start_decision_tree_creates_session_without_payment_gate(
     start a session on any DecisionTree directly.
     """
     user = dashboard_user["user"]
-    decision_tree_id = dashboard_user["my_qnr"].id
+    decision_tree_id = dashboard_user["my_decision_tree"].id
 
     with auth_as(app_with_db, user):
         r = await client.post("/decision-trees/start", data={"decision_tree_id": str(decision_tree_id)})

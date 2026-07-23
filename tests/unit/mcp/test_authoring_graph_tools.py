@@ -9,6 +9,15 @@ from uuid import uuid4
 import pytest
 
 from smeme.core.models import User
+from smeme.decision_tree.helpers.validation import validate_graph_for_editing
+from smeme.decision_tree.models import (
+    ConclusionData,
+    DTGraph,
+    DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
+    QuestionData,
+)
 from smeme.mcp.authoring_graph import (
     AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES,
     extract_graph_dict,
@@ -23,15 +32,6 @@ from smeme.mcp.reasoning_fastmcp import (
     REASONING_CAPABILITIES_VERSION,
     reasoning_capabilities_document,
     reset_mcp_runtime_for_tests,
-)
-from smeme.decision_tree.helpers.validation import validate_graph_for_editing
-from smeme.decision_tree.models import (
-    ConclusionData,
-    GraphEdge,
-    GraphNode,
-    DTGraph,
-    DTGraphMetadata,
-    QuestionData,
 )
 
 
@@ -77,7 +77,7 @@ class TestAuthoringGraphHelpers:
 
     def test_extract_export_envelope(self) -> None:
         envelope = {
-            "smeme_export_version": "1",
+            "smeme_export_version": "2",
             "decision_tree": {"title": "X", "graph": _minimal_graph("From Export")},
         }
         out = extract_graph_dict(envelope)
@@ -106,8 +106,21 @@ class TestAuthoringGraphHelpers:
 
 
 class TestAuthoringGraphCapabilities:
-    def test_tools_absent_by_default(self) -> None:
+    def test_tools_present_by_default(self) -> None:
         doc = reasoning_capabilities_document()
+        tools = doc["reasoning"]["tools"]
+        assert "smeme_authoring_validate_graph" in tools
+        assert "smeme_authoring_create_draft" in tools
+        assert "smeme_authoring_design_guidance" in tools
+        assert "authoring_graph" in doc
+        assert "authoring_design" in doc
+
+    def test_tools_absent_when_opted_out(self) -> None:
+        from smeme.core.config import Settings
+
+        mock_settings = MagicMock(spec=Settings)
+        mock_settings.mcp_authoring_graph_tools_enabled = False
+        doc = reasoning_capabilities_document(cap_settings=mock_settings)
         tools = doc["reasoning"]["tools"]
         assert "smeme_authoring_validate_graph" not in tools
         assert "smeme_authoring_create_draft" not in tools
@@ -157,9 +170,7 @@ class TestAuthoringDesignGuidanceTool:
             "smeme.mcp.reasoning_fastmcp._mcp_auth_user_only",
             AsyncMock(return_value=user),
         )
-        monkeypatch.setattr(
-            "smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True
-        )
+        monkeypatch.setattr("smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True)
 
         from smeme.mcp.reasoning_fastmcp import get_or_create_fastmcp
 
@@ -231,7 +242,7 @@ class TestAuthoringValidateTool:
 
 class TestAuthoringCreateDraftTool:
     @pytest.mark.asyncio
-    async def test_create_draft_persists_qnr(
+    async def test_create_draft_persists_decision_tree(
         self, monkeypatch: pytest.MonkeyPatch, test_session_factory
     ) -> None:
         reset_mcp_runtime_for_tests()
@@ -278,7 +289,9 @@ class TestAuthoringCreateDraftTool:
         assert payload["status"] == "draft"
         assert payload["title"] == "MCP Draft"
         assert payload["deployed"] is False
-        assert "/decision-trees/editor/" in payload["editor_url"]
+        assert "/decision-trees/" in payload["editor_url"]
+        assert payload["editor_url"].endswith("/editor")
+        assert "/decision-trees/editor/" not in payload["editor_url"]
         assert payload["_server_plugin_version"] == REASONING_CAPABILITIES_VERSION
 
         from sqlalchemy import select
@@ -287,7 +300,9 @@ class TestAuthoringCreateDraftTool:
 
         async with test_session_factory() as session:
             row = (
-                await session.execute(select(DecisionTree).where(DecisionTree.id == payload["decision_tree_id"]))
+                await session.execute(
+                    select(DecisionTree).where(DecisionTree.id == payload["decision_tree_id"])
+                )
             ).scalar_one()
             assert row.author_id == uid
             assert row.title == "MCP Draft"

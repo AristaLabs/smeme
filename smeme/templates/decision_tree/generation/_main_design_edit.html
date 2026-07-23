@@ -3,11 +3,11 @@
 {% include "decision_tree/generation/_phase_stepper.html" %}
 
 <div class="content-display mb-8">
-    <h1>Step 3: Review Workflow Design</h1>
+    <h1>Step 3: Review Decision tree Design</h1>
 
     <div class="prose mb-6">
         <p>
-            We've designed a workflow based on the research context and conclusions you approved.
+            We've designed a decision tree based on the research context and conclusions you approved.
             Review and edit the questions, options, and branching logic.
         </p>
     </div>
@@ -86,7 +86,7 @@
     <div>
         <div class="flex items-center justify-between mb-3">
             <label for="decision_tree_design_edited" class="block text-base font-medium text-ui-ink">
-                Workflow Design
+                Decision tree Design
             </label>
             <span class="text-sm text-ui-ink-muted">Markdown format</span>
         </div>
@@ -130,14 +130,14 @@
             type="submit"
             class="btn-primary"
         >
-            Build Workflow
+            Build Decision tree
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
         </button>
     </div>
     
-    {% with id='design-loading', message='Building workflow...' %}
+    {% with id='design-loading', message='Building decision tree...' %}
     {% include 'components/overlay.html' %}
     {% endwith %}
 </form>

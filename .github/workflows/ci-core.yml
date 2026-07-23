@@ -49,6 +49,9 @@ jobs:
       - name: §10.2 product-path gate (no legacy DTQ tokens)
         run: uv run python scripts/check_no_dtq_product_refs.py
 
+      - name: D024 retired-namespace source gate
+        run: uv run python scripts/check_no_qnr_product_refs.py
+
       - name: Product vocabulary (decision-tree copy)
         run: uv run python scripts/check_product_vocabulary.py
 
@@ -59,6 +62,7 @@ jobs:
         run: |
           docker build -f Dockerfile.core -t smeme:ci .
           uv run python scripts/check_core_no_saas_imports.py --image smeme:ci
+          uv run python scripts/check_no_qnr_product_refs.py --image smeme:ci
 
       - name: Core self-host artifacts present
         run: |
@@ -147,6 +151,9 @@ jobs:
 
       - name: Golden matrix regression tests
         run: uv run pytest -m golden_matrix -q
+
+      - name: Full Core test suite
+        run: uv run pytest -q
 
   publish:
     name: Publish Core image to GHCR

@@ -146,7 +146,7 @@ ignore = [
 "tests/*" = ["ANN"]  # Don't require type hints in tests
 "alembic/versions/*" = ["ALL"]  # Skip linting migration files
 "smeme/core/exception_handlers.py" = ["E501"]  # HTML template strings are long
-"smeme/qnr/editor/routes.py" = ["E501"]  # HTML template strings are long
+"smeme/decision_tree/editor/routes.py" = ["E501"]  # HTML template strings are long
 
 [tool.ruff.lint.isort]
 known-first-party = ["smeme"]

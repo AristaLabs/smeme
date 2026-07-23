@@ -151,7 +151,7 @@ async def create_draft_from_graph(
     graph: DTGraph,
     title_override: str | None = None,
 ) -> tuple[DecisionTree, ValidationResult] | str:
-    """Insert a draft DecisionTree when edit-valid; enforce active-workflow quota.
+    """Insert a draft DecisionTree when edit-valid; enforce active-decision tree quota.
 
     Returns ``(decision_tree, validation)`` or tool-error JSON.
     """
@@ -191,7 +191,7 @@ async def create_draft_from_graph(
     if not title:
         return tool_error_json(
             "invalid_graph",
-            "Workflow title is required. Set metadata.title on the graph, or pass title.",
+            "Decision tree title is required. Set metadata.title on the graph, or pass title.",
         )
     if len(title) > 200:
         title = title[:200]

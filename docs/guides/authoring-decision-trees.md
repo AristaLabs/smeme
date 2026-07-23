@@ -1,7 +1,7 @@
 # Authoring decision trees
 
 SMEme Core has **one authoring model** and **two draft paths**. Both produce the
-same `QNR.graph_data` **DTGraph** JSONB, then share the same lifecycle: editor →
+same `DecisionTree.graph_data` **DTGraph** JSONB, then share the same lifecycle: editor →
 **Deploy** → IR/Z3 → **Listed** → evaluate/report.
 
 | Path | When to use | Server LLM / search |
@@ -21,7 +21,7 @@ See also: [self-host quickstart](self-host-quickstart.md) · [agent-skills sourc
 ```text
 Draft (DTGraph in graph_data)
   → Editor (human edits, validation)
-  → Deploy (compile_qnr_to_ir → Z3 artifact)
+  → Deploy (compile_dt_graph_to_ir → Z3 artifact)
   → Listed / Hidden (MCP discoverability)
   → Evaluate / report (structured raw_answers)
 ```
@@ -31,8 +31,9 @@ Draft (DTGraph in graph_data)
 tree. Evaluation and logical-analysis tools run against the deployed artifact, not
 the editor draft.
 
-Wire identifiers stay stable for compatibility: `qnr_id`, REST paths under `/qnr/`,
-`compile_qnr_to_ir`, and `.smeme.json` export envelope `qnr.graph`.
+The hard-cutover wire identifiers are `decision_tree_id`, REST paths under
+`/decision-trees/`, `compile_dt_graph_to_ir`, and the `.smeme.json` export
+envelope `decision_tree.graph`.
 
 ---
 
@@ -65,7 +66,7 @@ sovereignty leave `SMEME_AI_GENERATION_ENABLED=false` and use MCP chat or manual
 editor authoring.
 
 **Related flags:** `OPENAI_API_KEY` (required when generation is on),
-`TAVILY_API_KEY` (optional), `SHOW_QNR_GENERATION_REGION_SELECTOR` (Tavily region
+`TAVILY_API_KEY` (optional), `SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR` (Tavily region
 control on the brief form).
 
 ---
@@ -97,7 +98,7 @@ on this path — design guidance is served as static markdown from
 
 ## DTGraph shape (summary)
 
-Stored in `QNR.graph_data` as JSONB:
+Stored in `DecisionTree.graph_data` as JSONB:
 
 ```json
 {
@@ -120,12 +121,12 @@ option labels on edges must match question options exactly; stable node ids
 
 ```json
 {
-  "smeme_export_version": "1",
-  "qnr": { "title": "...", "graph": { "nodes": [], "edges": [], "metadata": {} } }
+  "smeme_export_version": "2",
+  "decision_tree": { "title": "...", "graph": { "nodes": [], "edges": [], "metadata": {} } }
 }
 ```
 
-Authoring tools accept either the raw graph object or this envelope.
+Authoring tools accept either the raw graph object or this exact v2 envelope.
 
 ---
 
@@ -144,8 +145,8 @@ hard-disabled in Core — do not document it as an operator toggle.
 
 **Vocabulary:** “workflow” in code often means a **LangGraph execution graph**
 (generation run, editor checkpoint). The **product artifact** is a **decision
-tree** (DTGraph). User-facing copy uses *decision tree*; wire ids (`qnr_id`,
-`/qnr/`) are unchanged.
+tree** (DTGraph). User-facing copy uses *decision tree*; wire ids use
+`decision_tree_id` and `/decision-trees/`.
 
 ---
 
@@ -155,7 +156,7 @@ tree** (DTGraph). User-facing copy uses *decision tree*; wire ids (`qnr_id`,
 |------|--------|
 | Start web wizard | Dashboard → Create new decision tree (when generation enabled) |
 | Start MCP authoring | Connect agent → `smeme-decision-tree-author` skill |
-| Edit graph | `/qnr/{qnr_id}/editor` |
+| Edit graph | `/decision-trees/{decision_tree_id}/editor` |
 | Deploy | Editor or dashboard Deploy / Redeploy |
 | List for MCP | Dashboard **Listed** column (after Deploy) |
 | Operator egress matrix | [self-host quickstart — sovereignty](self-host-quickstart.md#sovereignty--third-party-egress) |

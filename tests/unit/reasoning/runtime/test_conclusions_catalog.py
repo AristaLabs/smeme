@@ -16,7 +16,7 @@ from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from smeme.reasoning.runtime.analyze import enumerate_conclusion_sat_queries
 from smeme.reasoning.runtime.conclusions_catalog import build_conclusions_catalog_wire
 
-_QNR_ID = UUID("00000000-0000-4000-8000-000000000001")
+_DECISION_TREE_ID = UUID("00000000-0000-4000-8000-000000000001")
 
 
 def _exclusive_two_outcome_graph() -> DTGraph:
@@ -57,12 +57,12 @@ def test_build_conclusions_catalog_wire_lists_titles_and_reachability() -> None:
     enumeration = enumerate_conclusion_sat_queries(ir, validate=False)
 
     wire = build_conclusions_catalog_wire(
-        decision_tree_id=_QNR_ID,
+        decision_tree_id=_DECISION_TREE_ID,
         graph=graph,
         enumeration=enumeration,
     )
 
-    assert wire["decision_tree_id"] == str(_QNR_ID).lower()
+    assert wire["decision_tree_id"] == str(_DECISION_TREE_ID).lower()
     assert wire["workflow_rules_consistent"] is True
     assert wire["count"] == 2
     assert wire["reachable_count"] == 2

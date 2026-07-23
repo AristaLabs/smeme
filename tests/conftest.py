@@ -16,13 +16,20 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from smeme.app_factory import create_core_app
 from smeme.core.config import settings
 
-# Default test app is Core (public product surface). SaaS-only suites import
-# ``create_saas_app`` / ``create_app`` from ``smeme.main`` explicitly.
+# Default test app is the public Core composition.
 create_app = create_core_app
+
+TEST_DATABASE_URL = settings.test_database_url or settings.database_url
+if "production" in TEST_DATABASE_URL.lower():
+    raise RuntimeError(
+        "Refusing to run pytest against a production database. "
+        "Set TEST_DATABASE_URL or DATABASE_URL to an isolated test database."
+    )
 
 # =============================================================================
 # Database Engine (Session Scoped)
@@ -37,17 +44,16 @@ async def test_engine():
     preventing "attached to different loop" errors.
     """
     engine = create_async_engine(
-        settings.database_url,
+        TEST_DATABASE_URL,
         echo=False,
-        pool_size=5,
-        max_overflow=10,
+        poolclass=NullPool,
         pool_pre_ping=True,
         connect_args=(
             {
                 "ssl": True,
                 "server_settings": {"application_name": "smeme_tests"},
             }
-            if "neon" in settings.database_url.lower()
+            if "neon" in TEST_DATABASE_URL.lower()
             else {"server_settings": {"application_name": "smeme_tests"}}
         ),
     )

@@ -47,13 +47,13 @@
 
   {% if show_deploy_success %}
   {% call callout("success", role="status") %}
-    <p><strong class="font-medium">Deploy finished.</strong> Tools are up to date. See <a href="/docs/mcp" class="font-medium underline decoration-success-700/40 hover:decoration-success-800 dark:decoration-success-400">AI tools (MCP)</a> for connecting clients. Use the <strong class="font-medium">Listed</strong> column below when you want a workflow available to your MCP-connected AI tools.</p>
+    <p><strong class="font-medium">Deploy finished.</strong> Tools are up to date. See <a href="/docs/mcp" class="font-medium underline decoration-success-700/40 hover:decoration-success-800 dark:decoration-success-400">AI tools (MCP)</a> for connecting clients. Use the <strong class="font-medium">Listed</strong> column below when you want a decision tree available to your MCP-connected AI tools.</p>
   {% endcall %}
   {% endif %}
 
   <div id="dashboard-flash-messages">
     {% if show_generation_deleted %}
-    {{ alert("In-progress workflow removed.", "success") }}
+    {{ alert("In-progress decision tree removed.", "success") }}
     {% endif %}
   </div>
 
@@ -61,7 +61,7 @@
   {% include "decision_tree/_dashboard_in_progress.html" %}
   {% endwith %}
 
-  {% with id='dashboard-delete-indicator', message='Removing in-progress workflow…' %}
+  {% with id='dashboard-delete-indicator', message='Removing in-progress decision tree…' %}
   {% include 'components/overlay.html' %}
   {% endwith %}
 
@@ -71,7 +71,7 @@
       <div>
         <h2 id="decision_tree-list-heading" class="text-xl font-semibold text-ui-ink">Decision trees</h2>
         {% if quota_enforcement_enabled and usage_summary is defined and usage_summary.decision_trees.at_cap and not user.is_premium %}
-        <p class="text-sm text-amber-800 mt-1">Live decision-tree limit reached — permanently delete a dormant workflow, or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
+        <p class="text-sm text-amber-800 mt-1">Live decision-tree limit reached — permanently delete a dormant decision tree, or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
         {% elif quota_enforcement_enabled and usage_summary is defined and usage_summary.decision_trees.at_cap %}
         <p class="text-sm text-amber-800 mt-1">Decision-tree limit reached — delete a decision tree or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
         {% endif %}
@@ -89,8 +89,8 @@
               <th scope="col"
                   id="mcp-listed"
                   class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap cursor-help"
-                  title="Listed workflows can be used by your AI through MCP-connected tools. Hidden workflows stay off your MCP tool list.">Listed</th>
-              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden lg:table-cell" title="MCP tool calls (weighted) this UTC month for this workflow">MCP (mo)</th>
+                  title="Listed decision trees can be used by your AI through MCP-connected tools. Hidden decision trees stay off your MCP tool list.">Listed</th>
+              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden lg:table-cell" title="MCP tool calls (weighted) this UTC month for this decision tree">MCP (mo)</th>
               <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden sm:table-cell">Version</th>
               <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden md:table-cell">Updated</th>
               <th scope="col" class="border-l border-ui-line px-3 py-3 font-medium text-right whitespace-nowrap w-[1%]">Actions</th>
@@ -107,7 +107,7 @@
                 {% if not user.workflow_pick_required %}
                 <p class="mt-1 text-xs text-ui-ink-muted">Dormant on Free — download only. <button type="button" class="font-medium text-brand-700 underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">Upgrade to Pro</button></p>
                 {% else %}
-                <p class="mt-1 text-xs text-ui-ink-muted">Choose which workflow to keep live.</p>
+                <p class="mt-1 text-xs text-ui-ink-muted">Choose which decision tree to keep live.</p>
                 {% endif %}
                 {% else %}
                 <a href="/decision-trees/{{ decision_tree.id }}/editor" class="font-medium text-ui-ink hover:text-brand-700">{{ decision_tree.title }}</a>
@@ -122,7 +122,7 @@
                 {% if grayed %}
                 <span class="text-ui-ink-subtle text-xs">—</span>
                 {% elif tr == "live" %}
-                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-600/15" title="Your workflow is deployed and up to date.">Live</span>
+                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-600/15" title="Your decision tree is deployed and up to date.">Live</span>
                 {% elif tr == "stale" %}
                 <div class="flex flex-row flex-nowrap items-center gap-2">
                   <span class="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-600/20" title="Graph changed since last deploy.">Stale</span>
@@ -219,7 +219,7 @@
     {% else %}
     <div class="rounded-xl border-2 border-dashed border-ui-line bg-ui-surface-muted/50 px-8 py-14 text-center">
       <p class="text-ui-ink-secondary font-medium">No decision trees yet</p>
-      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Start from research and design with the AI-assisted workflow—then refine structure in the editor and deploy verified MCP tools.</p>
+      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Start from research and design with the AI-assisted decision tree—then refine structure in the editor and deploy verified MCP tools.</p>
       <div class="mt-8 max-w-md mx-auto">
         {{ wizard_create_cta(full_width=true, wizard_start_block=wizard_start_block) }}
       </div>

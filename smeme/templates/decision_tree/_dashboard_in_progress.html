@@ -4,7 +4,7 @@
 <div id="in-progress-dashboard">
   {% if show_generation_deleted %}
   <div id="generation-deleted-alert" hx-swap-oob="innerHTML:#dashboard-flash-messages">
-    {{ alert("In-progress workflow removed.", "success") }}
+    {{ alert("In-progress decision tree removed.", "success") }}
   </div>
   {% endif %}
 
@@ -12,7 +12,7 @@
     <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 id="in-progress-heading" class="text-xl font-semibold text-ui-ink">In Progress</h2>
-        <p class="text-sm text-ui-ink-muted mt-1">AI-assisted workflows you have not finished. Refreshing the browser returns here — use Resume to continue.</p>
+        <p class="text-sm text-ui-ink-muted mt-1">AI-assisted decision trees you have not finished. Refreshing the browser returns here — use Resume to continue.</p>
       </div>
     </div>
     <div class="overflow-hidden rounded-lg border border-ui-line bg-ui-surface">
@@ -49,7 +49,7 @@
                 {{ generation.last_checkpoint_at.strftime('%b %d, %Y %I:%M %p') }}
               </td>
               <td class="border-l border-ui-surface-hover px-2 py-2 align-middle text-right">
-                <div class="flex flex-row flex-nowrap items-center justify-end gap-2" role="group" aria-label="In-progress workflow actions">
+                <div class="flex flex-row flex-nowrap items-center justify-end gap-2" role="group" aria-label="In-progress decision tree actions">
                   <a href="/decision-trees/agentic/generations/{{ generation.id }}"
                      class="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
                     Resume
@@ -63,7 +63,7 @@
                         hx-indicator="#dashboard-delete-indicator">
                     <button type="submit"
                             hx-disable-with="Deleting…"
-                            onclick="return confirm('Delete this in-progress workflow? Saved research and edits will be removed. This cannot be undone.');"
+                            onclick="return confirm('Delete this in-progress decision tree? Saved research and edits will be removed. This cannot be undone.');"
                             class="inline-flex items-center gap-1.5 rounded-md border border-ui-line-strong bg-ui-surface px-3 py-1.5 text-xs font-medium text-ui-ink-secondary hover:bg-ui-surface-hover hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-60">
                       Delete
                     </button>

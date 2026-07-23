@@ -266,7 +266,7 @@ async def test_workflow_quota_blocks_fourth_root(test_session_factory, billing_u
             )
         await session.commit()
 
-        check = await check_quota(session, billing_user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+        check = await check_quota(session, billing_user, QuotaDimension.DECISION_TREES, projected_add=1.0)
         assert check.allowed is False
         assert check.used == 3.0
         assert check.limit == 3.0
@@ -707,7 +707,7 @@ async def test_check_quota_allows_when_enforcement_off(
             check = await check_quota(
                 session,
                 billing_user,
-                QuotaDimension.WORKFLOWS,
+                QuotaDimension.DECISION_TREES,
                 projected_add=1.0,
             )
     assert check.allowed is True

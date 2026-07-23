@@ -26,7 +26,7 @@
     {% endcall %}
     {% elif in_progress_generation_count and in_progress_generation_count > 0 %}
     <p class="text-sm text-ui-ink-muted">
-        You have {{ in_progress_generation_count }} in-progress workflow{% if in_progress_generation_count != 1 %}s{% endif %} on your
+        You have {{ in_progress_generation_count }} in-progress decision tree{% if in_progress_generation_count != 1 %}s{% endif %} on your
         <a href="/decision-trees/dashboard#in-progress" class="text-brand-600 font-medium underline hover:text-brand-800">dashboard</a>.
         Resume there instead of starting over.
     </p>
@@ -109,7 +109,7 @@
             required
             minlength="20"
             maxlength="400"
-            placeholder="You are a Subject Matter Expert (SME). Provide a detailed description of the matter or case this workflow will reason about. Be specific about scope and context using domain-specific terminology. This drives the AI research step."
+            placeholder="You are a Subject Matter Expert (SME). Provide a detailed description of the matter or case this decision tree will reason about. Be specific about scope and context using domain-specific terminology. This drives the AI research step."
             class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm resize-vertical"
             {% if wizard_start_blocked %}disabled{% endif %}
         >{{ form_goal | default('') }}</textarea>

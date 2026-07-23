@@ -30,13 +30,13 @@
           Add the SMEme MCP server to Claude Cowork, Cursor, Microsoft Copilot, or any MCP client.
           After OAuth, your agent bootstraps the calling contract over the wire via
           <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code>.
-          Invoke any of your deployed, listed workflows from a plain-language prompt.
+          Invoke any of your deployed, listed decision trees from a plain-language prompt.
         </p>
       </header>
 
       {% if not mcp_enabled %}
       {% call callout("warning", title="MCP is not enabled on this server", extra_class="mb-8") %}
-        <p>The operator has not enabled the MCP endpoint for this deployment. You can still build and deploy workflows; connection details will appear here once MCP is enabled.</p>
+        <p>The operator has not enabled the MCP endpoint for this deployment. You can still build and deploy decision trees; connection details will appear here once MCP is enabled.</p>
       {% endcall %}
       {% endif %}
 
@@ -48,7 +48,7 @@
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              <span>You have at least one workflow that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
+              <span>You have at least one decision tree that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
             </li>
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
@@ -229,7 +229,7 @@
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_list</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Returns all your deployed, Listed workflows with their names and descriptions.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Returns all your deployed, Listed decision trees with their names and descriptions.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
                 </tr>
                 <tr>
@@ -244,7 +244,7 @@
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_template_get</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Authoritative per-workflow worksheet — question IDs, labels, and valid option strings.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Authoritative per-decision tree worksheet — question IDs, labels, and valid option strings.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
                 </tr>
                 <tr>
@@ -277,13 +277,13 @@
 
         {# How to invoke #}
         <section aria-labelledby="invoke-heading">
-          <h2 id="invoke-heading" class="text-base font-semibold text-ui-ink mb-3">Invoking a workflow</h2>
+          <h2 id="invoke-heading" class="text-base font-semibold text-ui-ink mb-3">Invoking a decision tree</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-3">
-            Once connected, prompt your agent in plain language. Mention the workflow name or describe the task:
+            Once connected, prompt your agent in plain language. Mention the decision tree name or describe the task:
           </p>
           <div class="space-y-2">
             <div class="rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 font-mono text-sm text-ui-ink-secondary">
-              "Run the foreign national property tax workflow on the Chen matter using the files in this project."
+              "Run the foreign national property tax decision tree on the Chen matter using the files in this project."
             </div>
             <div class="rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 font-mono text-sm text-ui-ink-secondary">
               "Evaluate whether this lease qualifies as a triple-net lease."
@@ -293,7 +293,7 @@
             </div>
           </div>
           <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
-            Your agent should: bootstrap guidance → list workflows → fetch the worksheet → gather evidence → validate → evaluate → return the report.
+            Your agent should: bootstrap guidance → list decision trees → fetch the worksheet → gather evidence → validate → evaluate → return the report.
           </p>
         </section>
 
@@ -308,16 +308,16 @@
               URL + OAuth Client ID + OAuth connects SMEme. Install the Cowork zip only <em>after</em> MCP works, and only if you want preloaded skills — the zip does not install SMEme.
             </li>
             <li>
-              <strong class="font-medium text-ui-ink">Name workflows clearly.</strong>
+              <strong class="font-medium text-ui-ink">Name decision trees clearly.</strong>
               The name is how your agent finds the right tool — e.g. "Foreign national property tax analysis" rather than "DecisionTree 3".
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Redeploy after edits.</strong>
-              Changes saved in the editor don't take effect until you redeploy. If your workflow shows <strong class="font-medium text-ui-ink">Stale</strong> on the dashboard, agents run the old version.
+              Changes saved in the editor don't take effect until you redeploy. If your decision tree shows <strong class="font-medium text-ui-ink">Stale</strong> on the dashboard, agents run the old version.
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Use Hidden for drafts.</strong>
-              Keep a workflow Hidden until it's fully tested. Listed workflows are available to your AI immediately.
+              Keep a decision tree Hidden until it's fully tested. Listed decision trees are available to your AI immediately.
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Ask follow-ups after evaluation.</strong>
@@ -338,7 +338,7 @@
             </div>
             <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
               <dt class="text-sm font-semibold text-ui-ink">Compliance &amp; eligibility screening</dt>
-              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Build workflows for regulatory eligibility questions. Get a yes/no/conditional with the conditions that decided it.</dd>
+              <dd class="mt-1.5 text-sm text-ui-ink-secondary leading-relaxed">Build decision trees for regulatory eligibility questions. Get a yes/no/conditional with the conditions that decided it.</dd>
             </div>
             <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
               <dt class="text-sm font-semibold text-ui-ink">Repeatable triage</dt>
@@ -356,8 +356,8 @@
           <p class="font-medium text-ui-ink">See also</p>
           <ul class="space-y-1">
             <li><a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Public MCP tool reference</a> — wire names, anti-patterns, error codes</li>
-            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building workflows</a> — create and edit your workflows</li>
-            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and expose your workflows</li>
+            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building decision trees</a> — create and edit your decision trees</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and expose your decision trees</li>
           </ul>
         </div>
 
