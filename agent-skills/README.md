@@ -60,7 +60,7 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 | Skill | Role | When to load |
 |-------|------|----------------|
-| **`smeme-reasoning-plugin`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core plugin skill. |
+| **`smeme-reasoning`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core reasoning skill. |
 | **Per decision tree question manifest** | Flat checklist: question ids, text, valid answers for *this* decision tree — no topology. | **After** the user (or agent) has chosen a target decision tree — from **`template_get`** or CWP-5 file. |
 | **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate`**. |
 | **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate`** returns a **`report`** that is not **`concluded`**. |
@@ -77,7 +77,7 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 ```
 agent-skills/
 ├── README.md                          # this file
-├── smeme-reasoning-plugin/SKILL.md          # core guidance
+├── smeme-reasoning/SKILL.md          # core guidance
 ├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
 ├── smeme-reasoning-outcomes/SKILL.md        # non-concluded and conflict report handling
 ├── smeme-decision-tree-author/
@@ -89,7 +89,7 @@ agent-skills/
 
 ## MCP error contract
 
-Reasoning tools return structured JSON. Expected failures use `error.code` / `error.message` (see **`smeme-reasoning-plugin`** skill table). Server module: `smeme/mcp/tool_contract.py`. Tools do not raise into the MCP layer; LangGraph on the server MCP path is deferred.
+Reasoning tools return structured JSON. Expected failures use `error.code` / `error.message` (see **`smeme-reasoning`** skill table). Server module: `smeme/mcp/tool_contract.py`. Tools do not raise into the MCP layer; LangGraph on the server MCP path is deferred.
 
 ## Related docs
 

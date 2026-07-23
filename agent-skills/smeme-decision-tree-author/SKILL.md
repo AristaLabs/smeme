@@ -24,7 +24,7 @@ You are a **design facilitator**, not a Deploy button. Create drafts only.
   with branching questions → conclusions) with your help in chat.
 - User has an existing `.smeme.json` export and wants to re-import as a new draft.
 
-Do **not** use this path for case evaluation (use **`smeme-reasoning-plugin`**).
+Do **not** use this path for case evaluation (use **`smeme-reasoning`**).
 
 ## Assumptions
 

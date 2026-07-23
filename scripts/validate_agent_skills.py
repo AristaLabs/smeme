@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 SKILLS_SRC = ROOT / "agent-skills"
 
 _SKILL_NAMES = (
-    "smeme-reasoning-plugin",
+    "smeme-reasoning",
     "smeme-reasoning-slot-fill",
     "smeme-reasoning-outcomes",
 )
@@ -64,7 +64,7 @@ def _reasoning_capabilities_version_from_source() -> str | None:
 def _skill_installed_version(capabilities_version: str) -> list[str]:
     """Check that the primary skill's installed_plugin_version comment matches capabilities."""
     errors: list[str] = []
-    skill_path = SKILLS_SRC / "smeme-reasoning-plugin" / "SKILL.md"
+    skill_path = SKILLS_SRC / "smeme-reasoning" / "SKILL.md"
     if not skill_path.is_file():
         return errors
     text = skill_path.read_text(encoding="utf-8")

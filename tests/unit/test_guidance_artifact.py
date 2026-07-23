@@ -38,7 +38,7 @@ def test_strip_yaml_frontmatter() -> None:
 def test_connector_safe_transform_removes_zip_only_copy() -> None:
     body = (
         "<!-- installed_plugin_version: 2.12.0 -->\n\n"
-        "### Plugin version check\n\n"
+        "### Capabilities version check\n\n"
         "Every **success** response includes `_server_plugin_version`.\n\n"
         "> Download the latest bundle from your SMEme dashboard for the most accurate skill instructions.\n\n"
         "## Workflow (happy path)\n"

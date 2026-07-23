@@ -61,7 +61,7 @@ Establish **one subject** (case, patient, vendor, matter, etc.) before wide sear
    - **`phase_2_ok`** — proceed to evaluate or logical analysis.
    - **`user_input_needed`** — usually **`missing_evidence_ref`** in **`warnings`**: **stop and ask the user** which questions need a source (use the question text from the worksheet, not just ids). Offer to accept a file path, URL, or pasted excerpt. Re-gather and re-validate until **`phase_2_ok`**.
    - **`phase_1_continue`** — other warnings; stay in Phase 1, fix, re-validate.
-6. **`smeme_reasoning_evaluate`** — Same envelope only when **`harness_next` is `phase_2_ok`**. Read the **`report`** only (see **`smeme-reasoning-plugin`**). For logical analysis without a case report, keep the same envelope and call analysis tools from **`smeme-reasoning-plugin`**.
+6. **`smeme_reasoning_evaluate`** — Same envelope only when **`harness_next` is `phase_2_ok`**. Read the **`report`** only (see **`smeme-reasoning`**). For logical analysis without a case report, keep the same envelope and call analysis tools from **`smeme-reasoning`**.
 
    > `smeme_reasoning_evaluate` may not appear in the client's visible tool list due to deferred loading. If `reasoning.tools` from `smeme_reasoning_capabilities` includes it, call it by name — it is available.
 
@@ -87,7 +87,7 @@ Do **not** invent placeholder evidence ids or locators.
 | `ingest_dangling_evidence_ref` | An `evidence_refs` id has no matching `evidence_items[].id` — add the evidence item or fix the id. |
 | `payload_too_large` / `ingest_cap_exceeded` | Trim excerpts and keep evidence bounded; never paste whole documents. |
 
-For the full error map and report handling, see **`smeme-reasoning-plugin`**.
+For the full error map and report handling, see **`smeme-reasoning`**.
 
 ## Data boundary
 
@@ -107,5 +107,5 @@ Never upload raw source blobs for server-side slot-fill.
 
 | Next | Skill / tool |
 |------|----------------|
-| OAuth, validate, evaluate, logical analysis, **`report`** | **`smeme-reasoning-plugin`** |
+| OAuth, validate, evaluate, logical analysis, **`report`** | **`smeme-reasoning`** |
 | Non-`concluded` **`report.result_kind`** | **`smeme-reasoning-outcomes`** |

@@ -14,7 +14,7 @@ GENERATED_PATH = Path(__file__).resolve().parent / "_generated_guidance.py"
 GUIDANCE_CONTENT_VERSION = "2.0.0"
 
 _SKILL_ORDER: tuple[tuple[str, str], ...] = (
-    ("smeme-reasoning-plugin", "Core (from smeme-reasoning-plugin)"),
+    ("smeme-reasoning", "Core (from smeme-reasoning)"),
     ("smeme-reasoning-slot-fill", "Slot-fill (from smeme-reasoning-slot-fill)"),
     ("smeme-reasoning-outcomes", "Outcomes (from smeme-reasoning-outcomes)"),
 )
@@ -25,9 +25,9 @@ _INSTALLED_VERSION_COMMENT_RE = re.compile(
     re.MULTILINE,
 )
 # Strips from this ### through the next ## heading. Do not add unrelated ### sections
-# between "Plugin version check" and the following ## in smeme-reasoning-plugin/SKILL.md.
+# between "Capabilities version check" and the following ## in smeme-reasoning/SKILL.md.
 _PLUGIN_VERSION_SECTION_RE = re.compile(
-    r"(?:\A|\n+)### Plugin version check\n.*?(?=\n## )",
+    r"(?:\A|\n+)### Capabilities version check\n.*?(?=\n## )",
     re.DOTALL,
 )
 _DOWNLOAD_BUNDLE_RE = re.compile(
