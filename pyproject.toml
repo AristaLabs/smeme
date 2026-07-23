@@ -7,7 +7,7 @@ packages = ["smeme"]
 
 [project]
 name = "smeme-platform"
-version = "1.0.0"
+version = "0.9.0"
 description = "SMEme Core — source-available decision-tree platform (fair-code)"
 authors = [
     {name = "Arista Labs, LLC", email = "team@smeme.ai"},
