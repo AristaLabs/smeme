@@ -69,4 +69,4 @@ async def test_private_workflow_start_denies_non_author(
         response = await client.post("/decision-trees/start", data={"decision_tree_id": str(decision_tree.id)})
 
     assert response.status_code == 404
-    assert "workflow not found" in response.text.lower()
+    assert "decision tree not found" in response.text.lower()

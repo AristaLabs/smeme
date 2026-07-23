@@ -251,7 +251,7 @@ async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs/download-workflow")
     assert r.status_code == 200
-    assert b"Download your workflow" in r.content
+    assert b"Download your decision tree" in r.content
     assert b"smeme_export_version" in r.content
     assert b"Re-import" in r.content
 

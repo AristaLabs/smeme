@@ -15,7 +15,7 @@ def test_wizard_error_page_openai_recoverable():
         Exception("Error code: 429 insufficient_quota"),
         recoverable=True,
     )
-    assert "in-progress workflows" in msg
+    assert "in-progress decision trees" in msg
     assert "api key" not in msg.lower()
     assert "openai" not in msg.lower()
 
@@ -36,4 +36,4 @@ def test_wizard_generation_error_recoverable_for_jinja_template_error():
 
 
 def test_wizard_render_error_message_includes_resume_link():
-    assert "in-progress workflows" in wizard_render_error_message()
+    assert "in-progress decision trees" in wizard_render_error_message()

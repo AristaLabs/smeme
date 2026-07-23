@@ -340,5 +340,5 @@ class TestBackgroundCancelCheckpoint1:
         assert bus.state == "error"
         error_events = [e for e in bus.replay_buffer if e["type"] == "error"]
         assert error_events
-        assert error_events[-1]["payload"]["message"] == "Workflow completed unexpectedly."
+        assert error_events[-1]["payload"]["message"] == "Generation completed unexpectedly."
         assert "research_complete" not in [e["type"] for e in bus.replay_buffer]
