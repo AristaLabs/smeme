@@ -241,7 +241,7 @@ async def _run_generation_workflow(
             workflow_error = str(result.get("error"))
             recoverable_error = bool(result.get("error_recoverable", True))
         else:
-            workflow_error = "Workflow completed unexpectedly."
+            workflow_error = "Generation completed unexpectedly."
             recoverable_error = True
             logger.warning(
                 "Workflow completed without research interrupt",
@@ -295,7 +295,7 @@ async def _run_generation_workflow(
             await put_event(thread_id, "status", {"phase": "complete"})
             await mark_complete(thread_id)
         else:
-            message = workflow_error or "Workflow completed unexpectedly."
+            message = workflow_error or "Generation completed unexpectedly."
             await put_event(
                 thread_id,
                 "error",

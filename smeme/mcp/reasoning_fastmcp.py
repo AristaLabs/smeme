@@ -787,7 +787,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """Fetch the full SMEme reasoning calling contract as markdown.
 
             Returns platform guidance: calling sequence, provenance envelope shape,
-            error recovery, report interpretation. Does NOT return per-decision tree
+            error recovery, report interpretation. Does NOT return per-decision-tree
             content (use smeme_reasoning_template_get for worksheets).
 
             Cache the result locally. Refresh when guidance.content_digest from
@@ -931,7 +931,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 ``dt_graph_json``: same shapes as validate (raw graph or export envelope).
                 Optional ``title`` overrides ``metadata.title``.
 
-                Enforces the plan's active-decision tree cap (``quota_exceeded`` / dimension
+                Enforces the plan's active-decision-tree cap (``quota_exceeded`` / dimension
                 ``decision trees``). Does not consume monthly MCP weighted quota.
 
                 Requires OAuth Bearer.
@@ -2387,7 +2387,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             )
         )
         async def smeme_reasoning_template_get(decision_tree_id: str, ctx: Context) -> str:
-            """Download the per-decision tree reasoning worksheet — markdown prompt for slot-filling answers.
+            """Download the per-decision-tree reasoning worksheet — markdown prompt for slot-filling answers.
 
             Returns ``manifest_markdown`` (question ids, labels, and allowed option strings) plus
             a small envelope: ``manifest_core_digest``, ``in_sync``, ``suggested_relative_path``.

@@ -151,7 +151,7 @@ async def create_draft_from_graph(
     graph: DTGraph,
     title_override: str | None = None,
 ) -> tuple[DecisionTree, ValidationResult] | str:
-    """Insert a draft DecisionTree when edit-valid; enforce active-decision tree quota.
+    """Insert a draft DecisionTree when edit-valid; enforce active-decision-tree quota.
 
     Returns ``(decision_tree, validation)`` or tool-error JSON.
     """

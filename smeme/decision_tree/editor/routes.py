@@ -403,7 +403,7 @@ async def enforce_versioning_for_public_edits(
     if decision_tree.is_archived:
         raise HTTPException(
             status_code=400,
-            detail="Cannot edit archived workflow. Please restore it first.",
+            detail="Cannot edit archived decision tree. Please restore it first.",
         )
 
     # If DecisionTree is currently public OR was ever public, BLOCK editing
@@ -411,7 +411,7 @@ async def enforce_versioning_for_public_edits(
         reason = "public" if decision_tree.is_public else "previously public"
         raise HTTPException(
             status_code=403,
-            detail=f"This workflow is {reason} and cannot be edited directly. Please create a new version to make changes, or publish this version as-is.",
+            detail=f"This decision tree is {reason} and cannot be edited directly. Please create a new version to make changes, or publish this version as-is.",
         )
 
     # DecisionTree is private and was never public - allow direct editing
@@ -453,9 +453,9 @@ async def create_node(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -555,9 +555,9 @@ async def create_node_wired_endpoint(
 
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
@@ -643,9 +643,9 @@ async def update_node(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -727,9 +727,9 @@ async def delete_node(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -800,9 +800,9 @@ async def validate_realtime(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to view this decision tree")
 
     # Parse and validate graph
     graph = parse_graph_data(decision_tree)
@@ -857,9 +857,9 @@ async def create_edge(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -968,9 +968,9 @@ async def update_edge(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -1079,9 +1079,9 @@ async def delete_edge(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
@@ -1150,9 +1150,9 @@ async def update_decision_tree_settings(
     """Update DecisionTree metadata settings (intended_audience, use_case)."""
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to edit this decision tree")
 
     # Same edit-blocking as other editor routes
     try:
@@ -1214,7 +1214,7 @@ async def save_research_corpus(
     """Persist normalized research corpus for CEVI (owner-only)."""
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     try:
@@ -1253,7 +1253,7 @@ async def delete_research_corpus(
     """Remove persisted research corpus (owner-only)."""
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     try:
@@ -1296,7 +1296,7 @@ async def edit_title_form(
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
         return HTMLResponse(
-            content='<div class="text-red-600">Workflow not found</div>', status_code=404
+            content='<div class="text-red-600">Decision tree not found</div>', status_code=404
         )
 
     if decision_tree.author_id != user.id:
@@ -1348,7 +1348,7 @@ async def update_title(
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
         return HTMLResponse(
-            content='<div class="text-red-600">Workflow not found</div>', status_code=404
+            content='<div class="text-red-600">Decision tree not found</div>', status_code=404
         )
 
     if decision_tree.author_id != user.id:
@@ -1514,9 +1514,9 @@ async def publish_decision_tree(
     decision_tree = result.scalar_one_or_none()
 
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to publish this workflow")
+        raise HTTPException(status_code=403, detail="Not authorized to publish this decision tree")
 
     from smeme.billing.access_policy import raise_if_workflow_edit_denied
 
@@ -1645,7 +1645,7 @@ async def create_edge_form(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -1759,7 +1759,7 @@ async def update_edge_form(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -1887,7 +1887,7 @@ async def create_new_version(
     original = result.scalar_one_or_none()
 
     if not original:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     from smeme.billing.access_policy import raise_if_workflow_edit_denied
 
@@ -1897,7 +1897,7 @@ async def create_new_version(
     if original.is_archived:
         raise HTTPException(
             status_code=400,
-            detail="Cannot create version from archived workflow. Restore it first.",
+            detail="Cannot create version from archived decision tree. Restore it first.",
         )
 
     logger.info(
@@ -1913,7 +1913,7 @@ async def create_new_version(
     root_decision_tree_id = await _get_root_decision_tree_id(db, original)
     root_decision_tree = await get_decision_tree_by_id(db, root_decision_tree_id)
     if not root_decision_tree:
-        raise HTTPException(status_code=404, detail="Root workflow not found")
+        raise HTTPException(status_code=404, detail="Root decision tree not found")
     # Strip any existing version suffix (e.g., "My DecisionTree v1" → "My decision tree")
     base_title = re.sub(r"\s+v\d+$", "", root_decision_tree.title)
     new_version_number = original.version_number + 1

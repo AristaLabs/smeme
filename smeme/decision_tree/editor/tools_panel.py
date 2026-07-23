@@ -25,7 +25,7 @@ async def _load_owned_decision_tree(
         await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
     ).scalar_one_or_none()
     if row is None:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
     if row.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     return row

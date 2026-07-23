@@ -2,7 +2,7 @@
 
 _IN_PROGRESS_LINK = (
     '<a href="/decision-trees/dashboard#in-progress" class="text-brand-600 underline hover:text-brand-800">'
-    "in-progress workflows</a>"
+    "in-progress decision trees</a>"
 )
 
 
@@ -84,7 +84,7 @@ def wizard_error_page_message(exc: Exception | str, *, recoverable: bool) -> str
 
 def wizard_retry_failed_message() -> str:
     return (
-        "We could not retry AI research. Your workflow is still saved — "
+        "We could not retry AI research. Your decision tree is still saved — "
         '<a href="/decision-trees/dashboard#in-progress" class="underline">resume from your dashboard</a>.'
     )
 

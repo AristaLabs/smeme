@@ -220,7 +220,7 @@ async def mcp_post_discoverable(
     result = await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
     decision_tree = result.scalar_one_or_none()
     if decision_tree is None or decision_tree.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed to update this workflow.")
+        raise HTTPException(status_code=403, detail="Not allowed to update this decision tree.")
     from smeme.billing.access_policy import raise_if_workflow_edit_denied
 
     raise_if_workflow_edit_denied(current_user, decision_tree)
@@ -272,7 +272,7 @@ async def start_decision_tree(
     # Verify DecisionTree exists
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     is_author = decision_tree.author_id == current_user.id
 
@@ -280,7 +280,7 @@ async def start_decision_tree(
     if decision_tree.is_archived and not is_author:
         raise HTTPException(
             status_code=404,
-            detail="Workflow not found",  # Don't reveal archived status
+            detail="Decision tree not found",  # Don't reveal archived status
         )
 
     # Only authors can start private workflows. Public viewer routes already
@@ -288,7 +288,7 @@ async def start_decision_tree(
     if not decision_tree.is_public and not is_author:
         raise HTTPException(
             status_code=404,
-            detail="Workflow not found",  # Don't reveal private workflow ids
+            detail="Decision tree not found",  # Don't reveal private workflow ids
         )
 
     # Block answering decision trees with validation errors
@@ -307,9 +307,9 @@ async def start_decision_tree(
             <div class="max-w-2xl mx-auto mt-8">
             {
                 render_callout_html(
-                    title="Cannot Start: Workflow Has Validation Errors",
+                    title="Cannot Start: Decision Tree Has Validation Errors",
                     body=(
-                        f'<p class="mb-4">This workflow has <strong>{error_count} validation error(s)</strong> '
+                        f'<p class="mb-4">This decision tree has <strong>{error_count} validation error(s)</strong> '
                         f"that must be fixed before it can be answered.</p>"
                         f'<div class="flex gap-3">'
                         f'<a href="/decision-trees/{decision_tree_id}/editor" '
@@ -329,9 +329,9 @@ async def start_decision_tree(
             <div class="max-w-2xl mx-auto mt-8">
             {
                 render_callout_html(
-                    title="Workflow Temporarily Unavailable",
+                    title="Decision tree temporarily unavailable",
                     body=(
-                        '<p class="mb-4">This workflow is currently being updated by its author. '
+                        '<p class="mb-4">This decision tree is currently being updated by its author. '
                         "Please try again later.</p>"
                         '<a href="/decision-trees/dashboard" '
                         'class="px-4 py-2 bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium rounded-lg inline-block">'
@@ -473,7 +473,7 @@ async def download_workflow(
     """Owner-only: download the current saved workflow graph as JSON."""
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if decision_tree is None or decision_tree.author_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     filename = export_download_filename(decision_tree)
     return JSONResponse(
@@ -499,12 +499,12 @@ async def _delete_modal_context(
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
         return HTMLResponse(
-            content="<div class='alert alert-error'>Workflow not found</div>", status_code=404
+            content="<div class='alert alert-error'>Decision tree not found</div>", status_code=404
         )
 
     if decision_tree.author_id != current_user.id:
         return HTMLResponse(
-            content="<div class='alert alert-error'>You can only delete your own workflows</div>",
+            content="<div class='alert alert-error'>You can only delete your own decision trees</div>",
             status_code=403,
         )
 
@@ -585,10 +585,10 @@ async def delete_decision_tree(
 
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     if decision_tree.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only delete your own workflows")
+        raise HTTPException(status_code=403, detail="You can only delete your own decision trees")
 
     if not decision_tree.is_current:
         raise HTTPException(
@@ -621,7 +621,7 @@ async def delete_decision_tree(
         db,
         current_user,
         request,
-        success_message=f'Workflow "{title}" was permanently deleted.',
+        success_message=f'Decision tree "{title}" was permanently deleted.',
     )
     response = templates.TemplateResponse(
         request=request, name="decision_tree/dashboard.html", context=ctx

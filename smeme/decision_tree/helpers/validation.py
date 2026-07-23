@@ -302,7 +302,7 @@ def validate_graph(graph: DTGraph) -> tuple[bool, str | None]:
         # Rule: At least TWO conclusions (disjunction principle)
         if len(conclusion_nodes) < 2:
             return False, (
-                "Workflow must have at least 2 conclusion nodes to provide meaningful "
+                "Decision tree must have at least 2 conclusion nodes to provide meaningful "
                 "discrimination. Add another conclusion or remove existing one."
             )
 
@@ -574,7 +574,7 @@ def _validate_question_nodes(nodes: list[GraphNode], ctx: _ValidationContext) ->
     if not nodes:
         ctx.error(
             "Graph must have at least one node",
-            "Add a question or conclusion node to start building your workflow.",
+            "Add a question or conclusion node to start building your decision tree.",
         )
         return
 
@@ -790,7 +790,7 @@ def _validate_graph_structure(
             if unreachable_conclusions:
                 ctx.warning(
                     f"⚠️ Unreachable conclusions: {', '.join(unreachable_conclusions)}. "
-                    f"These conclusions can never be reached from the workflow.",
+                    f"These conclusions can never be reached from the decision tree.",
                     "Add conditional edges from earlier questions so each conclusion can be reached.",
                 )
             if unreachable_questions:
@@ -843,7 +843,7 @@ def _validate_graph_structure(
         # WARN: Only one conclusion (need at least 2 for meaningful discrimination)
         if len(conclusion_nodes) == 1:
             ctx.warning(
-                "⚠️ Only 1 conclusion node found. Workflows should have at least 2 conclusions "
+                "⚠️ Only 1 conclusion node found. Decision trees should have at least 2 conclusions "
                 "to provide meaningful discrimination between outcomes.",
                 "Add another conclusion representing a different outcome, or merge outcomes.",
             )
@@ -961,12 +961,12 @@ def _validate_graph_structure(
     if graph.metadata is None:
         ctx.warning(
             "⚠️ Graph metadata is missing",
-            "Open workflow settings and add a title and description.",
+            "Open decision tree settings and add a title and description.",
         )
     elif not graph.metadata.title:
         ctx.warning(
             "⚠️ Graph metadata.title is missing",
-            "Open workflow settings and enter a title.",
+            "Open decision tree settings and enter a title.",
         )
 
 
@@ -1069,7 +1069,7 @@ def _validate_basic_structure(graph: DTGraph, ctx: _ValidationContext) -> bool:
     if not graph.nodes:
         ctx.error(
             "Graph must have at least one node",
-            "Add a question or conclusion node to start building your workflow.",
+            "Add a question or conclusion node to start building your decision tree.",
         )
         return False
     return True

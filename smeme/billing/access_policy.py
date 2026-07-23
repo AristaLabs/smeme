@@ -19,7 +19,7 @@ from smeme.billing.tiers import TIER_LIMITS, BillingTier
 from smeme.core.config import settings
 from smeme.core.models import DecisionTree, User
 
-CHOOSE_WORKFLOW_CONFIRM_PHRASE = "keep these workflows live"
+CHOOSE_WORKFLOW_CONFIRM_PHRASE = "keep these decision trees live"
 
 # Prefix paths allowed while workflow_pick_required (see sprint doc).
 # ``/billing/*`` prefixes matter only when SaaS mounts billing routes.
@@ -111,15 +111,15 @@ def raise_if_workflow_edit_denied(user: User, decision_tree: DecisionTree) -> No
         raise HTTPException(
             status_code=403,
             detail=(
-                "Your Pro subscription ended with multiple workflows. "
-                "Choose which workflow to keep live at /billing/choose-workflow before editing."
+                "Your Pro subscription ended with multiple decision trees. "
+                "Choose which decision tree to keep live at /billing/choose-workflow before editing."
             ),
         )
     if not is_decision_tree_live(user, decision_tree):
         raise HTTPException(
             status_code=403,
             detail=(
-                "This workflow is dormant on your Free plan (download only). "
+                "This decision tree is dormant on your Free plan (download only). "
                 "Upgrade to Pro to edit it again, or permanently delete it."
             ),
         )
@@ -132,8 +132,8 @@ def mcp_account_downgrade_pending_response(*, user: User) -> str:
     return tool_error_json(
         "account_downgrade_pending",
         (
-            "Your Pro subscription ended with multiple workflows. "
-            "Choose which workflow to keep live before using MCP tools."
+            "Your Pro subscription ended with multiple decision trees. "
+            "Choose which decision tree to keep live before using MCP tools."
         ),
         choose_workflow_url=f"{base}/billing/choose-workflow",
     )
@@ -145,7 +145,7 @@ def mcp_workflow_dormant_response() -> str:
     return tool_error_json(
         "account_downgrade_pending",
         (
-            "This workflow is dormant on your Free plan (download only). "
+            "This decision tree is dormant on your Free plan (download only). "
             "Upgrade to Pro to use MCP tools on it again."
         ),
     )
@@ -255,12 +255,12 @@ async def apply_workflow_pick(
     root_ids = {r.id for r in roots}
     chosen = set(chosen_root_ids)
     if not chosen or not chosen.issubset(root_ids):
-        raise HTTPException(status_code=400, detail="Selected workflow not found.")
+        raise HTTPException(status_code=400, detail="Selected decision tree not found.")
     max_live = free_max_workflows()
     if len(chosen) != max_live:
         raise HTTPException(
             status_code=400,
-            detail=f"Select exactly {max_live} workflows to keep live on Free.",
+            detail=f"Select exactly {max_live} decision trees to keep live on Free.",
         )
 
     now = datetime.now(UTC)
@@ -290,14 +290,14 @@ def pro_ending_banner_text(user: User, *, active_root_count: int) -> str | None:
     end = user.subscription_period_end
     if end is None:
         max_live = free_max_workflows()
-        return f"Pro ends soon — renew or choose {max_live} live workflows on Free."
+        return f"Pro ends soon — renew or choose {max_live} live decision trees on Free."
     end_local = end.astimezone(UTC)
     date_label = end_local.strftime("%b %d")
     max_live = free_max_workflows()
     if active_root_count <= max_live:
         return f"Pro ends {date_label} — renew to keep higher limits."
     return (
-        f"Pro ends {date_label} — {active_root_count} workflows; "
+        f"Pro ends {date_label} — {active_root_count} decision trees; "
         f"Free allows {max_live} live (others become download-only)."
     )
 

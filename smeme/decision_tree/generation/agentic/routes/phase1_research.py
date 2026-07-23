@@ -993,7 +993,7 @@ async def submit_research_context(
             "decision_tree/generation/_error.html",
             {
                 "request": request,
-                "error_message": "Workflow completed unexpectedly.",
+                "error_message": "Generation completed unexpectedly.",
                 "error_recoverable": True,
             },
         )

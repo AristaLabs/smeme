@@ -202,7 +202,7 @@ async def submit_conclusions(
             "decision_tree/generation/_error.html",
             {
                 "request": request,
-                "error_message": "Unexpected workflow completion. Please try again.",
+                "error_message": "Unexpected generation completion. Please try again.",
                 "error_recoverable": True,
             },
         )

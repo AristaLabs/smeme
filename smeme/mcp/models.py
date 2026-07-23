@@ -54,7 +54,7 @@ class McpToolInvocation(BaseSQLModel, table=True):
     decision_tree_id: UUID | None = SQLField(
         default=None,
         sa_column=Column(sa.Uuid(), nullable=True),
-        description="Workflow UUID when the tool accepted a decision_tree_id parameter",
+        description="Decision tree UUID when the tool accepted a decision_tree_id parameter",
     )
 
     oauth_client_id: str | None = SQLField(

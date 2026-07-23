@@ -168,7 +168,7 @@ async def submit_design(
                 "decision_tree/generation/_error.html",
                 {
                     "request": request,
-                    "error_message": "Unexpected workflow pause. Please try again.",
+                    "error_message": "Unexpected generation pause. Please try again.",
                     "error_recoverable": True,
                 },
             )

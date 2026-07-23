@@ -66,19 +66,19 @@ async def view_editor_page(
     # Load DecisionTree for authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     # Authorization: Check archived status
     if decision_tree.is_archived and decision_tree.author_id != user.id:
         raise HTTPException(
             status_code=404,
-            detail="Workflow not found",  # Don't reveal archived status to non-authors
+            detail="Decision tree not found",  # Don't reveal archived status to non-authors
         )
 
     # Authorization: Only author can view private decision trees
     if not decision_tree.is_public and decision_tree.author_id != user.id:
         raise HTTPException(
-            status_code=403, detail="Private workflows can only be accessed by their author"
+            status_code=403, detail="Private decision trees can only be accessed by their author"
         )
 
     if decision_tree.author_id == user.id:
@@ -174,18 +174,18 @@ async def select_node_with_decision_tree(
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
     if not decision_tree:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=404, detail="Decision tree not found")
 
     # Check archived status
     if decision_tree.is_archived and decision_tree.author_id != user.id:
         raise HTTPException(
             status_code=404,
-            detail="Workflow not found",  # Don't reveal archived status to non-authors
+            detail="Decision tree not found",  # Don't reveal archived status to non-authors
         )
 
     if not decision_tree.is_public and decision_tree.author_id != user.id:
         raise HTTPException(
-            status_code=403, detail="Private workflows can only be accessed by their author"
+            status_code=403, detail="Private decision trees can only be accessed by their author"
         )
 
     # Run Viewer Workflow with selection

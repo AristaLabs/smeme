@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from smeme.core.models import DecisionTree, DecisionTreeSession, Memo
 from smeme.decision_tree.helpers.db_queries import get_version_family_from_db
 
-DELETE_CONFIRM_PHRASE = "delete workflow permanently"
+DELETE_CONFIRM_PHRASE = "delete decision tree permanently"
 
 __all__ = ["DELETE_CONFIRM_PHRASE", "delete_workflow_family"]
 
@@ -30,7 +30,7 @@ async def delete_workflow_family(
     Returns the deleted family members (for logging / flash messages).
     """
     if decision_tree.author_id != author_id:
-        raise PermissionError("Not authorized to delete this workflow")
+        raise PermissionError("Not authorized to delete this decision tree")
 
     family = await get_version_family_from_db(db, decision_tree)
     family_ids = [v.id for v in family]

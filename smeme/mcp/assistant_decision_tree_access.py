@@ -32,8 +32,8 @@ def assistant_tools_discoverability_violation(
     if not decision_tree.mcp_discoverable:
         return (
             "not_discoverable",
-            "This workflow is hidden from MCP tools. "
-            "In the SMEme web app, set the workflow to **Listed** in the Listed column on your dashboard "
+            "This decision tree is hidden from MCP tools. "
+            "In the SMEme web app, set the decision tree to **Listed** in the Listed column on your dashboard "
             "(/decision-trees/dashboard#mcp-listed), then try again.",
         )
     return None
