@@ -48,7 +48,7 @@
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              <span>You have at least one decision tree that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/qnr/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
+              <span>You have at least one decision tree that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
             </li>
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
@@ -102,13 +102,9 @@
                   </div>
                   <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
-                    {% if mcp_oauth_client_id %}
                     <p class="mt-1 text-xs text-ui-ink-muted leading-snug">When your client asks for a Client ID (leave secret blank — PKCE public client):</p>
                     <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
                        title="Select all to copy">{{ mcp_oauth_client_id }}</p>
-                    {% else %}
-                    <p class="mt-1 text-xs text-ui-ink-muted leading-snug">Ask your Core operator for the static OAuth Client ID, or use dynamic client registration when enabled.</p>
-                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -248,7 +244,7 @@
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_template_get</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Authoritative per decision tree worksheet — question IDs, labels, and valid option strings.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Authoritative per-decision-tree worksheet — question IDs, labels, and valid option strings.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
                 </tr>
                 <tr>
@@ -313,7 +309,7 @@
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Name decision trees clearly.</strong>
-              The name is how your agent finds the right tool — e.g. "Foreign national property tax analysis" rather than "QNR 3".
+              The name is how your agent finds the right tool — e.g. "Foreign national property tax analysis" rather than "DecisionTree 3".
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Redeploy after edits.</strong>

@@ -76,23 +76,23 @@ def upgrade() -> None:
 ```python
 def upgrade() -> None:
     # Add column as nullable first
-    op.add_column('qnrs', 
+    op.add_column('decision_trees',
         sa.Column('slug', sa.String(), nullable=True))
-    op.create_index('ix_qnrs_slug', 'qnrs', ['slug'])
+    op.create_index('ix_decision_trees_slug', 'decision_trees', ['slug'])
     
     # Backfill: Generate slug from title
     op.execute("""
-        UPDATE qnrs 
+        UPDATE decision_trees
         SET slug = LOWER(REGEXP_REPLACE(title, '[^a-zA-Z0-9]+', '-', 'g'))
         WHERE slug IS NULL
     """)
     
     # Make NOT NULL after backfill (optional, can do later)
-    # op.alter_column('qnrs', 'slug', nullable=False)
+    # op.alter_column('decision_trees', 'slug', nullable=False)
 
 def downgrade() -> None:
-    op.drop_index('ix_qnrs_slug')
-    op.drop_column('qnrs', 'slug')
+    op.drop_index('ix_decision_trees_slug')
+    op.drop_column('decision_trees', 'slug')
 ```
 
 **Why nullable first?**
@@ -142,14 +142,14 @@ def downgrade() -> None:
 ```python
 def upgrade() -> None:
     # Add new status column with default
-    op.add_column('qnr_sessions', 
+    op.add_column('decision_tree_sessions',
         sa.Column('status', sa.String(), 
                   server_default='in_progress', 
                   nullable=False))
     
     # Backfill based on existing fields
     op.execute("""
-        UPDATE qnr_sessions 
+        UPDATE decision_tree_sessions
         SET status = CASE
             WHEN completed_at IS NOT NULL THEN 'completed'
             WHEN started_at IS NULL THEN 'pending'
@@ -157,12 +157,12 @@ def upgrade() -> None:
         END
     """)
     
-    op.create_index('ix_qnr_sessions_status', 
-                    'qnr_sessions', ['status'])
+    op.create_index('ix_decision_tree_sessions_status',
+                    'decision_tree_sessions', ['status'])
 
 def downgrade() -> None:
-    op.drop_index('ix_qnr_sessions_status')
-    op.drop_column('qnr_sessions', 'status')
+    op.drop_index('ix_decision_tree_sessions_status')
+    op.drop_column('decision_tree_sessions', 'status')
 ```
 
 ---
@@ -175,27 +175,27 @@ def downgrade() -> None:
 def upgrade() -> None:
     # Add FK column as nullable
     op.add_column('memos', 
-        sa.Column('qnr_id', sa.Uuid(), nullable=True))
+        sa.Column('decision_tree_id', sa.Uuid(), nullable=True))
     
-    # Backfill: Link memos to qnrs via session
+    # Backfill: Link memos to decision_trees via session
     op.execute("""
         UPDATE memos m
-        SET qnr_id = s.qnr_id
-        FROM qnr_sessions s
+        SET decision_tree_id = s.decision_tree_id
+        FROM decision_tree_sessions s
         WHERE m.session_id = s.id
-        AND m.qnr_id IS NULL
+        AND m.decision_tree_id IS NULL
     """)
     
     # Add FK constraint
     op.create_foreign_key(
-        'fk_memos_qnr_id_qnrs', 
-        'memos', 'qnrs', 
-        ['qnr_id'], ['id']
+        'fk_memos_decision_tree_id_decision_trees',
+        'memos', 'decision_trees',
+        ['decision_tree_id'], ['id']
     )
 
 def downgrade() -> None:
-    op.drop_constraint('fk_memos_qnr_id_qnrs', 'memos')
-    op.drop_column('memos', 'qnr_id')
+    op.drop_constraint('fk_memos_decision_tree_id_decision_trees', 'memos')
+    op.drop_column('memos', 'decision_tree_id')
 ```
 
 ---
@@ -208,13 +208,13 @@ def downgrade() -> None:
 def upgrade() -> None:
     # Delete orphaned sessions (user was deleted)
     op.execute("""
-        DELETE FROM qnr_sessions 
+        DELETE FROM decision_tree_sessions
         WHERE user_id NOT IN (SELECT id FROM users)
     """)
     
     # Delete invalid sessions (no start time but has completion)
     op.execute("""
-        DELETE FROM qnr_sessions 
+        DELETE FROM decision_tree_sessions
         WHERE started_at IS NULL 
         AND completed_at IS NOT NULL
     """)
@@ -258,11 +258,11 @@ op.add_column('users',
 ```python
 def upgrade() -> None:
     # Add column
-    op.add_column('qnrs', 
+    op.add_column('decision_trees',
         sa.Column('slug', sa.String(), nullable=True))
     
     # ❌ BAD: Update all rows at once (locks table)
-    # op.execute("UPDATE qnrs SET slug = ...")
+    # op.execute("UPDATE decision_trees SET slug = ...")
     
     # ✅ GOOD: Batch updates
     connection = op.get_bind()
@@ -272,11 +272,11 @@ def upgrade() -> None:
     
     while True:
         result = connection.execute(sa.text("""
-            UPDATE qnrs 
+            UPDATE decision_trees
             SET slug = LOWER(REGEXP_REPLACE(title, '[^a-zA-Z0-9]+', '-', 'g'))
             WHERE slug IS NULL
             AND id IN (
-                SELECT id FROM qnrs 
+                SELECT id FROM decision_trees
                 WHERE slug IS NULL 
                 LIMIT :batch_size OFFSET :offset
             )
@@ -596,26 +596,26 @@ down_revision = 'prev_revision_id'
 
 def upgrade() -> None:
     # Add column with default
-    op.add_column('qnr_sessions',
+    op.add_column('decision_tree_sessions',
         sa.Column('is_complete', sa.Boolean(),
                   server_default=sa.false(),
                   nullable=False))
     
     # Backfill based on completed_at
     op.execute("""
-        UPDATE qnr_sessions
+        UPDATE decision_tree_sessions
         SET is_complete = (completed_at IS NOT NULL)
     """)
     
     # Add index for querying
-    op.create_index('ix_qnr_sessions_is_complete',
-                    'qnr_sessions', ['is_complete'])
+    op.create_index('ix_decision_tree_sessions_is_complete',
+                    'decision_tree_sessions', ['is_complete'])
     
     print("✅ Backfilled is_complete for all sessions")
 
 def downgrade() -> None:
-    op.drop_index('ix_qnr_sessions_is_complete')
-    op.drop_column('qnr_sessions', 'is_complete')
+    op.drop_index('ix_decision_tree_sessions_is_complete')
+    op.drop_column('decision_tree_sessions', 'is_complete')
 ```
 
 ---
@@ -625,7 +625,7 @@ def downgrade() -> None:
 **Scenario**: Extract tags from `graph_data` JSONB into separate table
 
 ```python
-"""Extract tags from QNR graph_data to separate table
+"""Extract tags from DecisionTree graph_data to separate table
 
 Revision ID: def456ghi789
 Revises: abc123def456
@@ -641,41 +641,41 @@ down_revision = 'abc123def456'
 
 def upgrade() -> None:
     # Create tags table
-    op.create_table('qnr_tags',
+    op.create_table('decision_tree_tags',
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('qnr_id', sa.Uuid(), nullable=False),
+        sa.Column('decision_tree_id', sa.Uuid(), nullable=False),
         sa.Column('tag', sa.String(length=50), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True),
                   server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['qnr_id'], ['qnrs.id'],
-                                name='fk_qnr_tags_qnr_id_qnrs'),
-        sa.PrimaryKeyConstraint('id', name='pk_qnr_tags')
+        sa.ForeignKeyConstraint(['decision_tree_id'], ['decision_trees.id'],
+                                name='fk_decision_tree_tags_decision_tree_id_decision_trees'),
+        sa.PrimaryKeyConstraint('id', name='pk_decision_tree_tags')
     )
-    op.create_index('ix_qnr_tags_qnr_id', 'qnr_tags', ['qnr_id'])
-    op.create_index('ix_qnr_tags_tag', 'qnr_tags', ['tag'])
+    op.create_index('ix_decision_tree_tags_decision_tree_id', 'decision_tree_tags', ['decision_tree_id'])
+    op.create_index('ix_decision_tree_tags_tag', 'decision_tree_tags', ['tag'])
     
     # Extract tags from graph_data
     op.execute("""
-        INSERT INTO qnr_tags (id, qnr_id, tag)
+        INSERT INTO decision_tree_tags (id, decision_tree_id, tag)
         SELECT 
             gen_random_uuid(),
             id,
             jsonb_array_elements_text(graph_data->'tags')
-        FROM qnrs
+        FROM decision_trees
         WHERE graph_data ? 'tags'
     """)
     
     connection = op.get_bind()
     result = connection.execute(sa.text(
-        "SELECT COUNT(*) FROM qnr_tags"
+        "SELECT COUNT(*) FROM decision_tree_tags"
     ))
     count = result.scalar()
-    print(f"✅ Extracted {count} tags from {result.rowcount} QNRs")
+    print(f"✅ Extracted {count} tags from {result.rowcount} decision trees")
 
 def downgrade() -> None:
-    op.drop_index('ix_qnr_tags_tag')
-    op.drop_index('ix_qnr_tags_qnr_id')
-    op.drop_table('qnr_tags')
+    op.drop_index('ix_decision_tree_tags_tag')
+    op.drop_index('ix_decision_tree_tags_decision_tree_id')
+    op.drop_table('decision_tree_tags')
 ```
 
 ---
@@ -704,7 +704,7 @@ def upgrade() -> None:
     # Count orphaned sessions
     result = connection.execute(sa.text("""
         SELECT COUNT(*) 
-        FROM qnr_sessions 
+        FROM decision_tree_sessions
         WHERE user_id NOT IN (SELECT id FROM users)
     """))
     orphaned_count = result.scalar()
@@ -712,21 +712,21 @@ def upgrade() -> None:
     
     # Delete orphaned sessions
     op.execute("""
-        DELETE FROM qnr_sessions 
+        DELETE FROM decision_tree_sessions
         WHERE user_id NOT IN (SELECT id FROM users)
     """)
     
     # Fix invalid timestamps (completed before started)
     result = connection.execute(sa.text("""
         SELECT COUNT(*) 
-        FROM qnr_sessions 
+        FROM decision_tree_sessions
         WHERE completed_at < started_at
     """))
     invalid_count = result.scalar()
     print(f"📊 Found {invalid_count} invalid timestamps")
     
     op.execute("""
-        UPDATE qnr_sessions 
+        UPDATE decision_tree_sessions
         SET completed_at = NULL 
         WHERE completed_at < started_at
     """)

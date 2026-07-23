@@ -51,10 +51,10 @@ class McpToolInvocation(BaseSQLModel, table=True):
         description="ok when no error.code in tool JSON; otherwise stable error.code",
     )
 
-    qnr_id: UUID | None = SQLField(
+    decision_tree_id: UUID | None = SQLField(
         default=None,
         sa_column=Column(sa.Uuid(), nullable=True),
-        description="Workflow UUID when the tool accepted a qnr_id parameter",
+        description="Decision tree UUID when the tool accepted a decision_tree_id parameter",
     )
 
     oauth_client_id: str | None = SQLField(

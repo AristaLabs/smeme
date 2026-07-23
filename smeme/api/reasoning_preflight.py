@@ -12,13 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.auth.users import current_active_user
 from smeme.core.database import get_db
-from smeme.core.models import QNR, User
-from smeme.qnr.helpers.db_queries import parse_graph_data
+from smeme.core.models import DecisionTree, User
+from smeme.decision_tree.helpers.db_queries import parse_graph_data
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION
 from smeme.reasoning.publish_readiness import assess_publish_readiness
 from smeme.reasoning.version import REASONING_COMPILER_VERSION
 
-router = APIRouter(prefix="/qnr", tags=["reasoning-preflight"])
+router = APIRouter(prefix="/decision-trees", tags=["reasoning-preflight"])
 
 
 def _envelope_ok(summary: dict[str, Any]) -> dict[str, Any]:
@@ -37,24 +37,24 @@ def _issues_to_errors(readiness) -> list[dict[str, str]]:
     return [{"code": i.code, "message": i.message} for i in readiness.preflight_issues]
 
 
-@router.get("/{qnr_id}/reasoning/preflight", summary="Reasoning preflight (publish gate)")
-@router.post("/{qnr_id}/reasoning/preflight", summary="Reasoning preflight (POST)")
+@router.get("/{decision_tree_id}/reasoning/preflight", summary="Reasoning preflight (publish gate)")
+@router.post("/{decision_tree_id}/reasoning/preflight", summary="Reasoning preflight (POST)")
 async def reasoning_preflight(
-    qnr_id: UUID,
+    decision_tree_id: UUID,
     user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    result = await db.execute(select(QNR).where(QNR.id == qnr_id))
-    qnr = result.scalar_one_or_none()
-    if not qnr or qnr.author_id != user.id:
-        raise HTTPException(status_code=404, detail="QNR not found")
+    result = await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
+    decision_tree = result.scalar_one_or_none()
+    if not decision_tree or decision_tree.author_id != user.id:
+        raise HTTPException(status_code=404, detail="DecisionTree not found")
 
     try:
-        graph = parse_graph_data(qnr)
+        graph = parse_graph_data(decision_tree)
     except ValidationError as e:
         return {
             "status": "failed",
-            "code": "QNR_VALIDATION_FAILED",
+            "code": "DECISION_TREE_VALIDATION_FAILED",
             "message": "Graph failed schema validation.",
             "warnings": [],
             "errors": e.errors(),
@@ -91,7 +91,7 @@ async def reasoning_preflight(
     if readiness.validation_errors:
         return {
             "status": "failed",
-            "code": "QNR_VALIDATION_FAILED",
+            "code": "DECISION_TREE_VALIDATION_FAILED",
             "message": "Graph validation failed.",
             "warnings": [],
             "errors": readiness.validation_errors,

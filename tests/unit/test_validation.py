@@ -1,11 +1,11 @@
 """Unit tests for URL validation (OWASP + SSRF).
 
-Per docs/planning/qnr-generation-ux-refinement.md §4.6.
+Per docs/planning/decision_tree-generation-ux-refinement.md §4.6.
 """
 
 from unittest.mock import patch
 
-from smeme.qnr.generation.agentic.validation import (
+from smeme.decision_tree.generation.agentic.validation import (
     parse_and_validate_include_urls,
     resolve_and_validate_url_host,
 )
@@ -56,7 +56,7 @@ class TestParseAndValidateIncludeUrls:
         assert any("blocked" in i.lower() or "private" in i.lower() for i in invalid)
 
     def test_valid_url_accepted(self):
-        with patch("smeme.qnr.generation.agentic.validation.resolve_and_validate_url_host") as mock:
+        with patch("smeme.decision_tree.generation.agentic.validation.resolve_and_validate_url_host") as mock:
             mock.return_value = (True, None)
             valid, invalid = parse_and_validate_include_urls("https://example.com/")
             assert "https://example.com/" in valid

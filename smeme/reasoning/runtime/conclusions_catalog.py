@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.runtime.analyze import ConclusionSatQueryEnumeration
 from smeme.reasoning.runtime.counterfactual import conclusion_title_from_graph
 
 
 def build_conclusions_catalog_wire(
     *,
-    qnr_id: UUID,
+    decision_tree_id: UUID,
     graph: DTGraph,
     enumeration: ConclusionSatQueryEnumeration,
 ) -> dict[str, Any]:
@@ -48,7 +48,7 @@ def build_conclusions_catalog_wire(
         conclusions.append(entry)
 
     out: dict[str, Any] = {
-        "qnr_id": str(qnr_id).lower(),
+        "decision_tree_id": str(decision_tree_id).lower(),
         "workflow_rules_consistent": enumeration.is_theory_satisfiable,
         "conclusions": conclusions,
         "count": len(conclusions),

@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from smeme.qnr.generation.agentic.checkpointer import checkpointer_manager
-from smeme.qnr.generation.agentic.maintenance import (
+from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+from smeme.decision_tree.generation.agentic.maintenance import (
     _wait_for_stop_or_interval,
     periodic_maintenance_loop,
     run_periodic_cleanup,
     run_startup_cleanup,
 )
-from smeme.qnr.generation.agentic.telemetry import delete_wizard_events_older_than
+from smeme.decision_tree.generation.agentic.telemetry import delete_wizard_events_older_than
 
 
 class TestDeleteOrphanedCheckpoints:
@@ -46,7 +46,7 @@ class TestDeleteOrphanedCheckpoints:
         for call in mock_conn.execute.call_args_list:
             sql = call.args[0]
             assert "NOT EXISTS" in sql
-            assert "in_progress_qnr_generations" in sql
+            assert "in_progress_decision_tree_generations" in sql
             assert "langgraph_thread_id" in sql
 
 
@@ -67,7 +67,7 @@ class TestDeleteWizardEventsOlderThan:
         mock_db.execute = AsyncMock(return_value=mock_result)
 
         with patch(
-            "smeme.qnr.generation.agentic.telemetry.datetime",
+            "smeme.decision_tree.generation.agentic.telemetry.datetime",
         ) as mock_dt:
             fixed_now = datetime(2026, 6, 14, 12, 0, tzinfo=UTC)
             mock_dt.now.return_value = fixed_now
@@ -95,11 +95,11 @@ class TestRunStartupCleanup:
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.maintenance.AsyncSessionLocal",
+                "smeme.decision_tree.generation.agentic.maintenance.AsyncSessionLocal",
                 return_value=mock_session,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
+                "smeme.decision_tree.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
                 new_callable=AsyncMock,
                 return_value=0,
             ) as mock_cleanup,
@@ -156,11 +156,11 @@ class TestPeriodicMaintenanceLoop:
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.maintenance.run_periodic_cleanup",
+                "smeme.decision_tree.generation.agentic.maintenance.run_periodic_cleanup",
                 new_callable=AsyncMock,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance._wait_for_stop_or_interval",
+                "smeme.decision_tree.generation.agentic.maintenance._wait_for_stop_or_interval",
                 side_effect=fake_wait,
             ),
         ):
@@ -176,7 +176,7 @@ class TestPeriodicMaintenanceLoop:
             await asyncio.Event().wait()
 
         with patch(
-            "smeme.qnr.generation.agentic.maintenance.run_periodic_cleanup",
+            "smeme.decision_tree.generation.agentic.maintenance.run_periodic_cleanup",
             side_effect=slow_cleanup,
         ):
             task = asyncio.create_task(periodic_maintenance_loop(stop_event))
@@ -188,7 +188,7 @@ class TestPeriodicMaintenanceLoop:
 
     @pytest.mark.asyncio
     async def test_weekly_orphan_sweep_runs_on_first_periodic_tick(self):
-        import smeme.qnr.generation.agentic.maintenance as maintenance_mod
+        import smeme.decision_tree.generation.agentic.maintenance as maintenance_mod
 
         maintenance_mod.last_orphan_sweep_at = None
         mock_db = AsyncMock()
@@ -198,26 +198,26 @@ class TestPeriodicMaintenanceLoop:
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.maintenance.AsyncSessionLocal",
+                "smeme.decision_tree.generation.agentic.maintenance.AsyncSessionLocal",
                 return_value=mock_session,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
+                "smeme.decision_tree.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.retry_pending_account_deletions",
+                "smeme.decision_tree.generation.agentic.maintenance.retry_pending_account_deletions",
                 new_callable=AsyncMock,
                 return_value=1,
             ) as mock_deletion_retry,
             patch(
-                "smeme.qnr.generation.agentic.maintenance.checkpointer_manager.delete_orphaned_checkpoints",
+                "smeme.decision_tree.generation.agentic.maintenance.checkpointer_manager.delete_orphaned_checkpoints",
                 new_callable=AsyncMock,
                 return_value=2,
             ) as mock_orphan,
             patch(
-                "smeme.qnr.generation.agentic.maintenance.delete_wizard_events_older_than",
+                "smeme.decision_tree.generation.agentic.maintenance.delete_wizard_events_older_than",
                 new_callable=AsyncMock,
                 return_value=5,
             ) as mock_wizard,
@@ -234,7 +234,7 @@ class TestPeriodicMaintenanceLoop:
 
     @pytest.mark.asyncio
     async def test_weekly_orphan_sweep_skipped_within_interval(self):
-        import smeme.qnr.generation.agentic.maintenance as maintenance_mod
+        import smeme.decision_tree.generation.agentic.maintenance as maintenance_mod
 
         maintenance_mod.last_orphan_sweep_at = datetime.now(UTC) - timedelta(days=1)
         prior_sweep_at = maintenance_mod.last_orphan_sweep_at
@@ -245,25 +245,25 @@ class TestPeriodicMaintenanceLoop:
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.maintenance.AsyncSessionLocal",
+                "smeme.decision_tree.generation.agentic.maintenance.AsyncSessionLocal",
                 return_value=mock_session,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
+                "smeme.decision_tree.generation.agentic.maintenance.checkpoint_manager.cleanup_expired_generations",
                 new_callable=AsyncMock,
                 return_value=1,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.retry_pending_account_deletions",
+                "smeme.decision_tree.generation.agentic.maintenance.retry_pending_account_deletions",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "smeme.qnr.generation.agentic.maintenance.checkpointer_manager.delete_orphaned_checkpoints",
+                "smeme.decision_tree.generation.agentic.maintenance.checkpointer_manager.delete_orphaned_checkpoints",
                 new_callable=AsyncMock,
             ) as mock_orphan,
             patch(
-                "smeme.qnr.generation.agentic.maintenance.delete_wizard_events_older_than",
+                "smeme.decision_tree.generation.agentic.maintenance.delete_wizard_events_older_than",
                 new_callable=AsyncMock,
             ) as mock_wizard,
         ):

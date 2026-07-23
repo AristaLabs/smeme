@@ -83,7 +83,7 @@ _active_recorder: ContextVar[McpInvocationRecorder | None] = ContextVar(
 # Rows still persist for ops; ``quota_weight`` is zeroed on flush for these outcomes.
 MCP_CLIENT_ERROR_OUTCOMES: frozenset[str] = frozenset(
     {
-        "invalid_qnr_id",
+        "invalid_decision_tree_id",
         "invalid_answers_json",
         "invalid_evidence_blob_json",
         "not_found",
@@ -174,7 +174,7 @@ class McpInvocationRecorder:
         "_invocation_id",
         "_oauth_client_id",
         "_outcome",
-        "_qnr_id",
+        "_decision_tree_id",
         "_reasoning_ms",
         "_size",
         "_start",
@@ -189,7 +189,7 @@ class McpInvocationRecorder:
         self._user_id: UUID | None = None
         self._invocation_id: UUID | None = None
         self._oauth_client_id: str | None = None
-        self._qnr_id: UUID | None = None
+        self._decision_tree_id: UUID | None = None
         self._outcome: str | None = None
         self._reasoning_ms: int | None = None
         self._size: dict[str, int] = {}
@@ -211,11 +211,15 @@ class McpInvocationRecorder:
         if oauth_client_id and oauth_client_id.strip():
             self._oauth_client_id = oauth_client_id.strip()
 
-    def note_qnr_id(self, qnr_id: UUID | str | None) -> None:
-        if qnr_id is None:
+    def note_decision_tree_id(self, decision_tree_id: UUID | str | None) -> None:
+        if decision_tree_id is None:
             return
         try:
-            self._qnr_id = qnr_id if isinstance(qnr_id, UUID) else UUID(str(qnr_id))
+            self._decision_tree_id = (
+                decision_tree_id
+                if isinstance(decision_tree_id, UUID)
+                else UUID(str(decision_tree_id))
+            )
         except (TypeError, ValueError):
             return
 
@@ -281,7 +285,7 @@ class McpInvocationRecorder:
                 "user_id": self._user_id,
                 "tool_name": self.tool_name,
                 "outcome": outcome,
-                "qnr_id": self._qnr_id,
+                "decision_tree_id": self._decision_tree_id,
                 "oauth_client_id": oauth_client_id,
                 "duration_ms": duration_ms,
                 "reasoning_ms": reasoning_ms,
@@ -299,7 +303,7 @@ class McpInvocationRecorder:
                 "tool_name": self.tool_name,
                 "outcome": outcome,
                 "user_id": str(self._user_id),
-                "qnr_id": str(self._qnr_id) if self._qnr_id else None,
+                "decision_tree_id": str(self._decision_tree_id) if self._decision_tree_id else None,
                 "duration_ms": duration_ms,
                 "reasoning_ms": reasoning_ms,
                 "quota_weight": quota_weight,

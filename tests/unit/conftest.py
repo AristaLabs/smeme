@@ -1,23 +1,6 @@
-"""Minimal conftest for pure unit tests.
+"""Unit tests share the root session-scoped asyncio/database fixtures.
 
-No database, no async fixtures, no event loop manipulation.
-These tests are synchronous and don't need any special infrastructure.
+Do not override ``event_loop`` here: database-backed unit tests reuse the
+session-scoped async engine, and a nested function-scoped loop corrupts
+asyncpg connections with "Future attached to a different loop" failures.
 """
-
-import pytest
-
-
-# Override the session-scoped event_loop from parent conftest
-# by providing a function-scoped one (or None for sync tests)
-@pytest.fixture(scope="function")
-def event_loop():
-    """Provide a function-scoped event loop for this directory.
-
-    This overrides the session-scoped event_loop from tests/conftest.py,
-    preventing scope mismatch issues for synchronous tests.
-    """
-    import asyncio
-
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()

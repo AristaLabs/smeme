@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 
 # v1: max UTF-8 bytes for ``manifest_markdown`` or total success JSON from ``template_get`` (512 KiB).
 REASONING_TEMPLATE_SUCCESS_MAX_UTF8_BYTES = 512 * 1024
@@ -44,7 +44,7 @@ def manifest_core_digest(manifest_core: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_manifest_core_json_utf8(manifest_core)).hexdigest()
 
 
-def build_manifest_core(graph: DTGraph, qnr_id: UUID) -> dict[str, Any]:
+def build_manifest_core(graph: DTGraph, decision_tree_id: UUID) -> dict[str, Any]:
     """Frozen machine manifest from question nodes only (live ``graph_data`` projection)."""
     qnodes = sorted(
         (n for n in graph.nodes if n.type == "question"),
@@ -67,7 +67,7 @@ def build_manifest_core(graph: DTGraph, qnr_id: UUID) -> dict[str, Any]:
         questions.append(entry)
 
     return {
-        "qnr_id": str(qnr_id).lower(),
+        "decision_tree_id": str(decision_tree_id).lower(),
         "questions": questions,
         "schema_version": _MANIFEST_SCHEMA_VERSION,
     }
@@ -79,20 +79,20 @@ def safe_worksheet_slug(title: str, *, max_len: int = 60) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", lowered)
     slug = slug.strip("-")
     if not slug:
-        return "qnr"
-    return slug[:max_len].rstrip("-") or "qnr"
+        return "decision_tree"
+    return slug[:max_len].rstrip("-") or "decision_tree"
 
 
 def render_manifest_markdown(
     *,
     manifest_core: dict[str, Any],
     title: str,
-    qnr_id: UUID,
+    decision_tree_id: UUID,
     slug: str,
     intended_audience: str | None = None,
     use_case: str | None = None,
 ) -> str:
-    """Per-QNR worksheet markdown (minimal frontmatter + frozen checklist).
+    """Per-DecisionTree worksheet markdown (minimal frontmatter + frozen checklist).
 
     Drift (``in_sync``), digest, and capabilities version live on the MCP JSON envelope
     from ``smeme_reasoning_template_get`` / ``template_check`` — not duplicated in YAML.
@@ -102,7 +102,7 @@ def render_manifest_markdown(
     frontmatter: list[str] = [
         "---",
         f"title: {fm_title}",
-        f'qnr_id: "{str(qnr_id).lower()}"',
+        f'decision_tree_id: "{str(decision_tree_id).lower()}"',
         f'slug: "{slug}"',
     ]
     if intended_audience and intended_audience.strip():

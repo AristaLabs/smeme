@@ -3,7 +3,7 @@
 **Product path:** after OAuth, an MCP client calls
 ``smeme_reasoning_capabilities`` (or ``smeme_reasoning_guidance_check``), then
 ``smeme_reasoning_guidance_get``, which returns the calling contract as markdown.
-Agents do **not** install a local plugin zip — they ask the server for guidance.
+Agents do **not** install a local zip bundle — they ask the server for guidance.
 
 This folder is the **human authoring source** for that guidance (and related MCP
 content). Each skill is a directory with **`SKILL.md`** plus optional
@@ -26,7 +26,7 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 | Use (product layer) | Do **not** use (implementation layer) |
 |---------------------|----------------------------------------|
-| **reasoning engine**, **server**, **report**, **results**, **outcome** | Z3, SAT, UNSAT, SMT, solver, satisfiable, entailment, theory (except wire `error.code` literals in backticks) |
+| **reasoning engine**, **server**, **report**, **results**, **outcome**, **MCP client** | Z3, SAT, UNSAT, SMT, solver, satisfiable, entailment, theory (except wire `error.code` literals in backticks); host framing (**plugin**, **Cowork**) |
 | **`report.result_kind`**, **`brief_memo`**, **`candidates`**, **`blockers`** | `SAT_*`, `triggered_edges`, `true_conclusion_id`, guard/clause/reach atom names |
 | Plain-language error meanings (“reasoning engine timed out”) | “Z3 check timed out”, “SAT call budget”, “unsatisfiable” |
 
@@ -34,9 +34,10 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 **Server messages:** `error.message` and `blockers.message` on MCP tool responses follow the same product-vocabulary rules as skills (reasoning engine, report, outcome — not Z3/SAT/entailment). When you change a user-quoted server string, update the matching skill row in the same PR.
 
-`scripts/validate_agent_skills.py` enforces a denylist on all shipped skills
-(prose only — text inside `` `backticks` `` may use wire field names such as
-``satisfiable`` or ``blockers.sat_calls``). Generated per decision tree manifests
+`scripts/validate_agent_skills.py` enforces a denylist on agent-skills markdown
+(prose only — text inside `` `backticks` `` or HTML comments may use wire field
+names such as ``satisfiable``, ``_server_plugin_version``, or
+``installed_plugin_version``). Generated per decision tree manifests
 ([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/))
 must follow the same rules.
 
@@ -60,7 +61,7 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 | Skill | Role | When to load |
 |-------|------|----------------|
-| **`smeme-reasoning-plugin`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core plugin skill. |
+| **`smeme-reasoning`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core reasoning skill. |
 | **Per decision tree question manifest** | Flat checklist: question ids, text, valid answers for *this* decision tree — no topology. | **After** the user (or agent) has chosen a target decision tree — from **`template_get`** or CWP-5 file. |
 | **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate`**. |
 | **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate`** returns a **`report`** that is not **`concluded`**. |
@@ -77,7 +78,7 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 ```
 agent-skills/
 ├── README.md                          # this file
-├── smeme-reasoning-plugin/SKILL.md          # core guidance
+├── smeme-reasoning/SKILL.md          # core guidance
 ├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
 ├── smeme-reasoning-outcomes/SKILL.md        # non-concluded and conflict report handling
 ├── smeme-decision-tree-author/
@@ -89,7 +90,7 @@ agent-skills/
 
 ## MCP error contract
 
-Reasoning tools return structured JSON. Expected failures use `error.code` / `error.message` (see **`smeme-reasoning-plugin`** skill table). Server module: `smeme/mcp/tool_contract.py`. Tools do not raise into the MCP layer; LangGraph on the server MCP path is deferred.
+Reasoning tools return structured JSON. Expected failures use `error.code` / `error.message` (see **`smeme-reasoning`** skill table). Server module: `smeme/mcp/tool_contract.py`. Tools do not raise into the MCP layer; LangGraph on the server MCP path is deferred.
 
 ## Related docs
 

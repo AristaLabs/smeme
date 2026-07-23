@@ -1,7 +1,7 @@
 
 # Prompt CEVI as evidence normalization source
 
-This is the build-time compiler prompt for the research corpus used during QNR authoring.
+This is the build-time compiler prompt for the research corpus used during DecisionTree authoring.
 
 ## Task
 
@@ -11,13 +11,13 @@ This workflow is the **evidence normalization compiler**.
 
 The output is **not a theory** and must **not infer decision outcomes**.
 
-Its sole purpose is to define how arbitrary future evidence corpora can be normalized into the **predicate join points required by the separately compiled QNR theory**.
+Its sole purpose is to define how arbitrary future evidence corpora can be normalized into the **predicate join points required by the separately compiled DecisionTree theory**.
 
 The CEVI package will be consumed by a runtime LangGraph workflow that:
 
 1. ingests arbitrary evidence documents
 2. converts them into canonical CEVI facts
-3. joins those facts with the QNR-derived theory in a solver
+3. joins those facts with the decision tree-derived theory in a solver
 
 Use only:
 
@@ -37,7 +37,7 @@ No decision outcomes.
 
 ## Compiler objective
 
-Extract the **smallest stable canonical evidence interface** that allows future corpora to prove or refute the **QNR theory join predicates**.
+Extract the **smallest stable canonical evidence interface** that allows future corpora to prove or refute the **DecisionTree theory join predicates**.
 
 Optimize for:
 
@@ -46,16 +46,16 @@ Optimize for:
 * repeated evidence motifs
 * stable typed sort families
 * future Horn-rule compressibility
-* QNR theory join compatibility
+* DecisionTree theory join compatibility
 * Z3 symbol readability
 
 The output should maximize the probability that future evidence corpora collapse into the same CEVI symbols.
 
 ---
 
-## Critical design rule: target QNR join predicates
+## Critical design rule: target DecisionTree join predicates
 
-The CEVI must explicitly align with the **runtime join predicates expected by the QNR theory compiler**.
+The CEVI must explicitly align with the **runtime join predicates expected by the DecisionTree theory compiler**.
 
 Examples:
 
@@ -109,7 +109,7 @@ Bad:
 * `DeductionAvailable(property:*)`
 * `CapitalizationAllowed(property:*)`
 
-Decision semantics belong exclusively to the QNR theory workflow.
+Decision semantics belong exclusively to the DecisionTree theory workflow.
 
 ---
 
@@ -152,7 +152,7 @@ These are critical for runtime satisfiability integrity.
 
 ### 5) Optimize for cross-corpus Horn compressibility
 
-Choose symbols that maximize reuse in future QNR joins.
+Choose symbols that maximize reuse in future DecisionTree joins.
 
 The ideal CEVI should encourage repeated runtime motifs like:
 
@@ -182,9 +182,9 @@ Predicates intended for runtime CEVI facts
 
 Semantic distinctions required for solver correctness
 
-### E. QNR join compatibility notes
+### E. DecisionTree join compatibility notes
 
-Explicit list of predicates expected to satisfy QNR theory conditions
+Explicit list of predicates expected to satisfy DecisionTree theory conditions
 
 ### F. Cross-corpus compression notes
 

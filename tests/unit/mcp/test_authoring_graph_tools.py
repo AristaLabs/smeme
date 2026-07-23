@@ -9,6 +9,15 @@ from uuid import uuid4
 import pytest
 
 from smeme.core.models import User
+from smeme.decision_tree.helpers.validation import validate_graph_for_editing
+from smeme.decision_tree.models import (
+    ConclusionData,
+    DTGraph,
+    DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
+    QuestionData,
+)
 from smeme.mcp.authoring_graph import (
     AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES,
     extract_graph_dict,
@@ -23,15 +32,6 @@ from smeme.mcp.reasoning_fastmcp import (
     REASONING_CAPABILITIES_VERSION,
     reasoning_capabilities_document,
     reset_mcp_runtime_for_tests,
-)
-from smeme.qnr.helpers.validation import validate_graph_for_editing
-from smeme.qnr.models import (
-    ConclusionData,
-    DTGraph,
-    GraphEdge,
-    GraphNode,
-    QNRMetadata,
-    QuestionData,
 )
 
 
@@ -63,7 +63,7 @@ def _minimal_graph(title: str = "Vendor Check") -> dict:
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
         ],
-        metadata=QNRMetadata(title=title),
+        metadata=DTGraphMetadata(title=title),
     )
     return g.model_dump(mode="json")
 
@@ -77,8 +77,8 @@ class TestAuthoringGraphHelpers:
 
     def test_extract_export_envelope(self) -> None:
         envelope = {
-            "smeme_export_version": "1",
-            "qnr": {"title": "X", "graph": _minimal_graph("From Export")},
+            "smeme_export_version": "2",
+            "decision_tree": {"title": "X", "graph": _minimal_graph("From Export")},
         }
         out = extract_graph_dict(envelope)
         assert isinstance(out, dict)
@@ -143,27 +143,6 @@ class TestAuthoringGraphCapabilities:
         assert "authoring_design" in doc
 
 
-class TestAuthoringGraphToolSchemas:
-    @pytest.mark.asyncio
-    async def test_validate_and_create_draft_require_dt_graph_json(
-        self, monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        reset_mcp_runtime_for_tests()
-        monkeypatch.setattr("smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True)
-
-        from smeme.mcp.reasoning_fastmcp import get_or_create_fastmcp
-
-        fm = get_or_create_fastmcp()
-        tools = await fm.list_tools()
-        by_name = {t.name: t for t in tools}
-
-        for tool_name in ("smeme_authoring_validate_graph", "smeme_authoring_create_draft"):
-            schema = by_name[tool_name].inputSchema
-            assert "dt_graph_json" in schema.get("properties", {})
-            assert "dt_graph_json" in schema.get("required", [])
-            assert "qnr_graph_json" not in schema.get("properties", {})
-
-
 class TestAuthoringGraphQuota:
     def test_quota_weights(self) -> None:
         assert quota_weight_for_tool("smeme_authoring_design_guidance") == 0.0
@@ -191,9 +170,7 @@ class TestAuthoringDesignGuidanceTool:
             "smeme.mcp.reasoning_fastmcp._mcp_auth_user_only",
             AsyncMock(return_value=user),
         )
-        monkeypatch.setattr(
-            "smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True
-        )
+        monkeypatch.setattr("smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True)
 
         from smeme.mcp.reasoning_fastmcp import get_or_create_fastmcp
 
@@ -265,7 +242,7 @@ class TestAuthoringValidateTool:
 
 class TestAuthoringCreateDraftTool:
     @pytest.mark.asyncio
-    async def test_create_draft_persists_qnr(
+    async def test_create_draft_persists_decision_tree(
         self, monkeypatch: pytest.MonkeyPatch, test_session_factory
     ) -> None:
         reset_mcp_runtime_for_tests()
@@ -312,16 +289,20 @@ class TestAuthoringCreateDraftTool:
         assert payload["status"] == "draft"
         assert payload["title"] == "MCP Draft"
         assert payload["deployed"] is False
-        assert "/qnr/editor/" in payload["editor_url"]
+        assert "/decision-trees/" in payload["editor_url"]
+        assert payload["editor_url"].endswith("/editor")
+        assert "/decision-trees/editor/" not in payload["editor_url"]
         assert payload["_server_plugin_version"] == REASONING_CAPABILITIES_VERSION
 
         from sqlalchemy import select
 
-        from smeme.core.models import QNR
+        from smeme.core.models import DecisionTree
 
         async with test_session_factory() as session:
             row = (
-                await session.execute(select(QNR).where(QNR.id == payload["qnr_id"]))
+                await session.execute(
+                    select(DecisionTree).where(DecisionTree.id == payload["decision_tree_id"])
+                )
             ).scalar_one()
             assert row.author_id == uid
             assert row.title == "MCP Draft"

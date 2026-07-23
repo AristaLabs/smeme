@@ -111,4 +111,4 @@ uv run python scripts/check_core_no_saas_imports.py
 - [Self-host quickstart](self-host-quickstart.md)
 - [MCP / OAuth guide](dr3-mcp-oauth-authoritative-sources.md)
 - [Contribution paths](../CONTRIBUTION_PATHS.md)
-- Dashboard: http://localhost:8000/qnr/dashboard
+- Dashboard: http://localhost:8000/decision-trees/dashboard

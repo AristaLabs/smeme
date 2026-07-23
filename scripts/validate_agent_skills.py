@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 SKILLS_SRC = ROOT / "agent-skills"
 
 _SKILL_NAMES = (
-    "smeme-reasoning-plugin",
+    "smeme-reasoning",
     "smeme-reasoning-slot-fill",
     "smeme-reasoning-outcomes",
 )
@@ -43,6 +43,15 @@ _SKILL_FORBIDDEN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bunsatisfiable\b", re.IGNORECASE), "unsatisfiable"),
     (re.compile(r"\bsolver\b(?!_timeout)", re.IGNORECASE), "solver (except wire code solver_timeout)"),
     (re.compile(r"\bentail(?:ed|ment)\b", re.IGNORECASE), "entailment / entailed"),
+    # Host/distribution framing (MCP-served guidance is client-agnostic).
+    (re.compile(r"\bplugins?\b", re.IGNORECASE), "plugin"),
+    (re.compile(r"\bcowork\b", re.IGNORECASE), "Cowork"),
+)
+
+# Wire / coupling identifiers may appear in backticks or HTML comments; strip before prose scan.
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_WIRE_ID_ALLOWLIST_RE = re.compile(
+    r"(?:_server_plugin_version|installed_plugin_version|latest_plugin_version)"
 )
 
 
@@ -64,7 +73,7 @@ def _reasoning_capabilities_version_from_source() -> str | None:
 def _skill_installed_version(capabilities_version: str) -> list[str]:
     """Check that the primary skill's installed_plugin_version comment matches capabilities."""
     errors: list[str] = []
-    skill_path = SKILLS_SRC / "smeme-reasoning-plugin" / "SKILL.md"
+    skill_path = SKILLS_SRC / "smeme-reasoning" / "SKILL.md"
     if not skill_path.is_file():
         return errors
     text = skill_path.read_text(encoding="utf-8")
@@ -83,25 +92,54 @@ def _skill_installed_version(capabilities_version: str) -> list[str]:
     return errors
 
 
-def _prose_outside_backticks(text: str) -> str:
-    """Strip `` `wire identifiers` `` segments — allowed to use implementation field names."""
-    return re.sub(r"`[^`]*`", "", text)
+def _prose_for_vocabulary_scan(text: str) -> str:
+    """Strip backtick spans, HTML comments, and known MCP wire id tokens.
+
+    Wire fields such as ``_server_plugin_version`` / ``installed_plugin_version``
+    are allowlisted (API watermark names). Product prose must not say plugin/Cowork.
+    """
+    out = re.sub(r"`[^`]*`", "", text)
+    out = _HTML_COMMENT_RE.sub("", out)
+    return _WIRE_ID_ALLOWLIST_RE.sub("", out)
+
+
+def _iter_skill_markdown_files() -> list[Path]:
+    """Shipped agent-facing markdown under agent-skills (not contributor README)."""
+    if not SKILLS_SRC.is_dir():
+        return []
+    paths: list[Path] = []
+    for path in sorted(SKILLS_SRC.rglob("*")):
+        if not path.is_file():
+            continue
+        if path.name in {"SKILL.md", "DESIGN.md"}:
+            paths.append(path)
+    return paths
+
+
+def _display_skill_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        try:
+            return str(path.relative_to(SKILLS_SRC))
+        except ValueError:
+            return path.name
 
 
 def _check_skills_agent_safe_vocabulary() -> list[str]:
-    """Denylist formal-methods / stack terms in SKILL.md prose."""
+    """Denylist formal-methods / host-framing terms in agent-skills markdown."""
     errors: list[str] = []
-    for name in _SKILL_NAMES:
-        path = SKILLS_SRC / name / "SKILL.md"
-        if not path.is_file():
-            continue
-        prose = _prose_outside_backticks(path.read_text(encoding="utf-8"))
+    for path in _iter_skill_markdown_files():
+        prose = _prose_for_vocabulary_scan(path.read_text(encoding="utf-8"))
         for pattern, label_term in _SKILL_FORBIDDEN_PATTERNS:
             if pattern.search(prose):
                 errors.append(
-                    f"Agent-unsafe vocabulary {label_term!r} in skill "
-                    f"{path} — use product terms (reasoning engine, report, results); "
-                    "see agent-skills/README.md#agent-safe-vocabulary-required"
+                    f"Agent-unsafe vocabulary {label_term!r} in "
+                    f"{_display_skill_path(path)} — use product / MCP-client terms "
+                    "(not plugin/Cowork host framing; not Z3/SAT); "
+                    "see agent-skills/README.md#agent-safe-vocabulary-required. "
+                    "Wire ids `_server_plugin_version` / `installed_plugin_version` "
+                    "may appear in backticks or HTML comments only."
                 )
                 break
     return errors

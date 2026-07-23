@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.ir.types import (
@@ -79,7 +79,7 @@ def _exclusive_radio_graph() -> DTGraph:
             GraphEdge(source="Q1", target="C_yes", condition="Yes"),
             GraphEdge(source="Q1", target="C_no", condition="No"),
         ],
-        metadata=QNRMetadata(title="Test"),
+        metadata=DTGraphMetadata(title="Test"),
     )
 
 
@@ -313,7 +313,7 @@ def _partial_chain_graph() -> DTGraph:
             GraphEdge(source="Q2", target="C_yes", condition="Yes"),
             GraphEdge(source="Q2", target="C_alt", condition="No"),
         ],
-        metadata=QNRMetadata(title="Partial"),
+        metadata=DTGraphMetadata(title="Partial"),
     )
 
 

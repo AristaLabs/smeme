@@ -1,4 +1,4 @@
-"""IR package: types, validation, optional QNR compile submodule (not re-exported here)."""
+"""IR package: types, validation, optional DecisionTree compile submodule (not re-exported here)."""
 
 from smeme.reasoning.ir.serialize import ir_from_json, ir_to_json
 from smeme.reasoning.ir.types import (

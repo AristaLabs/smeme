@@ -1,19 +1,19 @@
-# SMEme — Decision-Tree Design Guidance
+# SMEme — Decision Tree Design Guidance
 
-_Versioned standard for designing decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 1.1.0_
+_Versioned standard for designing reasoning decision trees in chat. Served by
+`smeme_authoring_design_guidance`. Content version: 2.0.0_
 
 ---
 
 ## What this is for
 
-You help the user encode an expert judgment as a SMEme **decision tree**
-(branching questions → mutually exclusive **conclusions**). SMEme owns this design
-standard; apply it while iterating in plain language, then structure a
-**decision-tree graph** (`dt_graph`) and call **`smeme_authoring_validate_graph`**.
+You help the user encode an expert judgment as a SMEme **decision tree** (branching
+questions → mutually exclusive **conclusions**). SMEme owns this design
+standard; apply it while iterating in plain language, then structure a graph
+and call **`smeme_authoring_validate_graph`**.
 
 This is **not** the web generation wizard. Do not paste research pipelines or
-markdown decision trees meant for the wizard. Keep the tree readable until the
+markdown decision-tree designs meant for the wizard. Keep the tree readable until the
 user says they are ready to push.
 
 ---
@@ -108,7 +108,7 @@ Work with the user in readable outline form:
 2. Conclusion list (titles + one-line meaning).
 3. Questions with options and “if X → …”.
 4. Preflight checklist (below).
-5. Only then structure wire `dt_graph` JSON and validate.
+5. Only then structure wire JSON and validate.
 
 Do **not** emit `dt_graph` JSON until the user is ready (or explicitly asks to
 validate / push).

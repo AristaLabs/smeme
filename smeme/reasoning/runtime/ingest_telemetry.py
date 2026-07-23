@@ -4,7 +4,7 @@ Operators can aggregate on ``reasoning_metric`` + ``ingest_error_code`` in log p
 There is **no** ``reasoning_evaluation_runs`` row for these failures.
 
 **Logical metric name (document for dashboards):** ``smeme_reasoning_ingest_reject_total``
-(label dimensions: ``ingest_error_code``, optionally ``qnr_id``).
+(label dimensions: ``ingest_error_code``, optionally ``decision_tree_id``).
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ def log_reasoning_ingest_hard_reject(
     *,
     code: str,
     message: str,
-    qnr_id: UUID | str | None = None,
+    decision_tree_id: UUID | str | None = None,
     caller_user_id: UUID | str | None = None,
     transport: str = "unknown",
     **extra: Any,
@@ -34,8 +34,8 @@ def log_reasoning_ingest_hard_reject(
         "error_message": message,
         "transport": transport,
     }
-    if qnr_id is not None:
-        payload["qnr_id"] = str(qnr_id)
+    if decision_tree_id is not None:
+        payload["decision_tree_id"] = str(decision_tree_id)
     if caller_user_id is not None:
         payload["caller_user_id"] = str(caller_user_id)
     payload.update(extra)

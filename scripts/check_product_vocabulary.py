@@ -5,6 +5,7 @@ Flags user-visible uses of *workflow* (and optionally *questionnaire*) when they
 refer to the decision-tree product artifact. Allows LangGraph execution terms,
 stable wire identifiers, and lines listed in product_vocabulary_allowlist.txt.
 """
+
 from __future__ import annotations
 
 import re
@@ -42,7 +43,7 @@ WORKFLOW_PATTERN = re.compile(
     re.IGNORECASE,
 )
 QUESTIONNAIRE_PATTERN = re.compile(
-    r"\b(?:questionnaires?|qnr\s+questionnaire)\b",
+    r"\bquestionnaires?\b",
     re.IGNORECASE,
 )
 
@@ -53,15 +54,15 @@ LINE_ALLOW_PATTERNS = (
     re.compile(r"QuotaDimension\.WORKFLOWS|dimension=\"workflows\""),
     re.compile(r"get_compiled_workflow|LangGraph|langgraph|checkpointer"),
     re.compile(r"TypedDict.*workflow|workflow state|workflow_module"),
-    re.compile(r"/qnr/agentic/|wizard-start|in-progress wizard"),
+    re.compile(r"wizard-start|in-progress wizard"),
     re.compile(r"questionnaire_design_edited|questionnaire_design\b"),
-    re.compile(r"\bqnr_id\b|/qnr/|compile_qnr"),
     re.compile(r"download-workflow|/docs/download-workflow"),
     re.compile(r"macro workflow_launch|Workflow launch \(dashboard"),
-    re.compile(r"HTMX swap target \(QNR workflow"),
+    re.compile(r"HTMX swap target"),
     re.compile(r"foreign national property tax workflow"),  # example prompt in docs
     re.compile(r"published workflow appears", re.IGNORECASE),  # agent skill deploy note
     re.compile(r"smeme-workflow-author"),  # historical skill slug in changelogs / renames
+    re.compile(r"/billing/choose-workflow|choose_workflow\.html|choose_workflow_"),
 )
 
 
@@ -81,10 +82,7 @@ def _line_allowed(line: str, file_allowlist: set[str]) -> bool:
     stripped = line.strip()
     if stripped in file_allowlist:
         return True
-    for pat in LINE_ALLOW_PATTERNS:
-        if pat.search(line):
-            return True
-    return False
+    return any(pat.search(line) for pat in LINE_ALLOW_PATTERNS)
 
 
 def _scan_file(path: Path, *, check_questionnaire: bool) -> list[str]:

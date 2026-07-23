@@ -19,21 +19,21 @@ from smeme.auth.account_delete import (
 )
 from smeme.auth.clerk_auth import get_or_create_user_for_clerk
 from smeme.auth.manager import UserManager
-from smeme.core.models import QNR, Memo, QNRSession, User, UserAuditLog
+from smeme.core.models import DecisionTree, Memo, DecisionTreeSession, User, UserAuditLog
 from smeme.app_factory import create_core_app as create_app
-from smeme.qnr.models import InProgressQNRGeneration
+from smeme.decision_tree.models import InProgressDecisionTreeGeneration
 from tests.conftest import auth_as
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
-def _minimal_graph(title: str = "Test QNR") -> dict:
-    from smeme.qnr.models import (
+def _minimal_graph(title: str = "Test Decision Tree") -> dict:
+    from smeme.decision_tree.models import (
         ConclusionData,
         GraphEdge,
         GraphNode,
         DTGraph,
-        QNRMetadata,
+        DTGraphMetadata,
         QuestionData,
     )
 
@@ -47,7 +47,7 @@ def _minimal_graph(title: str = "Test QNR") -> dict:
             GraphNode(id="c1", type="conclusion", data=ConclusionData(title="A", summary="a")),
         ],
         edges=[GraphEdge(source="q1", target="c1", condition="Yes")],
-        metadata=QNRMetadata(title=title),
+        metadata=DTGraphMetadata(title=title),
     )
     return g.model_dump(mode="json")
 
@@ -72,7 +72,7 @@ async def account_user(test_session_factory):
         await session.commit()
         await session.refresh(user)
 
-        qnr = QNR(
+        decision_tree = DecisionTree(
             author_id=user.id,
             title=f"Workflow {uid}",
             graph_data=_minimal_graph(),
@@ -81,18 +81,18 @@ async def account_user(test_session_factory):
             version_number=1,
             is_archived=False,
         )
-        session.add(qnr)
+        session.add(decision_tree)
         await session.commit()
-        await session.refresh(qnr)
+        await session.refresh(decision_tree)
 
-        qnr_session = QNRSession(user_id=user.id, qnr_id=qnr.id)
-        session.add(qnr_session)
+        decision_tree_session = DecisionTreeSession(user_id=user.id, decision_tree_id=decision_tree.id)
+        session.add(decision_tree_session)
         await session.commit()
-        await session.refresh(qnr_session)
+        await session.refresh(decision_tree_session)
 
         session.add(
             Memo(
-                session_id=qnr_session.id,
+                session_id=decision_tree_session.id,
                 user_id=user.id,
                 title="Memo",
                 summary="s",
@@ -100,7 +100,7 @@ async def account_user(test_session_factory):
             )
         )
         session.add(
-            InProgressQNRGeneration(
+            InProgressDecisionTreeGeneration(
                 user_id=user.id,
                 langgraph_thread_id=str(uuid4()),
                 user_prompt_preview="test prompt",
@@ -192,15 +192,15 @@ class TestDeleteUserAccount:
             ).scalar_one_or_none() is None
             assert (
                 await session.scalar(
-                    select(func.count()).select_from(QNR).where(QNR.author_id == user_id)
+                    select(func.count()).select_from(DecisionTree).where(DecisionTree.author_id == user_id)
                 )
                 == 0
             )
             assert (
                 await session.scalar(
                     select(func.count())
-                    .select_from(QNRSession)
-                    .where(QNRSession.user_id == user_id)
+                    .select_from(DecisionTreeSession)
+                    .where(DecisionTreeSession.user_id == user_id)
                 )
             ) == 0
             audit = (
@@ -255,10 +255,10 @@ class TestDeleteUserAccount:
         assert new_user.email == email
 
         async with test_session_factory() as session:
-            qnr_count = await session.scalar(
-                select(func.count()).select_from(QNR).where(QNR.author_id == new_user.id)
+            decision_tree_count = await session.scalar(
+                select(func.count()).select_from(DecisionTree).where(DecisionTree.author_id == new_user.id)
             )
-        assert qnr_count == 0
+        assert decision_tree_count == 0
 
 
 class TestProfileDeleteRoutes:

@@ -1,0 +1,106 @@
+<div class="max-w-2xl mx-auto p-6">
+  <!-- Progress indicator - completed -->
+  <div class="mb-6">
+    <div class="text-sm text-ui-ink-muted mb-2">Assessment Complete</div>
+    <div class="w-full bg-ui-line rounded-full h-2">
+      <div class="bg-green-600 h-2 rounded-full" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <!-- Warning messages -->
+  {% if navigation_warning %}
+  <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+    <p class="text-yellow-800 text-sm">⚠️ {{ navigation_warning }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Conclusion card -->
+  <div class="bg-ui-surface rounded-lg shadow-md border 
+    {% if conclusion.severity == 'critical' %}
+    border-red-300
+    {% elif conclusion.severity == 'warning' %}
+    border-yellow-300
+    {% else %}
+    border-green-300
+    {% endif %}
+    p-8">
+    
+    <!-- Severity badge -->
+    {% if conclusion.severity == 'critical' %}
+    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 mb-4">
+      ⚠️ Critical
+    </div>
+    {% elif conclusion.severity == 'warning' %}
+    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 mb-4">
+      ⚡ Important
+    </div>
+    {% else %}
+    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-4">
+      ✅ Result
+    </div>
+    {% endif %}
+
+    <!-- Conclusion title -->
+    <h2 class="text-2xl font-bold 
+      {% if conclusion.severity == 'critical' %}
+      text-red-900
+      {% elif conclusion.severity == 'warning' %}
+      text-yellow-900
+      {% else %}
+      text-green-900
+      {% endif %}
+      mb-4">
+      {{ conclusion.title }}
+    </h2>
+    
+    <!-- Summary -->
+    <div class="prose prose-lg mb-6">
+      <p class="text-ui-ink-secondary">{{ conclusion.summary }}</p>
+    </div>
+    
+    <!-- Recommendations -->
+    {% if conclusion.recommendations and conclusion.recommendations|length > 0 %}
+    <div class="mt-6 pt-6 border-t border-ui-line">
+      <h3 class="text-lg font-semibold text-ui-ink mb-4">📋 Recommended Next Steps</h3>
+      <ul class="space-y-3">
+        {% for rec in conclusion.recommendations %}
+        <li class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full 
+            {% if conclusion.severity == 'critical' %}
+            bg-red-100 text-red-600
+            {% elif conclusion.severity == 'warning' %}
+            bg-yellow-100 text-yellow-600
+            {% else %}
+            bg-green-100 text-green-600
+            {% endif %}
+            text-sm font-medium">
+            {{ loop.index }}
+          </span>
+          <span class="text-ui-ink-secondary">{{ rec }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-3 pt-6 mt-6 border-t border-ui-line">
+      <!-- Previous button -->
+      {% if can_go_previous %}
+      <button
+        type="button"
+        hx-post="/decision-trees/navigate"
+        hx-vals='{"session_id": "{{ session_id }}", "direction": "previous"}'
+        hx-target="#main-content"
+        hx-swap="innerHTML"
+        class="bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium py-2.5 px-4 rounded-lg transition">
+        ← Previous
+      </button>
+      {% endif %}
+
+      <a href="/decision-trees/dashboard" class="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 hover:underline">
+      ← Return to Dashboard
+    </a>
+  </div>
+</div>
+

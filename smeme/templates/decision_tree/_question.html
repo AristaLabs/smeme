@@ -1,0 +1,103 @@
+<div class="max-w-2xl mx-auto p-6">
+  <!-- Progress indicator placeholder -->
+  <div class="mb-6">
+    <div class="text-sm text-ui-ink-muted mb-2">Question in progress...</div>
+    <div class="w-full bg-ui-line rounded-full h-2">
+      <div class="bg-brand-600 h-2 rounded-full" style="width: 30%"></div>
+    </div>
+  </div>
+
+  <!-- Warning messages -->
+  {% if navigation_warning %}
+  <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+    <p class="text-yellow-800 text-sm">⚠️ {{ navigation_warning }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Question card -->
+  <div class="bg-ui-surface rounded-lg shadow-md border border-ui-line p-8">
+    <h2 class="text-2xl font-semibold text-ui-ink mb-2">{{ q.text }}</h2>
+    
+    {% if q.help_text %}
+    <p class="text-sm text-ui-ink-muted mb-6">{{ q.help_text }}</p>
+    {% endif %}
+    
+    {% if q.required %}
+    <p class="text-xs text-red-600 mb-4">* Required</p>
+    {% endif %}
+
+    <!-- Answer form -->
+    <form hx-post="/decision-trees/submit_answer" hx-target="#main-content" hx-swap="innerHTML" class="space-y-6">
+      <input type="hidden" name="session_id" value="{{ session_id }}">
+      <input type="hidden" name="question_node_id" value="{{ question_node_id }}">
+      
+      <!-- Hidden finish field for last question -->
+      {% if is_last_question %}
+      <input type="hidden" name="finish" value="true">
+      {% endif %}
+
+      <div class="space-y-3">
+        {% for option in q.options %}
+        <label class="flex items-center space-x-3 p-3 border border-ui-line rounded-lg hover:bg-ui-surface-muted cursor-pointer transition">
+          <input
+            type="radio"
+            name="answer_text"
+            value="{{ option }}"
+            {% if previous_answer == option %}checked{% endif %}
+            {% if q.required %}required{% endif %}
+            class="w-4 h-4 text-brand-600 focus:ring-brand-500"
+          />
+          <span class="text-ui-ink">{{ option }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Navigation buttons -->
+      <div class="flex items-center gap-3 pt-4">
+        <!-- Previous button -->
+        {% if can_go_previous %}
+        <button
+          type="button"
+          hx-post="/decision-trees/navigate"
+          hx-vals='{"session_id": "{{ session_id }}", "direction": "previous"}'
+          hx-target="#main-content"
+          hx-swap="innerHTML"
+          class="bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium py-2.5 px-4 rounded-lg transition">
+          ← Previous
+        </button>
+        {% endif %}
+
+        <!-- Submit button (changes text on last question) -->
+        <button
+          type="submit"
+          class="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 px-6 rounded-lg flex-grow transition shadow-sm">
+          {% if is_last_question %}
+          Finish Assessment →
+          {% else %}
+          Submit & Next →
+          {% endif %}
+        </button>
+
+        <!-- Skip button (only if allowed) -->
+        {% if can_skip %}
+        <button
+          type="button"
+          hx-post="/decision-trees/navigate"
+          hx-vals='{"session_id": "{{ session_id }}", "direction": "skip"}'
+          hx-target="#main-content"
+          hx-swap="innerHTML"
+          class="bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium py-2.5 px-4 rounded-lg transition">
+          Skip
+        </button>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Return to dashboard link -->
+    <div class="mt-6 pt-6 border-t border-ui-line">
+      <a href="/decision-trees/dashboard" class="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 hover:underline">
+        ← Return to Dashboard
+      </a>
+    </div>
+  </div>
+</div>

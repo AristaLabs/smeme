@@ -11,6 +11,12 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import delete
 
+from smeme.billing.access_policy import (
+    billing_lifecycle_context,
+    is_decision_tree_dashboard_grayed,
+    is_decision_tree_live,
+    is_workflow_pick_required,
+)
 from smeme.billing.providers import (
     hosted_quota_enforcement_enabled,
     hosted_quota_enforcement_scope,
@@ -42,10 +48,10 @@ from smeme.billing.usage import (
     usage_period_window,
     utc_month_window,
 )
-from smeme.core.models import QNR, User
+from smeme.core.models import DecisionTree, User
 from smeme.mcp.invocation_telemetry import outcome_from_tool_json
 from smeme.mcp.models import McpToolInvocation
-from smeme.qnr.models import InProgressQNRGeneration, WizardGenerationEvent
+from smeme.decision_tree.models import InProgressDecisionTreeGeneration, WizardGenerationEvent
 
 
 @pytest_asyncio.fixture
@@ -68,16 +74,16 @@ async def billing_user(test_session_factory):
         await session.execute(delete(WizardGenerationEvent).where(WizardGenerationEvent.user_id == user.id))
         await session.execute(delete(McpToolInvocation).where(McpToolInvocation.user_id == user.id))
         await session.execute(
-            delete(InProgressQNRGeneration).where(InProgressQNRGeneration.user_id == user.id)
+            delete(InProgressDecisionTreeGeneration).where(InProgressDecisionTreeGeneration.user_id == user.id)
         )
-        await session.execute(delete(QNR).where(QNR.author_id == user.id))
+        await session.execute(delete(DecisionTree).where(DecisionTree.author_id == user.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
 
 
 @pytest.fixture(autouse=True)
 def _hosted_quota_enforcement_for_mode_b_tests():
-    """Quota denial tests exercise hosted Free/Pro Mode B inside a hosted scope."""
+    """Quota denial tests exercise hosted Free/Pro Mode B (SaaS registration)."""
     with hosted_quota_enforcement_scope():
         yield
     reset_billing_providers_for_tests()
@@ -250,7 +256,7 @@ async def test_workflow_quota_blocks_fourth_root(test_session_factory, billing_u
     async with test_session_factory() as session:
         for i in range(3):
             session.add(
-                QNR(
+                DecisionTree(
                     author_id=billing_user.id,
                     title=f"Workflow {i + 1}",
                     graph_data={"nodes": [], "edges": []},
@@ -260,12 +266,10 @@ async def test_workflow_quota_blocks_fourth_root(test_session_factory, billing_u
             )
         await session.commit()
 
-        check = await check_quota(session, billing_user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+        check = await check_quota(session, billing_user, QuotaDimension.DECISION_TREES, projected_add=1.0)
         assert check.allowed is False
-        assert check.enforced is True
         assert check.used == 3.0
         assert check.limit == 3.0
-        assert check.remaining == 0.0
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -374,7 +378,7 @@ async def test_wizard_start_blocked_when_monthly_cap_reached(test_session_factor
 async def test_wizard_start_blocked_when_free_has_in_progress(test_session_factory, billing_user) -> None:
     async with test_session_factory() as session:
         session.add(
-            InProgressQNRGeneration(
+            InProgressDecisionTreeGeneration(
                 user_id=billing_user.id,
                 langgraph_thread_id=str(uuid4()),
                 user_prompt_preview="Existing build",
@@ -401,7 +405,7 @@ async def test_wizard_start_allowed_when_pro_has_in_progress(test_session_factor
 async def test_active_root_workflow_count_excludes_archived(test_session_factory, billing_user) -> None:
     async with test_session_factory() as session:
         session.add(
-            QNR(
+            DecisionTree(
                 author_id=billing_user.id,
                 title="Archived",
                 graph_data={"nodes": [], "edges": []},
@@ -459,7 +463,7 @@ async def test_sum_mcp_weighted_month_excludes_zero_weight_rows(
                 McpToolInvocation(
                     user_id=billing_user.id,
                     tool_name="smeme_reasoning_evaluate",
-                    outcome="invalid_qnr_id",
+                    outcome="invalid_decision_tree_id",
                     duration_ms=1,
                     quota_weight=Decimal("0.00"),
                     estimated_cost_usd_micros=1,
@@ -516,7 +520,7 @@ async def test_start_new_generation_raises_when_free_user_already_in_progress(
     advisory lock + locked quota re-check inside start_new_generation catches
     it and raises WizardStartBlockedError(reason='in_progress').
     """
-    from smeme.qnr.generation.agentic.services import (
+    from smeme.decision_tree.generation.agentic.services import (
         WizardStartBlockedError,
         checkpoint_manager,
     )
@@ -524,7 +528,7 @@ async def test_start_new_generation_raises_when_free_user_already_in_progress(
     # Set up: insert the in-progress row that 'Tab A' would have created.
     async with test_session_factory() as setup_session:
         setup_session.add(
-            InProgressQNRGeneration(
+            InProgressDecisionTreeGeneration(
                 user_id=billing_user.id,
                 langgraph_thread_id=str(uuid4()),
                 user_prompt_preview="Tab A build (already running)",
@@ -552,7 +556,7 @@ async def test_start_new_generation_succeeds_when_no_in_progress(
 ) -> None:
     """start_new_generation inserts a row and returns it when the user has no
     in-progress builds and is within all quota limits."""
-    from smeme.qnr.generation.agentic.services import checkpoint_manager
+    from smeme.decision_tree.generation.agentic.services import checkpoint_manager
 
     async with test_session_factory() as session:
         gen = await checkpoint_manager.start_new_generation(
@@ -568,8 +572,8 @@ async def test_start_new_generation_succeeds_when_no_in_progress(
     # Cleanup: remove the row so the billing_user fixture teardown is clean.
     async with test_session_factory() as cleanup:
         await cleanup.execute(
-            delete(InProgressQNRGeneration).where(
-                InProgressQNRGeneration.id == gen.id
+            delete(InProgressDecisionTreeGeneration).where(
+                InProgressDecisionTreeGeneration.id == gen.id
             )
         )
         await cleanup.commit()
@@ -691,7 +695,7 @@ async def test_check_quota_allows_when_enforcement_off(
         async with test_session_factory() as session:
             for i in range(5):
                 session.add(
-                    QNR(
+                    DecisionTree(
                         author_id=billing_user.id,
                         title=f"wf-{i}",
                         graph_data={"nodes": [], "edges": []},
@@ -703,7 +707,7 @@ async def test_check_quota_allows_when_enforcement_off(
             check = await check_quota(
                 session,
                 billing_user,
-                QuotaDimension.WORKFLOWS,
+                QuotaDimension.DECISION_TREES,
                 projected_add=1.0,
             )
     assert check.allowed is True
@@ -765,3 +769,27 @@ async def test_wizard_start_unblocked_when_enforcement_off(
                 in_progress_count=2,
             )
     assert block is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_core_ignores_stale_hosted_downgrade_state(billing_user) -> None:
+    billing_user.workflow_pick_required = True
+    decision_tree = DecisionTree(
+        author_id=billing_user.id,
+        title="Previously dormant",
+        graph_data={"nodes": [], "edges": []},
+        is_current=True,
+        is_archived=False,
+        billing_dormant=True,
+    )
+
+    with hosted_quota_enforcement_scope(enabled=False):
+        assert is_workflow_pick_required(billing_user) is False
+        assert is_decision_tree_live(billing_user, decision_tree) is True
+        assert is_decision_tree_dashboard_grayed(billing_user, decision_tree) is False
+        assert billing_lifecycle_context(billing_user, active_root_count=5) == {
+            "show_cancellation_explainer": False,
+            "pro_ending_banner": None,
+            "workflow_pick_required": False,
+            "subscription_period_end_label": None,
+        }

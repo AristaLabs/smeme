@@ -100,7 +100,7 @@ class PublishedEvidenceProvenanceV1(BaseModel):
     )
     legal: bool = Field(
         default=False,
-        description="QNR cevi_legal flag at publish (ontology validation intent when induction supports it).",
+        description="DecisionTree cevi_legal flag at publish (ontology validation intent when induction supports it).",
     )
 
 

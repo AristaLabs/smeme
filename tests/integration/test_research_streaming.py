@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from smeme.qnr.generation.agentic.streaming import (
+from smeme.decision_tree.generation.agentic.streaming import (
     mark_complete,
     put_event,
     reset_streaming_state,
@@ -81,24 +81,24 @@ async def test_post_generate_returns_loading_shell(app):
                     return_value=None,
                 ),
                 patch(
-                    "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
+                    "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
                     new_callable=AsyncMock,
                     return_value=[],
                 ),
                 patch(
-                    "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
+                    "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
                     new_callable=AsyncMock,
                     return_value=in_progress,
                 ),
                 patch(
-                    "smeme.qnr.generation.agentic.routes.phase1_research.schedule_generation_workflow",
+                    "smeme.decision_tree.generation.agentic.routes.phase1_research.schedule_generation_workflow",
                     side_effect=fake_schedule,
                 ),
             ):
                 response = await client.post(
-                    "/qnr/agentic/generate",
+                    "/decision-trees/agentic/generate",
                     data={
-                        "title": "Test Stream QNR",
+                        "title": "Test Stream Decision Tree",
                         "user_prompt": "A" * 25 + " product liability matter in Georgia.",
                         "confirm_goal_only": "on",
                     },
@@ -131,17 +131,17 @@ async def test_post_generate_without_sources_prompts_for_confirm(app):
                 return_value=None,
             ),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
                 new_callable=AsyncMock,
                 return_value=[],
             ),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
                 start_mock,
             ),
         ):
             response = await client.post(
-                "/qnr/agentic/generate",
+                "/decision-trees/agentic/generate",
                 data={
                     "title": "Goal only workflow",
                     "user_prompt": "B" * 25 + " narrow scope test matter.",
@@ -173,12 +173,12 @@ async def test_sse_event_sequence(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
                 return_value=generation,
             ),
         ):
-            response = await client.get(f"/qnr/agentic/generate/{thread_id}/stream")
+            response = await client.get(f"/decision-trees/agentic/generate/{thread_id}/stream")
 
     assert response.status_code == 200
     events = _parse_sse_payloads(response.text)
@@ -202,12 +202,12 @@ async def test_sse_forbidden_non_owner(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
                 return_value=generation,
             ),
         ):
-            response = await client.get(f"/qnr/agentic/generate/{thread_id}/stream")
+            response = await client.get(f"/decision-trees/agentic/generate/{thread_id}/stream")
 
     assert response.status_code == 403
 
@@ -237,21 +237,21 @@ async def test_retry_research_returns_loading_shell(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
                 return_value=generation,
             ),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.get_compiled_workflow",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.get_compiled_workflow",
                 new_callable=AsyncMock,
                 return_value=mock_workflow,
             ),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.schedule_retry_research_workflow",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.schedule_retry_research_workflow",
             ) as mock_schedule,
         ):
             response = await client.post(
-                "/qnr/agentic/retry-research",
+                "/decision-trees/agentic/retry-research",
                 data={"thread_id": thread_id},
                 headers={"HX-Request": "true"},
             )
@@ -264,7 +264,7 @@ async def test_retry_research_returns_loading_shell(app):
 
 async def test_brief_enter_only_from_get_brief(app):
     """Brief phase enter is recorded on GET /brief only, not on POST /generate."""
-    from smeme.qnr.generation.agentic.routes import phase1_research
+    from smeme.decision_tree.generation.agentic.routes import phase1_research
 
     user = _mock_user()
     enter_calls: list[dict] = []
@@ -299,10 +299,10 @@ async def test_brief_enter_only_from_get_brief(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.schedule_generation_workflow",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.schedule_generation_workflow",
             ),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research.track_phase_enter",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research.track_phase_enter",
                 side_effect=capture_enter,
             ),
         ):
@@ -316,12 +316,12 @@ async def test_brief_enter_only_from_get_brief(app):
                     return_value=None,
                 ),
                 patch(
-                    "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
+                    "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.list_user_generations",
                     new_callable=AsyncMock,
                     return_value=[],
                 ),
                 patch(
-                    "smeme.qnr.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
+                    "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.start_new_generation",
                     new_callable=AsyncMock,
                     return_value=in_progress,
                 ),
@@ -343,7 +343,7 @@ async def test_brief_enter_only_from_get_brief(app):
                 app.dependency_overrides[get_db] = override_db
                 try:
                     await client.post(
-                        "/qnr/agentic/generate",
+                        "/decision-trees/agentic/generate",
                         data={
                             "title": "Telemetry test",
                             "user_prompt": "B" * 25 + " goal for telemetry.",
@@ -370,13 +370,13 @@ async def test_wizard_start_blocked_modal_returns_trigger_when_unblocked(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research._wizard_start_context",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research._wizard_start_context",
                 new_callable=AsyncMock,
                 return_value=(None, 0),
             ),
         ):
             response = await client.get(
-                "/qnr/agentic/wizard-start-blocked-modal",
+                "/decision-trees/agentic/wizard-start-blocked-modal",
                 headers={"HX-Request": "true"},
             )
 
@@ -394,13 +394,13 @@ async def test_brief_partial_reflects_current_block_state(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.qnr.generation.agentic.routes.phase1_research._wizard_start_context",
+                "smeme.decision_tree.generation.agentic.routes.phase1_research._wizard_start_context",
                 new_callable=AsyncMock,
                 return_value=(None, 0),
             ),
         ):
             response = await client.get(
-                "/qnr/agentic/brief-partial",
+                "/decision-trees/agentic/brief-partial",
                 headers={"HX-Request": "true"},
             )
 

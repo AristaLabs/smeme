@@ -13,10 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from smeme.billing.providers import cancel_subscription_if_needed
 from smeme.core.config import settings
 from smeme.core.logging import get_logger
-from smeme.core.models import QNR, Memo, QNRSession, User, UserAuditLog
-from smeme.qnr.generation.agentic.checkpointer import checkpointer_manager
-from smeme.qnr.helpers.workflow_delete import delete_workflow_family
-from smeme.qnr.models import InProgressQNRGeneration
+from smeme.core.models import DecisionTree, DecisionTreeSession, Memo, User, UserAuditLog
+from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+from smeme.decision_tree.helpers.workflow_delete import delete_workflow_family
+from smeme.decision_tree.models import InProgressDecisionTreeGeneration
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,9 @@ async def _purge_checkpoints_for_user(db: AsyncSession, user_id: UUID) -> None:
     rows = (
         (
             await db.execute(
-                select(InProgressQNRGeneration).where(InProgressQNRGeneration.user_id == user_id)
+                select(InProgressDecisionTreeGeneration).where(
+                    InProgressDecisionTreeGeneration.user_id == user_id
+                )
             )
         )
         .scalars()
@@ -89,13 +91,22 @@ async def _purge_checkpoints_for_user(db: AsyncSession, user_id: UUID) -> None:
             )
     if rows:
         await db.execute(
-            delete(InProgressQNRGeneration).where(InProgressQNRGeneration.user_id == user_id)
+            delete(InProgressDecisionTreeGeneration).where(
+                InProgressDecisionTreeGeneration.user_id == user_id
+            )
         )
 
 
 async def _purge_workflows(db: AsyncSession, user_id: UUID) -> None:
     roots = (
-        (await db.execute(select(QNR).where(QNR.author_id == user_id, QNR.parent_qnr_id.is_(None))))
+        (
+            await db.execute(
+                select(DecisionTree).where(
+                    DecisionTree.author_id == user_id,
+                    DecisionTree.parent_decision_tree_id.is_(None),
+                )
+            )
+        )
         .scalars()
         .all()
     )
@@ -105,14 +116,18 @@ async def _purge_workflows(db: AsyncSession, user_id: UUID) -> None:
 
 async def _purge_orphan_sessions(db: AsyncSession, user_id: UUID) -> None:
     session_ids = (
-        (await db.execute(select(QNRSession.id).where(QNRSession.user_id == user_id)))
+        (
+            await db.execute(
+                select(DecisionTreeSession.id).where(DecisionTreeSession.user_id == user_id)
+            )
+        )
         .scalars()
         .all()
     )
     if not session_ids:
         return
     await db.execute(delete(Memo).where(Memo.session_id.in_(session_ids)))
-    await db.execute(delete(QNRSession).where(QNRSession.user_id == user_id))
+    await db.execute(delete(DecisionTreeSession).where(DecisionTreeSession.user_id == user_id))
 
 
 async def _redact_audit_log(db: AsyncSession, user_id: UUID) -> None:

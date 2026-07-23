@@ -31,7 +31,7 @@ from .usage import (
 
 
 class QuotaDimension(str, Enum):
-    WORKFLOWS = "workflows"
+    DECISION_TREES = "decision_trees"
     MCP_WEIGHTED = "mcp_weighted"
     WIZARD_COMPLETIONS = "wizard_completions"
 
@@ -61,16 +61,16 @@ def _exceeded_message(
     limit: float,
 ) -> str:
     plan = _tier_plan_label(tier)
-    if dimension == QuotaDimension.WORKFLOWS:
+    if dimension == QuotaDimension.DECISION_TREES:
         n = int(limit)
         return (
-            f"{plan} allows {n} active workflow{'s' if n != 1 else ''}. "
-            "Permanently delete a workflow, or upgrade to Pro for higher limits."
+            f"{plan} allows {n} active decision tree{'s' if n != 1 else ''}. "
+            "Permanently delete a decision tree, or upgrade to Pro for higher limits."
         )
     if dimension == QuotaDimension.WIZARD_COMPLETIONS:
         n = int(limit)
         return (
-            f"{plan} allows {n} AI-assisted workflow build{'s' if n != 1 else ''} per month. "
+            f"{plan} allows {n} AI-assisted decision-tree build{'s' if n != 1 else ''} per month. "
             "Upgrade to Pro for more builds, or wait until your allowance resets."
         )
     return (
@@ -103,7 +103,7 @@ async def check_quota(
         await ensure_pro_billing_period(db, user)
     limits = limits_for_user(user) if enforced else None
 
-    if dimension == QuotaDimension.WORKFLOWS:
+    if dimension == QuotaDimension.DECISION_TREES:
         if enforced and tier == BillingTier.FREE:
             used = float(await count_live_root_workflows_for_user(db, user))
         else:
@@ -181,10 +181,10 @@ async def check_wizard_start_block(
     if is_workflow_pick_required(user):
         return WizardStartBlock(
             reason="pick_required",
-            title="Choose a live workflow first",
+            title="Choose a live decision tree first",
             message=(
-                "Your Pro subscription ended with multiple workflows. "
-                "Choose which workflow to keep live before starting a new AI-assisted build."
+                "Your Pro subscription ended with multiple decision trees. "
+                "Choose which decision tree to keep live before starting a new AI-assisted build."
             ),
             dashboard_href="/billing/choose-workflow",
             show_upgrade=show_upgrade,
@@ -198,20 +198,20 @@ async def check_wizard_start_block(
             reason="in_progress",
             title="Finish your current build first",
             message=(
-                "Your Free plan includes one workflow at a time. "
+                "Your Free plan includes one decision tree at a time. "
                 "Resume or abandon the in-progress build on your dashboard before starting another."
             ),
-            dashboard_href="/qnr/dashboard#in-progress",
+            dashboard_href="/decision-trees/dashboard#in-progress",
             show_upgrade=show_upgrade,
         )
 
-    workflow_quota = await check_quota(db, user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+    workflow_quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
     if not workflow_quota.allowed:
         return WizardStartBlock(
             reason="workflow_cap",
-            title="Workflow limit reached",
+            title="Decision tree limit reached",
             message=workflow_quota.message,
-            dashboard_href="/qnr/dashboard",
+            dashboard_href="/decision-trees/dashboard",
             show_upgrade=show_upgrade,
         )
 
@@ -223,7 +223,7 @@ async def check_wizard_start_block(
             reason="wizard_monthly",
             title="Monthly AI build limit reached",
             message=f"{wizard_quota.message} {resets_at_label(user=user)}.",
-            dashboard_href="/qnr/dashboard",
+            dashboard_href="/decision-trees/dashboard",
             show_upgrade=show_upgrade,
         )
 

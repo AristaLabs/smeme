@@ -1,3 +1,3 @@
-"""SMEme Platform v2.0 - Clean Architecture."""
+"""SMEme Platform — Core appliance."""
 
-__version__ = "2.0.0"
+__version__ = "0.9.0"

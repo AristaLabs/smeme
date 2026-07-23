@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from smeme.qnr.generation.agentic import telemetry
+from smeme.decision_tree.generation.agentic import telemetry
 
 
 class TestRecordWizardEvent:

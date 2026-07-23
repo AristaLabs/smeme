@@ -11,7 +11,7 @@ Here’s a **tight, execution-oriented sprint plan** you can paste into your AI 
 > Build a minimal, end-to-end pipeline:
 
 ```text
-QNR → IR → Validator → Z3 Theory → Runtime Result
+DecisionTree → IR → Validator → Z3 Theory → Runtime Result
 ```
 
 No minimization, no CEVI, no projection. Just the **core compiler spine**.
@@ -22,11 +22,11 @@ No minimization, no CEVI, no projection. Just the **core compiler spine**.
 
 By end of sprint, you must have:
 
-* ✅ Deterministic IR generation from QNR
+* ✅ Deterministic IR generation from decision tree
 * ✅ Basic IR validator (shape correctness)
 * ✅ IR → Z3 compiler
 * ✅ Runtime execution producing a decision
-* ✅ 1–2 hardcoded QNR examples
+* ✅ 1–2 hardcoded DecisionTree examples
 
 ---
 
@@ -46,7 +46,7 @@ dtq_v1/
   ├── runtime/
   │   └── run.py
   ├── examples/
-  │   └── qnr_example.py
+  │   └── decision_tree_example.py
   └── main.py
 ```
 
@@ -85,20 +85,20 @@ IR(nodes, edges, guards)
 
 ---
 
-## 🔹 Day 3: QNR → IR Compiler
+## 🔹 Day 3: DecisionTree → IR Compiler
 
 ### Tasks
 
 * Implement:
 
 ```python
-compile_qnr_to_ir(qnr_dict) -> IR
+compile_dt_graph_to_ir(dt_graph_dict) -> IR
 ```
 
 * Map:
 
-  * QNR nodes → IR nodes
-  * QNR edges → IR edges
+  * DecisionTree nodes → IR nodes
+  * DecisionTree edges → IR edges
   * edge conditions → guards
 
 ### Constraints
@@ -108,7 +108,7 @@ compile_qnr_to_ir(qnr_dict) -> IR
 
 ### Done When
 
-* A simple JSON QNR converts to IR deterministically
+* A simple JSON DecisionTree converts to IR deterministically
 
 ---
 
@@ -320,8 +320,8 @@ Ensure:
 
 # 🧪 Testing Checklist
 
-* [ ] valid QNR runs end-to-end
-* [ ] invalid QNR is blocked
+* [ ] valid DecisionTree runs end-to-end
+* [ ] invalid DecisionTree is blocked
 * [ ] branching works
 * [ ] guards affect outcomes
 * [ ] trace is readable

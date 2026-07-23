@@ -1,7 +1,7 @@
 """Production symbolic reasoning pipeline (IR-first). See DECISIONS.md D017.
 
-Heavyweight bridges (e.g. QNR → IR) live in submodules like ``smeme.reasoning.qnr_bridge`` so
-``import smeme.reasoning`` stays free of ``smeme.qnr`` dependencies.
+Heavyweight bridges (e.g. DecisionTree → IR) live in submodules like ``smeme.reasoning.dt_graph_bridge`` so
+``import smeme.reasoning`` stays free of ``smeme.decision_tree`` dependencies.
 """
 
 from smeme.reasoning.ir import (

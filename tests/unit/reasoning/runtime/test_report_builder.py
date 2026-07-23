@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from smeme.qnr.models import ConclusionData, GraphNode, DTGraph, QNRMetadata, QuestionData
+from smeme.decision_tree.models import ConclusionData, GraphNode, DTGraph, DTGraphMetadata, QuestionData
 from smeme.reasoning.runtime.evaluate import EvaluationResult
 from smeme.reasoning.runtime.ingest_envelope import ParsedIngestEnvelope
 from smeme.reasoning.runtime.report_builder import build_evaluation_report
@@ -10,7 +10,7 @@ from smeme.reasoning.runtime.report_builder import build_evaluation_report
 
 def _graph() -> DTGraph:
     return DTGraph(
-        metadata=QNRMetadata(title="Test QNR", description=""),
+        metadata=DTGraphMetadata(title="Test Decision Tree", description=""),
         nodes=[
             GraphNode(
                 id="q1",
@@ -38,7 +38,7 @@ def _graph() -> DTGraph:
 
 def _branching_graph() -> DTGraph:
     return DTGraph(
-        metadata=QNRMetadata(title="Branching QNR", description=""),
+        metadata=DTGraphMetadata(title="Branching decision tree", description=""),
         nodes=[
             GraphNode(
                 id="q1",

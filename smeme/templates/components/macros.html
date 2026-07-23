@@ -63,12 +63,12 @@ Verify decision tree structure and make it available to MCP-connected agents
 {%- endmacro -%}
 
 
-{#- ── Workflow launch (dashboard CTAs) ───────────────────────────────── -#}
+{#- ── Decision tree launch (dashboard CTAs) ───────────────────────────────── -#}
 {#- Rich gradient card-link for agentic generation entry.
     layout: compact | nav (top bar, compact width) | featured
     show_label: when layout is featured, set false for icon-only (use aria-label; blurb lives above).
 -#}
-{% macro workflow_launch_link(href="/qnr/agentic/wizard-start", layout="compact", extra_class="", show_label=true) %}
+{% macro workflow_launch_link(href="/decision-trees/agentic/wizard-start", layout="compact", extra_class="", show_label=true) %}
 {%- set nav_bar = false -%}
 {%- set featured_visual_only = layout == "featured" and not show_label -%}
 {%- if featured_visual_only -%}
@@ -153,35 +153,11 @@ Verify decision tree structure and make it available to MCP-connected agents
 
 
 {#- ── Wizard create CTA (dashboard empty state) ──────────────────────── -#}
-{% macro wizard_create_cta(
-  text="Create new decision tree",
-  variant="gradient",
-  size="lg",
-  full_width=false,
-  wizard_start_block=none,
-  ai_generation_enabled=true,
-  mcp_authoring_enabled=false
-) %}
-{% if not ai_generation_enabled %}
-  <div class="rounded-lg border border-ui-line bg-ui-surface px-4 py-3 text-left {% if full_width %}w-full{% endif %}">
-    <p class="text-sm font-medium text-ui-ink">Web wizard is disabled on this server</p>
-    <p class="text-sm text-ui-ink-secondary mt-1">
-      Set <code class="text-xs">SMEME_AI_GENERATION_ENABLED=true</code> (and OpenAI) to enable the
-      research wizard, or author a decision tree via MCP chat
-      {% if mcp_authoring_enabled %}
-      (<a href="/docs/mcp" class="underline hover:text-ui-ink">Connect your agent</a>).
-      {% else %}
-      after enabling MCP authoring tools.
-      {% endif %}
-      See the
-      <a href="https://github.com/AristaLabs/smeme/blob/main/docs/guides/authoring-decision-trees.md"
-         class="underline hover:text-ui-ink">authoring guide</a>.
-    </p>
-  </div>
-{% elif wizard_start_block %}
-{{ btn(text, variant=variant, size=size, full_width=full_width, attrs='hx-get="/qnr/agentic/wizard-start-blocked-modal" hx-target="#modal-container" hx-swap="innerHTML"') }}
+{% macro wizard_create_cta(text="Create New Decision Tree", variant="gradient", size="lg", full_width=false, wizard_start_block=none) %}
+{% if wizard_start_block %}
+{{ btn(text, variant=variant, size=size, full_width=full_width, attrs='hx-get="/decision-trees/agentic/wizard-start-blocked-modal" hx-target="#modal-container" hx-swap="innerHTML"') }}
 {% else %}
-{{ btn(text, variant=variant, size=size, full_width=full_width, href="/qnr/agentic/wizard-start") }}
+{{ btn(text, variant=variant, size=size, full_width=full_width, href="/decision-trees/agentic/wizard-start") }}
 {% endif %}
 {% endmacro %}
 

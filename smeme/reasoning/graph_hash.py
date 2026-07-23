@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 
 
 def canonical_graph_hash(graph: DTGraph) -> str:

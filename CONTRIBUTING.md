@@ -57,7 +57,7 @@ Optional knobs (OpenAI, Tavily, MCP authoring, Clerk) are listed in `.env.core.e
 ## Code style
 
 - Match existing patterns; prefer small, focused diffs.
-- Product vocabulary: wire IDs may retain `qnr`; UI/docs use decision-tree / Deploy / Listed.
+- Product vocabulary: wire IDs use `decision_tree`; UI/docs use decision-tree / Deploy / Listed.
 - Do not expand public scope with hosted-only surfaces.
 
 ## License

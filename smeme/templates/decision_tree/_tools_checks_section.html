@@ -1,0 +1,25 @@
+{# Strict checks card body — swapped into #tools-checks-root #}
+<div class="rounded-xl border border-ui-line bg-ui-surface text-sm shadow-sm overflow-hidden">
+  <div class="border-b border-ui-surface-hover bg-ui-surface-muted/90 px-4 py-3 flex flex-wrap items-start justify-between gap-2">
+    <div>
+      <h3 class="text-sm font-semibold text-ui-ink">Verify</h3>
+      <p class="text-xs text-ui-ink-muted mt-0.5">Structure and logic consistency checks required before deploying.</p>
+      {% if checked_at %}
+      <p class="text-[11px] text-ui-ink-subtle mt-1 tabular-nums">
+        Last run {{ checked_at.strftime('%H:%M:%S') }} UTC
+      </p>
+      {% endif %}
+    </div>
+    <button type="button"
+            class="shrink-0 text-xs font-medium text-brand-700 hover:text-brand-900 dark:text-brand-300 dark:hover:text-brand-200 underline"
+            hx-get="/decision-trees/editor/{{ decision_tree_id }}/tools-checks"
+            hx-target="#tools-checks-root"
+            hx-swap="innerHTML"
+            hx-indicator="#tools-checks-indicator">
+      Run checks
+    </button>
+  </div>
+  <div class="px-4 py-3 space-y-4">
+    {% include 'decision_tree/_publish_readiness_results.html' %}
+  </div>
+</div>

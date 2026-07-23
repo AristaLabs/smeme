@@ -19,7 +19,7 @@ cp .env.core.example .env.core
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-- App: http://localhost:8000 (redirects to `/qnr/dashboard`)
+- App: http://localhost:8000 (redirects to `/decision-trees/dashboard`)
 - Health: http://localhost:8000/api/v1/health
 
 Default Core image settings:
@@ -27,7 +27,7 @@ Default Core image settings:
 - `SMEME_AI_GENERATION_ENABLED=false` — no `OPENAI_API_KEY` / `TAVILY_API_KEY` required to boot
 - `MCP_ENABLED=false` — set `true` and configure Clerk/OAuth when you want remote MCP
 
-**Network exposure:** do not publish port 8000 beyond localhost until Clerk (or a future OIDC profile) is configured and secrets are non-default. Product routes require auth (`/qnr/dashboard` → 401 without a session); `/api/docs` and `/api/v1/health` remain reachable. Compose ships placeholder secrets only as a local convenience — replace them for any shared host.
+**Network exposure:** do not publish port 8000 beyond localhost until Clerk (or a future OIDC profile) is configured and secrets are non-default. Product routes require auth (`/decision-trees/dashboard` → 401 without a session); `/api/docs` and `/api/v1/health` remain reachable. Compose ships placeholder secrets only as a local convenience — replace them for any shared host.
 
 Full operator knob list: [`.env.core.example`](../../.env.core.example).
 
@@ -68,7 +68,7 @@ MCP evaluate on your instance.
 | **AI generation** | `SMEME_AI_GENERATION_ENABLED` | Mounts wizard + checkpointer; requires `OPENAI_API_KEY` when `true` |
 | | `OPENAI_API_KEY` | Required only when generation is on |
 | | `TAVILY_API_KEY` | Optional web research for agentic generation; ignored if generation is off |
-| | `SHOW_QNR_GENERATION_REGION_SELECTOR` | Tavily country control on the brief form (default on) |
+| | `SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR` | Tavily country control on the brief form (default on) |
 | **Auth** | `CLERK_*` | Sign-in/up/out, publishable/secret keys, webhook secret, optional `CLERK_OAUTH_ISSUER` |
 | | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | Usually `false` for self-host with a static OAuth client |
 | **MCP** | `MCP_ENABLED` | Streamable HTTP MCP + discovery |
@@ -93,7 +93,7 @@ Full authoring comparison (wizard vs MCP chat, DTGraph shape, egress): [Authorin
 SMEME_AI_GENERATION_ENABLED=true
 OPENAI_API_KEY=sk-...
 TAVILY_API_KEY=tvly-...          # optional; improves agentic research
-SHOW_QNR_GENERATION_REGION_SELECTOR=true
+SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR=true
 
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```

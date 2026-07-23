@@ -10,7 +10,7 @@ description: >-
 
 Use when **`smeme_reasoning_evaluate`** returns **`report.result_kind`** other than **`concluded`**, or preload before evaluate when ambiguity is likely.
 
-If the tool returned **`{"error": {...}}`**, use **`smeme-reasoning-plugin`** — that is an error, not a report.
+If the tool returned **`{"error": {...}}`**, use **`smeme-reasoning`** — that is an error, not a report.
 
 ## Quick map (`report.result_kind`)
 
@@ -47,11 +47,11 @@ Use the candidate **title** (not `result_kind`) when speaking to the user. Never
 1. Update the ingest (answers and/or evidence).
 2. **`smeme_reasoning_validate_answers`**
 3. **`smeme_reasoning_evaluate`**
-4. Note **`qnr_id`** and **`evaluation_run_id`** on retries.
+4. Note **`decision_tree_id`** and **`evaluation_run_id`** on retries.
 
 ## If the user wants to explore "what would change the outcome"
 
-1. **`smeme_reasoning_what_if`** — compare baseline vs hypothetical answers (two provenance envelopes). Optional shared `force_reachable_ids` / `force_unreachable_ids`. Read `before.report`, `after.report`, and `delta`. See **`smeme-reasoning-plugin`** (Logical analysis tools section).
+1. **`smeme_reasoning_what_if`** — compare baseline vs hypothetical answers (two provenance envelopes). Optional shared `force_reachable_ids` / `force_unreachable_ids`. Read `before.report`, `after.report`, and `delta`. See **`smeme-reasoning`** (Logical analysis tools section).
 2. **`smeme_reasoning_how_to_reach`** — suggest minimal answer edits toward a target outcome (`target_conclusion_id` from **`smeme_reasoning_list_conclusions`** — **not** from evaluate `report`). Default `reach_mode=entailed`; use `possible` when the user is probing whether an outcome can still be reached under some completion. Optional `force_unreachable_ids` / `force_reachable_ids` to assume a branch dead or forced. When `already_reachable` is true, tell the user the baseline already reaches that outcome under the chosen mode.
 3. **`smeme_reasoning_decisive_support`** — **minimal sufficient evidence** when evaluate already **`concluded`** (or the user asks which answers forced the outcome): inclusion-minimal answered supports for a `target_conclusion_id` from **`list_conclusions`**. Do **not** call this for incomplete results (`needs_more_information`, `multiple_outcomes_possible`) or for `answers_inconsistent` / `assumptions_inconsistent`. Do **not** describe it as abduction.
 4. **Fallback** — change answers in the envelope, re-`validate`, re-`evaluate`, and compare reports.
@@ -61,4 +61,4 @@ Never invent branch rules to predict outcomes — let the server decide via thes
 ## Handoff
 
 - Building ingest — **`smeme-reasoning-slot-fill`**
-- MCP tools and errors — **`smeme-reasoning-plugin`**
+- MCP tools and errors — **`smeme-reasoning`**

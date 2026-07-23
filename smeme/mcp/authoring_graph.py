@@ -1,7 +1,7 @@
 """Parse / validate / create-draft helpers for MCP authoring graph tools.
 
 Accepts a raw ``DTGraph`` JSON object or a ``.smeme.json`` export envelope
-(``smeme_export_version`` + ``qnr.graph``). Draft accept uses
+(``smeme_export_version`` + ``decision_tree.graph``). Draft accept uses
 ``validate_graph_for_editing`` — not publication / Deploy readiness.
 """
 
@@ -14,17 +14,17 @@ from uuid import UUID
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from smeme.core.models import QNR, User
+from smeme.core.models import DecisionTree, User
+from smeme.decision_tree.helpers.validation import ValidationResult, validate_graph_for_editing
+from smeme.decision_tree.models import DTGraph
 from smeme.mcp.tool_contract import tool_error_json
-from smeme.qnr.helpers.validation import ValidationResult, validate_graph_for_editing
-from smeme.qnr.models import DTGraph
 
 AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES = 512 * 1024
 
 __all__ = [
     "AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES",
     "create_draft_from_graph",
-    "editor_url_for_qnr",
+    "editor_url_for_decision_tree",
     "extract_graph_dict",
     "parse_authoring_graph_json",
     "validation_payload",
@@ -65,17 +65,24 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
         return payload
 
     if "smeme_export_version" in payload:
-        qnr = payload.get("qnr")
-        if not isinstance(qnr, dict):
+        export_version = payload.get("smeme_export_version")
+        if export_version != "2":
             return tool_error_json(
                 "invalid_graph",
-                "Export envelope is missing qnr. Pass a .smeme.json export or a raw graph.",
+                f"Unsupported smeme_export_version {export_version!r}. "
+                "Only version '2' exports or a raw DTGraph are accepted.",
             )
-        graph = qnr.get("graph")
+        decision_tree = payload.get("decision_tree")
+        if not isinstance(decision_tree, dict):
+            return tool_error_json(
+                "invalid_graph",
+                "Export envelope is missing decision_tree. Pass a .smeme.json export or a raw graph.",
+            )
+        graph = decision_tree.get("graph")
         if not isinstance(graph, dict):
             return tool_error_json(
                 "invalid_graph",
-                "Export envelope is missing qnr.graph.",
+                "Export envelope is missing decision_tree.graph.",
             )
         return graph
 
@@ -86,7 +93,7 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
     return tool_error_json(
         "invalid_graph",
         "Unrecognized graph shape. Expected {nodes, edges, metadata} "
-        "or a SMEme export with qnr.graph.",
+        "or a SMEme export with decision_tree.graph.",
     )
 
 
@@ -143,10 +150,10 @@ async def create_draft_from_graph(
     user: User,
     graph: DTGraph,
     title_override: str | None = None,
-) -> tuple[QNR, ValidationResult] | str:
-    """Insert a draft QNR when edit-valid; enforce active decision-tree quota.
+) -> tuple[DecisionTree, ValidationResult] | str:
+    """Insert a draft DecisionTree when edit-valid; enforce active-decision-tree quota.
 
-    Returns ``(qnr, validation)`` or tool-error JSON.
+    Returns ``(decision_tree, validation)`` or tool-error JSON.
     """
     from smeme.billing.access_policy import (
         is_workflow_pick_required,
@@ -168,14 +175,14 @@ async def create_draft_from_graph(
             suggestions=result.get("suggestions") or {},
         )
 
-    quota = await check_quota(db, user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+    quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
     if not quota.allowed:
         return tool_error_json(
             "quota_exceeded",
             quota.message,
             remaining=quota.remaining,
             limit=quota.limit,
-            dimension="decision trees",
+            dimension="decision_trees",
             resets_at=quota.resets_at_iso,
         )
 
@@ -189,17 +196,17 @@ async def create_draft_from_graph(
     if len(title) > 200:
         title = title[:200]
 
-    qnr = QNR(
+    decision_tree = DecisionTree(
         title=title,
         author_id=user.id,
         graph_data=graph.model_dump(mode="json"),
     )
-    db.add(qnr)
+    db.add(decision_tree)
     await db.commit()
-    await db.refresh(qnr)
-    return qnr, result
+    await db.refresh(decision_tree)
+    return decision_tree, result
 
 
-def editor_url_for_qnr(qnr_id: UUID, *, base_url: str) -> str:
+def editor_url_for_decision_tree(decision_tree_id: UUID, *, base_url: str) -> str:
     """Absolute editor URL for the new draft."""
-    return f"{base_url.rstrip('/')}/qnr/editor/{qnr_id}"
+    return f"{base_url.rstrip('/')}/decision-trees/{decision_tree_id}/editor"

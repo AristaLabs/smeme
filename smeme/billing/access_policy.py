@@ -17,9 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.billing.tiers import TIER_LIMITS, BillingTier
 from smeme.core.config import settings
-from smeme.core.models import QNR, User
+from smeme.core.models import DecisionTree, User
 
-CHOOSE_WORKFLOW_CONFIRM_PHRASE = "keep these workflows live"
+CHOOSE_WORKFLOW_CONFIRM_PHRASE = "keep these decision trees live"
 
 # Prefix paths allowed while workflow_pick_required (see sprint doc).
 # ``/billing/*`` prefixes matter only when SaaS mounts billing routes.
@@ -76,7 +76,7 @@ def is_workflow_pick_required(user: User) -> bool:
     )
 
 
-def is_qnr_live(user: User, qnr: QNR) -> bool:
+def is_decision_tree_live(user: User, decision_tree: DecisionTree) -> bool:
     """Whether the root workflow has full Free/Pro access (not dormant / limbo)."""
     from smeme.billing.providers import hosted_quota_enforcement_enabled
 
@@ -86,15 +86,15 @@ def is_qnr_live(user: User, qnr: QNR) -> bool:
         return True
     if user.workflow_pick_required:
         return False
-    if qnr.billing_dormant:
+    if decision_tree.billing_dormant:
         return False
     live_id = user.live_workflow_root_id
     if live_id is not None:
-        return qnr.id == live_id
+        return decision_tree.id == live_id
     return True
 
 
-def is_qnr_dashboard_grayed(user: User, qnr: QNR) -> bool:
+def is_decision_tree_dashboard_grayed(user: User, decision_tree: DecisionTree) -> bool:
     """Dashboard row styling: pick limbo or dormant."""
     from smeme.billing.providers import hosted_quota_enforcement_enabled
 
@@ -102,24 +102,24 @@ def is_qnr_dashboard_grayed(user: User, qnr: QNR) -> bool:
         return False
     if is_workflow_pick_required(user):
         return True
-    return bool(not user.is_premium and qnr.billing_dormant)
+    return bool(not user.is_premium and decision_tree.billing_dormant)
 
 
-def raise_if_workflow_edit_denied(user: User, qnr: QNR) -> None:
+def raise_if_workflow_edit_denied(user: User, decision_tree: DecisionTree) -> None:
     """Block editor, deploy, MCP discoverability toggles on non-live workflows."""
     if is_workflow_pick_required(user):
         raise HTTPException(
             status_code=403,
             detail=(
-                "Your Pro subscription ended with multiple workflows. "
-                "Choose which workflow to keep live at /billing/choose-workflow before editing."
+                "Your Pro subscription ended with multiple decision trees. "
+                "Choose which decision tree to keep live at /billing/choose-workflow before editing."
             ),
         )
-    if not is_qnr_live(user, qnr):
+    if not is_decision_tree_live(user, decision_tree):
         raise HTTPException(
             status_code=403,
             detail=(
-                "This workflow is dormant on your Free plan (download only). "
+                "This decision tree is dormant on your Free plan (download only). "
                 "Upgrade to Pro to edit it again, or permanently delete it."
             ),
         )
@@ -132,8 +132,8 @@ def mcp_account_downgrade_pending_response(*, user: User) -> str:
     return tool_error_json(
         "account_downgrade_pending",
         (
-            "Your Pro subscription ended with multiple workflows. "
-            "Choose which workflow to keep live before using MCP tools."
+            "Your Pro subscription ended with multiple decision trees. "
+            "Choose which decision tree to keep live before using MCP tools."
         ),
         choose_workflow_url=f"{base}/billing/choose-workflow",
     )
@@ -145,7 +145,7 @@ def mcp_workflow_dormant_response() -> str:
     return tool_error_json(
         "account_downgrade_pending",
         (
-            "This workflow is dormant on your Free plan (download only). "
+            "This decision tree is dormant on your Free plan (download only). "
             "Upgrade to Pro to use MCP tools on it again."
         ),
     )
@@ -153,11 +153,11 @@ def mcp_workflow_dormant_response() -> str:
 
 async def count_active_root_workflows(db: AsyncSession, user_id: UUID) -> int:
     result = await db.execute(
-        select(func.count(QNR.id)).where(
-            QNR.author_id == user_id,
-            QNR.is_current.is_(True),
-            QNR.is_archived.is_(False),
-            QNR.parent_qnr_id.is_(None),
+        select(func.count(DecisionTree.id)).where(
+            DecisionTree.author_id == user_id,
+            DecisionTree.is_current.is_(True),
+            DecisionTree.is_archived.is_(False),
+            DecisionTree.parent_decision_tree_id.is_(None),
         )
     )
     return int(result.scalar() or 0)
@@ -168,27 +168,27 @@ async def count_live_root_workflows(db: AsyncSession, user: User) -> int:
     from smeme.billing.providers import hosted_quota_enforcement_enabled
 
     conditions = [
-        QNR.author_id == user.id,
-        QNR.is_current.is_(True),
-        QNR.is_archived.is_(False),
-        QNR.parent_qnr_id.is_(None),
+        DecisionTree.author_id == user.id,
+        DecisionTree.is_current.is_(True),
+        DecisionTree.is_archived.is_(False),
+        DecisionTree.parent_decision_tree_id.is_(None),
     ]
     if hosted_quota_enforcement_enabled() and not user.is_premium:
-        conditions.append(QNR.billing_dormant.is_(False))
-    result = await db.execute(select(func.count(QNR.id)).where(*conditions))
+        conditions.append(DecisionTree.billing_dormant.is_(False))
+    result = await db.execute(select(func.count(DecisionTree.id)).where(*conditions))
     return int(result.scalar() or 0)
 
 
-async def _fetch_active_roots(db: AsyncSession, user_id: UUID) -> list[QNR]:
+async def _fetch_active_roots(db: AsyncSession, user_id: UUID) -> list[DecisionTree]:
     result = await db.execute(
-        select(QNR)
+        select(DecisionTree)
         .where(
-            QNR.author_id == user_id,
-            QNR.is_current.is_(True),
-            QNR.is_archived.is_(False),
-            QNR.parent_qnr_id.is_(None),
+            DecisionTree.author_id == user_id,
+            DecisionTree.is_current.is_(True),
+            DecisionTree.is_archived.is_(False),
+            DecisionTree.parent_decision_tree_id.is_(None),
         )
-        .order_by(QNR.updated_at.desc())
+        .order_by(DecisionTree.updated_at.desc())
     )
     return list(result.scalars().all())
 
@@ -207,7 +207,9 @@ async def clear_downgrade_state_on_upgrade(db: AsyncSession, user: User) -> None
     user.workflow_pick_required = False
     user.live_workflow_root_id = None
     user.free_usage_epoch = None
-    await db.execute(update(QNR).where(QNR.author_id == user.id).values(billing_dormant=False))
+    await db.execute(
+        update(DecisionTree).where(DecisionTree.author_id == user.id).values(billing_dormant=False)
+    )
     db.add(user)
 
 
@@ -253,12 +255,12 @@ async def apply_workflow_pick(
     root_ids = {r.id for r in roots}
     chosen = set(chosen_root_ids)
     if not chosen or not chosen.issubset(root_ids):
-        raise HTTPException(status_code=400, detail="Selected workflow not found.")
+        raise HTTPException(status_code=400, detail="Selected decision tree not found.")
     max_live = free_max_workflows()
     if len(chosen) != max_live:
         raise HTTPException(
             status_code=400,
-            detail=f"Select exactly {max_live} workflows to keep live on Free.",
+            detail=f"Select exactly {max_live} decision trees to keep live on Free.",
         )
 
     now = datetime.now(UTC)
@@ -288,14 +290,14 @@ def pro_ending_banner_text(user: User, *, active_root_count: int) -> str | None:
     end = user.subscription_period_end
     if end is None:
         max_live = free_max_workflows()
-        return f"Pro ends soon — renew or choose {max_live} live workflows on Free."
+        return f"Pro ends soon — renew or choose {max_live} live decision trees on Free."
     end_local = end.astimezone(UTC)
     date_label = end_local.strftime("%b %d")
     max_live = free_max_workflows()
     if active_root_count <= max_live:
         return f"Pro ends {date_label} — renew to keep higher limits."
     return (
-        f"Pro ends {date_label} — {active_root_count} workflows; "
+        f"Pro ends {date_label} — {active_root_count} decision trees; "
         f"Free allows {max_live} live (others become download-only)."
     )
 
@@ -336,8 +338,8 @@ __all__ = [
     "count_live_root_workflows",
     "dismiss_cancellation_explainer",
     "free_max_workflows",
-    "is_qnr_dashboard_grayed",
-    "is_qnr_live",
+    "is_decision_tree_dashboard_grayed",
+    "is_decision_tree_live",
     "is_workflow_pick_required",
     "mcp_account_downgrade_pending_response",
     "mcp_workflow_dormant_response",

@@ -1,4 +1,7 @@
-name: One-shot — grant smeme-cloud package access
+name: One-shot — grant smeme-cloud GHCR pull access
+
+# Links private ghcr.io/aristalabs/smeme to AristaLabs/smeme-cloud so Cloud CI
+# can docker pull the digest-pinned Core image with GITHUB_TOKEN.
 
 on:
   workflow_dispatch:
@@ -9,9 +12,10 @@ permissions:
 
 jobs:
   grant:
+    name: Grant smeme-cloud package access
     runs-on: ubuntu-latest
     steps:
-      - name: Connect smeme-cloud repo to Core package
+      - name: Connect smeme-cloud to Core package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -20,7 +24,7 @@ jobs:
           echo "smeme-cloud id=$REPO_ID"
           gh api -X PUT \
             "orgs/AristaLabs/packages/container/smeme/repositories/${REPO_ID}" \
-            -H "Accept: application/vnd.github+json" \
-            && echo LINKED || echo LINK_FAILED
+            -H "Accept: application/vnd.github+json"
+          echo "Linked repositories:"
           gh api "orgs/AristaLabs/packages/container/smeme/repositories" \
-            --jq '.[].full_name' || true
+            --jq '.[].full_name'

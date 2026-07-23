@@ -1,11 +1,11 @@
-"""Single-entry-node invariant for DTGraphs."""
+"""Single-entry-node invariant for DecisionTree graphs."""
 
-from smeme.qnr.helpers.validation import (
+from smeme.decision_tree.helpers.validation import (
     bare_create_node_blocked_message,
     validate_graph,
     validate_graph_for_editing,
 )
-from smeme.qnr.models import DTGraph, GraphNode, QNRMetadata, QuestionData
+from smeme.decision_tree.models import GraphNode, DTGraph, DTGraphMetadata, QuestionData
 
 
 def _two_entry_questions_graph() -> DTGraph:
@@ -24,7 +24,7 @@ def _two_entry_questions_graph() -> DTGraph:
             ),
         ],
         edges=[],
-        metadata=QNRMetadata(title="Two entries"),
+        metadata=DTGraphMetadata(title="Two entries"),
     )
 
 
@@ -46,7 +46,7 @@ def test_validate_graph_for_editing_blocks_multiple_entry_nodes():
 
 
 def test_bare_create_node_allowed_empty_graph():
-    graph = DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+    graph = DTGraph(nodes=[], edges=[], metadata=DTGraphMetadata(title="Empty"))
     assert bare_create_node_blocked_message(graph) is None
 
 

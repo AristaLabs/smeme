@@ -5,7 +5,7 @@ from __future__ import annotations
 import unicodedata
 from typing import Any
 
-from smeme.qnr.models import ConclusionData, DTGraph
+from smeme.decision_tree.models import ConclusionData, DTGraph
 from smeme.reasoning.runtime.evaluate import EvaluationResult
 from smeme.reasoning.runtime.ingest_envelope import ParsedIngestEnvelope
 

@@ -8,14 +8,14 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 
 from smeme.core.database import get_db
-from smeme.core.models import QNR, User
+from smeme.core.models import DecisionTree, User
 from smeme.app_factory import create_core_app as create_app
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from tests.conftest import auth_as
@@ -68,7 +68,7 @@ async def owner_with_invalid_graph(test_session_factory):
         edges=[
             GraphEdge(source="q1", target="c1", condition="Yes"),
         ],
-        metadata=QNRMetadata(title="Validation jump test"),
+        metadata=DTGraphMetadata(title="Validation jump test"),
     )
 
     async with test_session_factory() as session:
@@ -85,20 +85,20 @@ async def owner_with_invalid_graph(test_session_factory):
         await session.commit()
         await session.refresh(user)
 
-        qnr = QNR(
+        decision_tree = DecisionTree(
             author_id=user.id,
             title=f"Validation jump {uid}",
             graph_data=graph.model_dump(mode="json"),
             is_public=False,
         )
-        session.add(qnr)
+        session.add(decision_tree)
         await session.commit()
-        await session.refresh(qnr)
+        await session.refresh(decision_tree)
 
-    yield {"user": user, "qnr_id": qnr.id}
+    yield {"user": user, "decision_tree_id": decision_tree.id}
 
     async with test_session_factory() as session:
-        await session.execute(delete(QNR).where(QNR.author_id == user.id))
+        await session.execute(delete(DecisionTree).where(DecisionTree.author_id == user.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
 
@@ -106,11 +106,11 @@ async def owner_with_invalid_graph(test_session_factory):
 async def test_editor_shows_clickable_validation_issue(
     client, app_with_db, owner_with_invalid_graph
 ):
-    qnr_id = owner_with_invalid_graph["qnr_id"]
+    decision_tree_id = owner_with_invalid_graph["decision_tree_id"]
     user = owner_with_invalid_graph["user"]
 
     with auth_as(app_with_db, user):
-        r = await client.get(f"/qnr/{qnr_id}/editor")
+        r = await client.get(f"/decision-trees/{decision_tree_id}/editor")
 
     assert r.status_code == 200
     assert 'id="validation-issues-panel"' in r.text
@@ -123,13 +123,13 @@ async def test_editor_shows_clickable_validation_issue(
 async def test_validation_issue_selects_node_in_sidebar(
     client, app_with_db, owner_with_invalid_graph
 ):
-    qnr_id = owner_with_invalid_graph["qnr_id"]
+    decision_tree_id = owner_with_invalid_graph["decision_tree_id"]
     user = owner_with_invalid_graph["user"]
 
     with auth_as(app_with_db, user):
         r = await client.post(
-            "/qnr/editor/select_node_with_qnr",
-            data={"qnr_id": str(qnr_id), "node_id": "q1"},
+            "/decision-trees/editor/select_node_with_decision_tree",
+            data={"decision_tree_id": str(decision_tree_id), "node_id": "q1"},
         )
 
     assert r.status_code == 200
@@ -143,14 +143,14 @@ async def test_validation_issue_selects_node_in_sidebar(
 async def test_validate_realtime_includes_jump_links(
     client, app_with_db, owner_with_invalid_graph
 ):
-    qnr_id = owner_with_invalid_graph["qnr_id"]
+    decision_tree_id = owner_with_invalid_graph["decision_tree_id"]
     user = owner_with_invalid_graph["user"]
 
     with auth_as(app_with_db, user):
-        r = await client.get(f"/qnr/editor/validate/{qnr_id}")
+        r = await client.get(f"/decision-trees/editor/validate/{decision_tree_id}")
 
     assert r.status_code == 200
     assert "Jump to node" in r.text
     assert 'data-node-id="q1"' in r.text
-    assert 'name="qnr_id"' in r.text
+    assert 'name="decision_tree_id"' in r.text
     assert "validation-issue-row" in r.text

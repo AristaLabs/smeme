@@ -1,0 +1,40 @@
+<!-- Error display with retry option -->
+{% from "components/macros.html" import callout %}
+
+<div class="mt-6 border-t border-ui-line pt-6">
+    {% call callout("error", title="We hit a snag", extra_class="mb-0") %}
+        <p class="mb-0">{{ error_message | default("An unexpected error occurred.") | safe }}</p>
+        {% if error_recoverable %}
+        <div class="mt-4 flex flex-wrap gap-3">
+            {% if generation_id %}
+            <form method="POST" action="/decision-trees/agentic/generations/{{ generation_id }}/resume" class="inline">
+                <button
+                    type="submit"
+                    class="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-lg transition inline-flex items-center gap-2"
+                >
+                    Resume this wizard
+                </button>
+            </form>
+            {% endif %}
+            <a
+                href="/decision-trees/dashboard#in-progress"
+                class="bg-danger-600 hover:bg-danger-700 text-white font-medium py-2 px-4 rounded-lg transition inline-flex items-center gap-2"
+            >
+                In-progress wizard drafts
+            </a>
+        </div>
+        {% endif %}
+    {% endcall %}
+    
+    <div class="mt-4">
+        <a
+            href="/decision-trees/dashboard"
+            class="text-ui-ink-muted hover:text-ui-ink-secondary font-medium py-2 px-4 transition inline-flex items-center gap-2"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+</div>

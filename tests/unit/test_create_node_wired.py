@@ -2,20 +2,20 @@
 
 import pytest
 
-from smeme.qnr.editor.operations import apply_operation
-from smeme.qnr.models import (
+from smeme.decision_tree.editor.operations import apply_operation
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 
 
 @pytest.fixture
 def empty_graph() -> DTGraph:
-    return DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+    return DTGraph(nodes=[], edges=[], metadata=DTGraphMetadata(title="Empty"))
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ def multi_edge_graph() -> DTGraph:
             GraphEdge(source="q1", target="conclusion_b", condition="B"),
             GraphEdge(source="q2", target="conclusion_a", condition="Y"),
         ],
-        metadata=QNRMetadata(title="Multi-Edge Test Graph"),
+        metadata=DTGraphMetadata(title="Multi-Edge Test Graph"),
     )
 
 

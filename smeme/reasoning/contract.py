@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from smeme.qnr.helpers.validation import has_cycle, validate_graph
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.helpers.validation import has_cycle, validate_graph
+from smeme.decision_tree.models import DTGraph
 
 
 def enforce_reasoning_authoring_contract(graph: DTGraph) -> list[str]:

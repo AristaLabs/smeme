@@ -1,17 +1,17 @@
-"""Publish gate: QNR validation → IR compile → validate_ir → conclusion SAT enumeration."""
+"""Publish gate: DecisionTree validation → IR compile → validate_ir → conclusion SAT enumeration."""
 
 from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
 
-from smeme.qnr.helpers.validation import validate_graph_for_publication
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.helpers.validation import validate_graph_for_publication
+from smeme.decision_tree.models import DTGraph
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.ir.types import IR
 from smeme.reasoning.ir.validate import validate_ir
-from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
 from smeme.reasoning.runtime.analyze import (
     ConclusionSatQueryEnumeration,
     enumerate_conclusion_sat_queries,
@@ -52,7 +52,7 @@ def assess_publish_readiness_sync(graph: DTGraph) -> PublishReadiness:
         return PublishReadiness(ready=False, validation_errors=list(errors))
 
     try:
-        ir = compile_qnr_to_ir(graph)
+        ir = compile_dt_graph_to_ir(graph)
     except ValueError:
         return PublishReadiness(
             ready=False,
@@ -82,7 +82,7 @@ def assess_publish_readiness_sync(graph: DTGraph) -> PublishReadiness:
         issues.append(
             PreflightIssue(
                 code="THEORY_UNSAT",
-                message="The questionnaire’s branching rules cannot all be satisfied together.",
+                message="The decision tree’s branching rules cannot all be satisfied together.",
             )
         )
 

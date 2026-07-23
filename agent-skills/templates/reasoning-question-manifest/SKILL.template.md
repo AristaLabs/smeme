@@ -10,8 +10,8 @@ description: >-
 
 # Reasoning question manifest — {{TITLE}}
 
-**Slug / id:** `{{SLUG}}` · **Decision tree id (version):** `{{QNR_ID}}`  
-**Intended audience (author):** {{INTENDED_AUDIENCE}}  
+**Slug / id:** `{{SLUG}}` · **Decision tree id (version):** `{{DECISION_TREE_ID}}`
+**Intended audience (author):** {{INTENDED_AUDIENCE}}
 **Use case (author):** {{USE_CASE}}
 
 ## How to use this skill

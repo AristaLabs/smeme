@@ -10,11 +10,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from smeme.qnr.generation.agentic.branching_quality import assess_branching_quality  # noqa: E402
-from smeme.qnr.helpers.validation import validate_graph_for_generation  # noqa: E402
-from smeme.qnr.models import DTGraph  # noqa: E402
+from smeme.decision_tree.generation.agentic.branching_quality import assess_branching_quality  # noqa: E402
+from smeme.decision_tree.helpers.validation import validate_graph_for_generation  # noqa: E402
+from smeme.decision_tree.models import DTGraph  # noqa: E402
 
-FIXTURES = ROOT / "tests" / "fixtures" / "qnr_generation"
+FIXTURES = ROOT / "tests" / "fixtures" / "decision_tree_generation"
 
 
 def eval_fixture(path: Path) -> None:

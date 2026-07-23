@@ -1,0 +1,18 @@
+{# Side panel - node editor and edge lists #}
+<div class="side-panel" style="min-height: 200px;">
+  <!-- Validation Panel (always visible at top, wrapped for OOB updates) -->
+  <div id="side-panel-validation">
+    {% if validation_data and (validation_data.get('error_count', 0) > 0 or validation_data.get('warning_count', 0) > 0) %}
+      <div class="mb-6 border-b border-ui-line pb-6">
+        {% with decision_tree_id=decision_tree_id, validation_issue_rows=validation_issue_rows|default([]), node_validation_status=node_validation_status|default({}) %}
+          {% include 'decision_tree/_validation_panel.html' %}
+        {% endwith %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div id="side-panel-content">
+    {% include 'decision_tree/_side_panel_main_content.html' %}
+  </div>
+</div>
+

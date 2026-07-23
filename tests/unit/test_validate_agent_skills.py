@@ -24,11 +24,11 @@ def test_check_skills_agent_safe_vocabulary_passes_on_repo_skills() -> None:
 def test_check_skills_agent_safe_vocabulary_rejects_z3(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bad_skill = tmp_path / "smeme-reasoning-plugin" / "SKILL.md"
+    bad_skill = tmp_path / "smeme-reasoning" / "SKILL.md"
     bad_skill.parent.mkdir(parents=True)
     bad_skill.write_text("Use Z3 for reasoning.\n", encoding="utf-8")
     monkeypatch.setattr(validator, "SKILLS_SRC", tmp_path)
-    monkeypatch.setattr(validator, "_SKILL_NAMES", ("smeme-reasoning-plugin",))
+    monkeypatch.setattr(validator, "_SKILL_NAMES", ("smeme-reasoning",))
     errors = validator._check_skills_agent_safe_vocabulary()
     assert any("Z3" in msg for msg in errors)
 
@@ -36,15 +36,51 @@ def test_check_skills_agent_safe_vocabulary_rejects_z3(
 def test_check_skills_agent_safe_vocabulary_allows_wire_ids_in_backticks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    skill = tmp_path / "smeme-reasoning-plugin" / "SKILL.md"
+    skill = tmp_path / "smeme-reasoning" / "SKILL.md"
     skill.parent.mkdir(parents=True)
     skill.write_text(
         "When `satisfiable` is false, read `blockers.code`.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(validator, "SKILLS_SRC", tmp_path)
-    monkeypatch.setattr(validator, "_SKILL_NAMES", ("smeme-reasoning-plugin",))
+    monkeypatch.setattr(validator, "_SKILL_NAMES", ("smeme-reasoning",))
     assert validator._check_skills_agent_safe_vocabulary() == []
+
+
+def test_check_skills_agent_safe_vocabulary_rejects_plugin_and_cowork(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    skill = tmp_path / "smeme-reasoning" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("Install the Cowork plugin first.\n", encoding="utf-8")
+    monkeypatch.setattr(validator, "SKILLS_SRC", tmp_path)
+    errors = validator._check_skills_agent_safe_vocabulary()
+    assert any("plugin" in msg or "Cowork" in msg for msg in errors)
+
+
+def test_check_skills_agent_safe_vocabulary_allows_plugin_wire_ids(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    skill = tmp_path / "smeme-reasoning" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "<!-- installed_plugin_version: 3.0.0 -->\n\n"
+        "Compare `_server_plugin_version` to `latest_plugin_version`.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(validator, "SKILLS_SRC", tmp_path)
+    assert validator._check_skills_agent_safe_vocabulary() == []
+
+
+def test_check_skills_agent_safe_vocabulary_rejects_plugin_outside_backticks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    skill = tmp_path / "smeme-reasoning" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("This is a plugin skill.\n", encoding="utf-8")
+    monkeypatch.setattr(validator, "SKILLS_SRC", tmp_path)
+    errors = validator._check_skills_agent_safe_vocabulary()
+    assert any("plugin" in msg for msg in errors)
 
 
 def test_main_exit_zero_on_valid_tree() -> None:

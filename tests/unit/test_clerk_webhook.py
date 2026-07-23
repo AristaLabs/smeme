@@ -63,15 +63,29 @@ def _webhook_patches(stripe_cancel_mock=None):
     """Context manager that patches clerk_webhook_secret and account-delete side effects."""
     cfg = __import__("smeme.core.config", fromlist=["settings"]).settings
     cancel_mock = stripe_cancel_mock or MagicMock(return_value=MagicMock(status="canceled"))
-    with patch.object(cfg, "clerk_webhook_secret", _TEST_WEBHOOK_SECRET):
-        with patch.object(cfg, "stripe_secret_key", "sk_test_fake"):
-            with patch("stripe.Subscription.cancel", cancel_mock):
-                with patch(
-                    "smeme.auth.account_delete.checkpointer_manager.delete_checkpoints_for_thread",
-                    new_callable=AsyncMock,
-                    return_value=0,
-                ):
-                    yield cancel_mock
+
+    async def fake_cancel_subscription(user: User) -> bool:
+        if not user.stripe_subscription_id:
+            return False
+        try:
+            cancel_mock(user.stripe_subscription_id)
+        except Exception:
+            return False
+        return True
+
+    with (
+        patch.object(cfg, "clerk_webhook_secret", _TEST_WEBHOOK_SECRET),
+        patch(
+            "smeme.auth.account_delete.cancel_subscription_if_needed",
+            new=AsyncMock(side_effect=fake_cancel_subscription),
+        ),
+        patch(
+            "smeme.auth.account_delete.checkpointer_manager.delete_checkpoints_for_thread",
+            new_callable=AsyncMock,
+            return_value=0,
+        ),
+    ):
+        yield cancel_mock
 
 
 # ---------------------------------------------------------------------------

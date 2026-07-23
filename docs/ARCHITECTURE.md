@@ -3,6 +3,10 @@
 SMEme Core is a self-hosted application for authoring **decision-trees** and
 running them through a server-side **logical analysis engine**.
 
+Database migrations hold a PostgreSQL advisory lock for the complete Alembic
+transaction (`pg_advisory_lock` / `pg_advisory_unlock`), preventing concurrent
+container starts from racing the schema upgrade.
+
 ## Product shape
 
 - **Web application:** authors create, edit, and Deploy decision-trees.
@@ -36,7 +40,7 @@ smeme/
 ├── app_factory.py   # Core application composition
 ├── core/            # settings, database, middleware, models
 ├── auth/            # browser identity and MCP user resolution
-├── qnr/             # decision-tree dashboard, editor, viewer, generation
+├── decision_tree/   # decision-tree dashboard, editor, viewer, generation
 ├── reasoning/       # IR, validation, compilation, runtime evaluation
 ├── mcp/             # OAuth discovery, bearer verification, MCP tools
 └── templates/       # Core web templates
@@ -52,7 +56,7 @@ agent-skills/        # Authoring source for MCP guidance markdown
    research, design, and build; LangGraph interrupts for human edits.
 2. **MCP chat** (`smeme-decision-tree-author` skill) — agent iterates in prose,
    validates `dt_graph_json`, creates a dashboard draft; no server LLM egress.
-3. Both paths persist the same **DTGraph** in `QNR.graph_data`, then converge on
+3. Both paths persist the same **DTGraph** in `DecisionTree.graph_data`, then converge on
    the **editor**.
 
 ### Deploy, list, evaluate

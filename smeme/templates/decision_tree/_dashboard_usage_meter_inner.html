@@ -1,0 +1,24 @@
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+  <span class="inline-flex items-center gap-2">
+    <span class="inline-flex items-center rounded-full border border-ui-line bg-ui-surface-muted px-2.5 py-0.5 text-xs font-medium text-ui-ink">{{ usage_summary.tier_name }}</span>
+    {% if pro_ending_banner is defined and pro_ending_banner %}
+    <span class="text-xs font-medium text-amber-900 dark:text-amber-200">{{ pro_ending_banner }}</span>
+    {% endif %}
+    {% if stripe_configured and not user.is_premium %}
+    <button type="button"
+            hx-get="/billing/upgrade-modal"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1">
+      Upgrade to Pro
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+    {% endif %}
+  </span>
+  <span class="text-ui-ink-secondary tabular-nums">Decision trees: {{ usage_summary.decision_trees.used|int }}/{{ usage_summary.decision_trees.limit|int }}</span>
+  <span class="text-ui-ink-secondary tabular-nums">MCP (mo): {{ "%.1f"|format(usage_summary.mcp_weighted.used) }}/{{ usage_summary.mcp_weighted.limit|int }}</span>
+  <span class="text-ui-ink-secondary tabular-nums {% if usage_summary.wizard_completions.at_cap %}text-danger-800 dark:text-danger-200 font-semibold{% endif %}">AI builds (mo): {{ usage_summary.wizard_completions.used|int }}/{{ usage_summary.wizard_completions.limit|int }}{% if usage_summary.wizard_completions.at_cap %} — limit reached{% endif %}</span>
+  <span class="text-ui-ink-muted text-xs">{{ usage_summary.resets_label }}</span>
+</div>

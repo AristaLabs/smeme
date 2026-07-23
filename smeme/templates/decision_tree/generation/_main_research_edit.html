@@ -1,0 +1,293 @@
+<!-- Main Panel: Research Context Edit -->
+{% from "components/macros.html" import callout, btn %}
+{% include "decision_tree/generation/_phase_stepper.html" %}
+
+<div class="content-display mb-8">
+    {% if workflow_title or user_prompt %}
+    <div class="mb-4 rounded-lg border border-ui-line bg-ui-surface-muted px-4 py-3 text-sm">
+        {% if workflow_title %}
+        <p class="font-medium text-ui-ink">{{ workflow_title }}</p>
+        {% endif %}
+        {% if user_prompt %}
+        <p class="mt-1 text-ui-ink-muted line-clamp-3">{{ user_prompt }}</p>
+        {% endif %}
+        <p class="mt-2 text-xs text-ui-ink-subtle">
+            <a href="/decision-trees/dashboard#in-progress" class="text-brand-600 underline hover:text-brand-800">In-progress decision trees</a>
+            — resume later if you leave this page.
+        </p>
+    </div>
+    {% endif %}
+    <div class="flex items-center justify-between mb-4">
+        <h1>Step 1: Review Research Context</h1>
+        {% if augmentation_count > 0 %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            🔍 Augmented {{ augmentation_count }}x
+        </span>
+        {% endif %}
+    </div>
+    
+    <div class="prose mb-6">
+        <p class="text-ui-ink-muted">
+            {% if extraction_used %}
+            We've extracted content from your provided URLs.
+            {% elif web_search_user_opt_out %}
+            {% if has_research_corpus %}
+            We analyzed your uploaded files and pasted text (web search was not enabled).
+            {% else %}
+            We analyzed your goal description using AI knowledge (web search was not enabled).
+            {% endif %}
+            {% elif search_skipped %}
+            Web search was unavailable, so these factors rely on AI knowledge and any context you provided.
+            {% else %}
+            We've searched the web for research relevant to your question.
+            {% endif %}
+            You're the expert — review the results for errors and omissions. If desired, augment with additional AI-assisted web searches before accepting the set of factors and moving on to design the decision tree.
+        </p>
+    </div>
+    
+    {% if openai_api_failure %}
+    {% call callout("error", title="AI research could not complete", variant="accent-left", extra_class="mb-6") %}
+        <p>
+            {% if openai_failure_kind == 'quota' %}
+            AI research has reached its usage limit. Any web results below are still available — edit them manually or try again later.
+            {% elif openai_failure_kind == 'rate_limit' %}
+            AI research is busy right now. Wait a minute and try again, or continue by editing the research below.
+            {% elif openai_failure_kind == 'timeout' %}
+            AI research took too long to finish. Try again, or continue by editing any web results below.
+            {% else %}
+            We could not run AI analysis on your research. Edit the content below or try again.
+            {% endif %}
+        </p>
+        <p class="mt-2">Web search may still have completed — check the research box below.</p>
+        <form
+            hx-post="/decision-trees/agentic/retry-research"
+            hx-target="closest .main-panel-content"
+            hx-swap="innerHTML"
+            class="mt-4"
+        >
+            <input type="hidden" name="thread_id" value="{{ thread_id }}">
+            <button
+                type="submit"
+                class="bg-danger-700 hover:bg-danger-800 text-white text-sm font-medium py-2 px-4 rounded-lg transition inline-flex items-center gap-2"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                </svg>
+                Retry AI research
+            </button>
+        </form>
+    {% endcall %}
+    {% elif research_notice %}
+    {% call callout(research_notice.style, title=research_notice.title, variant="accent-left", extra_class="mb-6") %}
+        <p>
+            {{ research_notice.message }}
+            {% if research_notice.extra %}
+            {{ research_notice.extra }}
+            {% endif %}
+        </p>
+    {% endcall %}
+    {% endif %}
+</div>
+
+<form
+    hx-post="/decision-trees/agentic/research/submit"
+    hx-target="closest .main-panel-content"
+    hx-swap="innerHTML"
+    hx-indicator="#research-loading"
+    class="space-y-6"
+>
+    <input type="hidden" name="thread_id" value="{{ thread_id }}">
+    
+    <div>
+        <label for="research_context_edited" class="block text-base font-medium text-ui-ink mb-3">
+            Research Context
+        </label>
+        <textarea
+            id="research_context_edited"
+            name="research_context_edited"
+            class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm resize-vertical"
+            style="min-height: 500px;"
+        >{{ research_context }}</textarea>
+        <p class="text-sm text-ui-ink-muted mt-2">Edit the research content above in Markdown format</p>
+    </div>
+    
+    <!-- Decision tree Actions: Organized by Intent -->
+    
+    <!-- Section 1: Refine Current Research -->
+    <div class="border-t border-ui-line pt-6 mt-6">
+        <h3 class="text-lg font-semibold text-ui-ink mb-3">
+            1. Refine Your Research (Optional)
+        </h3>
+        <p class="text-sm text-ui-ink-muted mb-4">
+            Edit the AI-generated factors above for any errors or omissions. Need more information? Run another search to have AI augment these factors.
+        </p>
+        
+        {% if augmentation_count < 5 %}
+        <details class="border border-blue-200 rounded-lg bg-blue-50">
+            <summary class="px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 rounded-lg flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.415l2.261-2.261A4 4 0 1011 5z" clip-rule="evenodd" />
+                </svg>
+                <span>🔍 Augment with Additional Web Search</span>
+                {% if augmentation_count > 0 %}
+                <span class="ml-auto text-sm bg-blue-200 text-blue-800 px-2 py-1 rounded">
+                    {{ augmentation_count }}/5 used
+                </span>
+                {% endif %}
+            </summary>
+            
+            <div class="px-4 pb-4 pt-2 space-y-4 border-t border-blue-200 mt-2">
+                <p class="text-sm text-blue-800">
+                    Run an additional search with new context or focus areas.
+                </p>
+                
+                <!-- Augment Prompt -->
+                <div>
+                    <label for="augment_prompt" class="block text-sm font-medium text-ui-ink-secondary mb-2 flex items-center justify-between">
+                        <span>🔎 Search Query</span>
+                        <span id="augment-counter" class="text-sm text-ui-ink-muted">
+                            <span id="augment-char-count">0</span> / 400 characters
+                        </span>
+                    </label>
+                    <input
+                        type="text"
+                        id="augment_prompt"
+                        name="augment_prompt"
+                        maxlength="400"
+                        placeholder="Leave empty to use original query"
+                        class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                </div>
+                
+                <!-- Augment Include Domains -->
+                <div>
+                    <label for="augment_include_domains" class="block text-sm font-medium text-ui-ink-secondary mb-2">
+                        📌 Trusted URLs (optional)
+                    </label>
+                    <textarea
+                        id="augment_include_domains"
+                        name="augment_include_domains"
+                        rows="2"
+                        placeholder="example.com, scholarly.org"
+                        class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    ></textarea>
+                </div>
+                
+                <!-- Augment Exclude Domains -->
+                <div>
+                    <label for="augment_exclude_domains" class="block text-sm font-medium text-ui-ink-secondary mb-2">
+                        🚫 Exclude Domains
+                    </label>
+                    <textarea
+                        id="augment_exclude_domains"
+                        name="augment_exclude_domains"
+                        rows="3"
+                        class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm bg-ui-surface-muted"
+                    >{{ default_exclude_domains }}</textarea>
+                </div>
+                
+                <!-- Augment Button -->
+                <button
+                    type="submit"
+                    name="action"
+                    value="augment"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                    Run Additional Search
+                </button>
+            </div>
+        </details>
+        {% else %}
+        <div class="border border-yellow-300 rounded-lg bg-yellow-50 px-4 py-3">
+            <p class="text-sm text-yellow-800">
+                <strong>Maximum augmentations reached (5/5).</strong> Please continue to the next phase.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Section 2: Proceed to Next Phase -->
+    <div class="border-t border-ui-line pt-6 mt-8">
+        <h3 class="text-lg font-semibold text-ui-ink mb-3">
+            2. Next Step: Move to Phase 2 - provide or generate the decision tree's possible conclusions
+        </h3>
+        <p class="text-sm text-ui-ink-muted mb-5">
+            Based on these research factors, we need to identify possible conclusions. Choose your approach:
+        </p>
+        
+        <!-- Two Path Options -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- Manual Path -->
+            <div class="border-2 border-brand-200 rounded-lg p-4 bg-brand-50 hover:border-brand-400 transition">
+                <div class="flex items-start gap-3 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-brand-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold text-brand-900 mb-1">I'll Provide My Own</h4>
+                        <p class="text-sm text-brand-700">
+                            Write your own list of possible conclusions based on your SME knowledge.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="submit"
+                    name="action"
+                    value="skip_conclusions"
+                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Write My Own Conclusions
+                </button>
+            </div>
+            
+            <!-- AI Path -->
+            <div class="border-2 border-green-200 rounded-lg p-4 bg-green-50 hover:border-green-400 transition">
+                <div class="flex items-start gap-3 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13 7H7v6h6V7z" />
+                        <path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold text-green-900 mb-1">Let AI Generate</h4>
+                        <p class="text-sm text-green-700">
+                            Have AI analyze the research and suggest possible conclusions for your review.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="submit"
+                    name="action"
+                    value="continue"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13 7H7v6h6V7z" />
+                        <path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clip-rule="evenodd" />
+                    </svg>
+                    Generate with AI
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sticky Bottom Bar: Cancel -->
+    <div class="action-buttons">
+        <a
+            href="/decision-trees/dashboard"
+            class="btn-secondary"
+        >
+            Cancel Decision Tree
+        </a>
+    </div>
+    
+    {% with id='research-loading', message='Researching...' %}
+    {% include 'components/overlay.html' %}
+    {% endwith %}
+</form>

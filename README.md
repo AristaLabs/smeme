@@ -43,7 +43,7 @@ cp .env.core.example .env.core
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-- App: http://localhost:8000 → `/qnr/dashboard`
+- App: http://localhost:8000 → `/decision-trees/dashboard`
 - Health: http://localhost:8000/api/v1/health
 - Full guide: [self-host-quickstart.md](docs/guides/self-host-quickstart.md)
 
@@ -84,7 +84,7 @@ MCP_ENABLED=false
 
 | Say | Avoid (legacy) |
 |-----|----------------|
-| **decision-tree** | questionnaire, QNR |
+| **decision-tree** | questionnaire, retired pre-public names |
 | **Deploy** / **Redeploy** | publish (when meaning reasoning artifact) |
 | **Listed** / **Hidden** | MCP discoverability toggle |
 | **report** | server engine output (not a downstream narrative or memo) |
