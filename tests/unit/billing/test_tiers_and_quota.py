@@ -13,7 +13,7 @@ from sqlalchemy import delete
 
 from smeme.billing.providers import (
     hosted_quota_enforcement_enabled,
-    register_hosted_quota_enforcement,
+    hosted_quota_enforcement_scope,
     reset_billing_providers_for_tests,
 )
 from smeme.billing.quota import (
@@ -77,9 +77,9 @@ async def billing_user(test_session_factory):
 
 @pytest.fixture(autouse=True)
 def _hosted_quota_enforcement_for_mode_b_tests():
-    """Quota denial tests exercise hosted Free/Pro Mode B (SaaS registration)."""
-    register_hosted_quota_enforcement(enabled=True)
-    yield
+    """Quota denial tests exercise hosted Free/Pro Mode B inside a hosted scope."""
+    with hosted_quota_enforcement_scope():
+        yield
     reset_billing_providers_for_tests()
 
 
@@ -262,8 +262,10 @@ async def test_workflow_quota_blocks_fourth_root(test_session_factory, billing_u
 
         check = await check_quota(session, billing_user, QuotaDimension.WORKFLOWS, projected_add=1.0)
         assert check.allowed is False
+        assert check.enforced is True
         assert check.used == 3.0
         assert check.limit == 3.0
+        assert check.remaining == 0.0
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -684,22 +686,31 @@ async def test_check_quota_allows_when_enforcement_off(
     test_session_factory, billing_user
 ) -> None:
     """Core default: no Free/Pro hard deny even when usage would exceed Free caps."""
-    register_hosted_quota_enforcement(enabled=False)
-    assert hosted_quota_enforcement_enabled() is False
-    async with test_session_factory() as session:
-        for i in range(5):
-            session.add(
-                QNR(
-                    author_id=billing_user.id,
-                    title=f"wf-{i}",
-                    graph_data={"nodes": [], "edges": []},
-                    is_current=True,
-                    is_archived=False,
+    with hosted_quota_enforcement_scope(enabled=False):
+        assert hosted_quota_enforcement_enabled() is False
+        async with test_session_factory() as session:
+            for i in range(5):
+                session.add(
+                    QNR(
+                        author_id=billing_user.id,
+                        title=f"wf-{i}",
+                        graph_data={"nodes": [], "edges": []},
+                        is_current=True,
+                        is_archived=False,
+                    )
                 )
+            await session.commit()
+            check = await check_quota(
+                session,
+                billing_user,
+                QuotaDimension.WORKFLOWS,
+                projected_add=1.0,
             )
-        await session.commit()
-        check = await check_quota(session, billing_user, QuotaDimension.WORKFLOWS, projected_add=1.0)
     assert check.allowed is True
+    assert check.enforced is False
+    assert check.used == 5.0
+    assert check.limit is None
+    assert check.remaining is None
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -709,7 +720,6 @@ async def test_reserve_mcp_quota_meters_when_enforcement_off(
     """Enforcement off still inserts reserved telemetry row (no early-return)."""
     from uuid import UUID
 
-    register_hosted_quota_enforcement(enabled=False)
     row_id = uuid4()
     async with test_session_factory() as session:
         session.add(
@@ -725,8 +735,13 @@ async def test_reserve_mcp_quota_meters_when_enforcement_off(
         )
         await session.commit()
 
-    async with test_session_factory() as session:
-        result = await reserve_mcp_quota(session, billing_user, "smeme_reasoning_evaluate")
+    with hosted_quota_enforcement_scope(enabled=False):
+        async with test_session_factory() as session:
+            result = await reserve_mcp_quota(
+                session,
+                billing_user,
+                "smeme_reasoning_evaluate",
+            )
 
     assert isinstance(result, UUID), f"expected UUID when enforcement off, got: {result!r}"
 
@@ -742,7 +757,11 @@ async def test_reserve_mcp_quota_meters_when_enforcement_off(
 async def test_wizard_start_unblocked_when_enforcement_off(
     test_session_factory, billing_user
 ) -> None:
-    register_hosted_quota_enforcement(enabled=False)
-    async with test_session_factory() as session:
-        block = await check_wizard_start_block(session, billing_user, in_progress_count=2)
+    with hosted_quota_enforcement_scope(enabled=False):
+        async with test_session_factory() as session:
+            block = await check_wizard_start_block(
+                session,
+                billing_user,
+                in_progress_count=2,
+            )
     assert block is None

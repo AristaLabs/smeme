@@ -1,8 +1,8 @@
 """Quota enforcement helpers.
 
 Core default: **enforcement off**, metering on (D022). Hosted Free/Pro Mode B
-caps are registered explicitly by the SaaS overlay via
-``register_hosted_quota_enforcement``. Do not early-return from
+caps are activated per request by Cloud middleware via
+``hosted_quota_enforcement_scope``. Do not early-return from
 ``reserve_mcp_quota`` when enforcement is off — that path still inserts the
 ``reserved`` telemetry row and UUID used by flush.
 """
@@ -40,8 +40,9 @@ class QuotaDimension(str, Enum):
 class QuotaCheckResult:
     allowed: bool
     used: float
-    limit: float
-    remaining: float
+    limit: float | None
+    remaining: float | None
+    enforced: bool
     dimension: QuotaDimension
     tier: BillingTier
     message: str
@@ -94,39 +95,42 @@ async def check_quota(
         hosted_quota_enforcement_enabled,
     )
 
+    enforced = hosted_quota_enforcement_enabled()
     tier = tier_for_user(user)
     resets = resets_at_iso(user=user)
 
-    if not hosted_quota_enforcement_enabled():
+    if enforced:
+        await ensure_pro_billing_period(db, user)
+    limits = limits_for_user(user) if enforced else None
+
+    if dimension == QuotaDimension.WORKFLOWS:
+        if enforced and tier == BillingTier.FREE:
+            used = float(await count_live_root_workflows_for_user(db, user))
+        else:
+            used = float(await count_active_root_workflows(db, user.id))
+        limit = float(limits.max_workflows) if limits is not None else None
+    elif dimension == QuotaDimension.MCP_WEIGHTED:
+        used = await sum_mcp_weighted_month(db, user)
+        limit = limits.max_mcp_weighted if limits is not None else None
+    elif dimension == QuotaDimension.WIZARD_COMPLETIONS:
+        used = float(await count_wizard_completions_month(db, user))
+        limit = float(limits.max_wizard_completions) if limits is not None else None
+    else:
+        msg = f"Unknown quota dimension: {dimension}"
+        raise ValueError(msg)
+
+    if limit is None:
         return QuotaCheckResult(
             allowed=True,
-            used=0.0,
-            limit=float("inf"),
-            remaining=float("inf"),
+            used=used,
+            limit=None,
+            remaining=None,
+            enforced=False,
             dimension=dimension,
             tier=tier,
             message="",
             resets_at_iso=resets,
         )
-
-    await ensure_pro_billing_period(db, user)
-    limits = limits_for_user(user)
-
-    if dimension == QuotaDimension.WORKFLOWS:
-        if tier == BillingTier.FREE:
-            used = float(await count_live_root_workflows_for_user(db, user))
-        else:
-            used = float(await count_active_root_workflows(db, user.id))
-        limit = float(limits.max_workflows)
-    elif dimension == QuotaDimension.MCP_WEIGHTED:
-        used = await sum_mcp_weighted_month(db, user)
-        limit = limits.max_mcp_weighted
-    elif dimension == QuotaDimension.WIZARD_COMPLETIONS:
-        used = float(await count_wizard_completions_month(db, user))
-        limit = float(limits.max_wizard_completions)
-    else:
-        msg = f"Unknown quota dimension: {dimension}"
-        raise ValueError(msg)
 
     projected = used + projected_add
     remaining = max(0.0, limit - used)
@@ -138,6 +142,7 @@ async def check_quota(
         used=used,
         limit=limit,
         remaining=remaining,
+        enforced=True,
         dimension=dimension,
         tier=tier,
         message=message,

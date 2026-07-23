@@ -4,13 +4,15 @@ SaaS / ``smeme-cloud`` registers Stripe-backed implementations via
 ``register_billing_providers`` from ``smeme.saas_overlay``. Core must never
 import Stripe adapters directly.
 
-Hosted Free/Pro **quota enforcement** is also registered by the SaaS overlay
-(default off in Core — metering stays on). See D022.
+Hosted Free/Pro **quota enforcement** is activated per request by Cloud
+middleware (default off in Core — metering stays on). See D022.
 """
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +20,9 @@ from smeme.core.models import User
 
 type EnsureProBillingPeriodFn = Callable[[AsyncSession, User], Awaitable[None]]
 type CancelSubscriptionFn = Callable[[User], Awaitable[bool]]
+
+CORE_QUOTA_POLICY = "unlimited_metered"
+HOSTED_QUOTA_POLICY = "hosted_free_pro"
 
 
 async def _noop_ensure_pro_billing_period(_db: AsyncSession, _user: User) -> None:
@@ -30,7 +35,10 @@ async def _noop_cancel_subscription_if_needed(_user: User) -> bool:
 
 _ensure_pro_billing_period: EnsureProBillingPeriodFn = _noop_ensure_pro_billing_period
 _cancel_subscription_if_needed: CancelSubscriptionFn = _noop_cancel_subscription_if_needed
-_hosted_quota_enforcement: bool = False
+_hosted_quota_enforcement: ContextVar[bool] = ContextVar(
+    "hosted_quota_enforcement",
+    default=False,
+)
 
 
 def register_billing_providers(
@@ -46,37 +54,31 @@ def register_billing_providers(
         _cancel_subscription_if_needed = cancel_subscription_if_needed
 
 
-def register_hosted_quota_enforcement(*, enabled: bool = True) -> None:
-    """Enable hosted Free/Pro hard caps (SaaS overlay only).
+@contextmanager
+def hosted_quota_enforcement_scope(*, enabled: bool = True) -> Iterator[None]:
+    """Set hosted Free/Pro enforcement for the current request/task context.
 
-    Core default is enforcement **off** with metering still on. There is no
-    self-host switch that reuses SaaS Free/Pro tiers.
+    The ContextVar keeps Core and Cloud app instances isolated when embedding
+    code creates both in one process. Core defaults to enforcement off with
+    metering on; Cloud middleware enters this scope for each hosted request.
     """
-    global _hosted_quota_enforcement
-    _hosted_quota_enforcement = enabled
+    token = _hosted_quota_enforcement.set(enabled)
+    try:
+        yield
+    finally:
+        _hosted_quota_enforcement.reset(token)
 
 
 def hosted_quota_enforcement_enabled() -> bool:
-    """True when hosted Free/Pro Mode B caps are active (SaaS)."""
-    return _hosted_quota_enforcement
-
-
-def require_hosted_quota_enforcement() -> None:
-    """Fail closed for SaaS boots missing hosted quota registration."""
-    if not _hosted_quota_enforcement:
-        msg = (
-            "SaaS overlay requires hosted Free/Pro quota enforcement. "
-            "Call register_hosted_quota_enforcement() from mount_saas_overlay."
-        )
-        raise RuntimeError(msg)
+    """True when hosted Free/Pro Mode B caps are active in this context."""
+    return _hosted_quota_enforcement.get()
 
 
 def reset_billing_providers_for_tests() -> None:
-    """Restore no-op providers and Core quota defaults (unit tests)."""
-    global _ensure_pro_billing_period, _cancel_subscription_if_needed, _hosted_quota_enforcement
+    """Restore no-op billing side-effect providers (unit tests)."""
+    global _ensure_pro_billing_period, _cancel_subscription_if_needed
     _ensure_pro_billing_period = _noop_ensure_pro_billing_period
     _cancel_subscription_if_needed = _noop_cancel_subscription_if_needed
-    _hosted_quota_enforcement = False
 
 
 async def ensure_pro_billing_period(db: AsyncSession, user: User) -> None:
@@ -90,11 +92,12 @@ async def cancel_subscription_if_needed(user: User) -> bool:
 
 
 __all__ = [
+    "CORE_QUOTA_POLICY",
+    "HOSTED_QUOTA_POLICY",
     "cancel_subscription_if_needed",
     "ensure_pro_billing_period",
     "hosted_quota_enforcement_enabled",
+    "hosted_quota_enforcement_scope",
     "register_billing_providers",
-    "register_hosted_quota_enforcement",
-    "require_hosted_quota_enforcement",
     "reset_billing_providers_for_tests",
 ]

@@ -167,6 +167,8 @@ def create_core_app(
     ``include_product_root``: when True (standalone Core), ``GET /`` redirects to the dashboard.
     SaaS composition sets this False so the marketing landing owns ``/``.
     """
+    from smeme.billing.providers import CORE_QUOTA_POLICY
+
     reg = _register_settings or settings
     app = FastAPI(
         title=settings.app_name,
@@ -180,6 +182,7 @@ def create_core_app(
     app.state.mcp_enabled = reg.mcp_enabled
     app.state.mcp_http_path = reg.mcp_http_path
     app.state.smeme_distro = "core"
+    app.state.quota_policy = CORE_QUOTA_POLICY
 
     app.add_middleware(
         CORSMiddleware,
