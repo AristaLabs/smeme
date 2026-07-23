@@ -21,6 +21,7 @@ def test_core_app_omits_saas_only_routes() -> None:
     assert any(p.startswith("/billing") or p == "/billing" for p in paths) is False
     assert "/qnr/dashboard" in paths or any("/dashboard" in p for p in paths)
     assert app.state.smeme_distro == "core"
+    assert app.state.quota_policy == "unlimited_metered"
     assert "WorkflowPickRequiredMiddleware" not in _middleware_names(app)
     # Core owns /
     assert "/" in paths
