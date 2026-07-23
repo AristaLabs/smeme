@@ -530,17 +530,17 @@ psql $DATABASE_URL -c "
 # 1. Push to dev branch
 git push origin dev
 
-# 2. Monitor Render logs
+# 2. Monitor deployment logs
 # Look for:
 # - Migration completion time
 # - Number of rows affected
 # - Any errors or warnings
 
-# 3. Verify in Neon Console
+# 3. Verify in your PostgreSQL console
 # Run SQL queries to check data correctness
 
 # 4. Test application behavior
-# → Visit https://smeme-dev.onrender.com
+# → Visit https://core-staging.example.com
 # → Test affected features
 # → Check API responses
 ```

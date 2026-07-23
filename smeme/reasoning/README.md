@@ -1,6 +1,8 @@
 # Symbolic reasoning (`smeme/reasoning`)
 
-Production-path **IR-first** compiler spine ([D017](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline)). The pre-cutover symbolic-reasoning package under `qnr` has been removed; product publish and evaluate load **`smeme/reasoning/`** only.
+Production-path **IR-first** compiler spine. The pre-cutover
+symbolic-reasoning package under `qnr` has been removed; product Deploy and
+evaluate load **`smeme/reasoning/`** only.
 
 ---
 
@@ -11,18 +13,12 @@ Load these in order; stop when your task is clear.
 | Order | Doc | Purpose |
 | ----- | --- | ------- |
 | 1 | [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) | System map: web, MCP, and the IR reasoning stack. |
-| 2 | [D017 in `docs/DECISIONS.md`](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline) | Why the new pipeline exists; what to reuse vs replace. |
-| 3 | **This file** | Current checkpoint and next steps. |
-| 4 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |
-| 5 | [`workflow_design.md`](workflow_design.md) | Full B0–C vision (minimization, CEVI, projection) — only if scope goes beyond the spine. |
-| 6 | [`evidence_contract.md`](evidence_contract.md) | **Phase 2+ target:** `PublishedEvidenceContract`; **CEVI induction** vs **CEVI runtime**; **`smeme/reasoning/cevi/`** (Phase A: corpus normalize, IR atom catalog, publish induction hook) — see §7–§8.7. |
-| 7 | [`IR_validator.md`](IR_validator.md) | Tiered validation / counterexamples — when extending `validate_ir`. |
+| 2 | **This file** | Current checkpoint and next steps. |
+| 3 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |
+| 4 | [`workflow_design.md`](workflow_design.md) | Full B0–C vision (minimization, CEVI, projection) — only if scope goes beyond the spine. |
+| 5 | [`evidence_contract.md`](evidence_contract.md) | **Phase 2+ target:** `PublishedEvidenceContract`; **CEVI induction** vs **CEVI runtime**; **`smeme/reasoning/cevi/`** (Phase A: corpus normalize, IR atom catalog, publish induction hook) — see §7–§8.7. |
+| 6 | [`IR_validator.md`](IR_validator.md) | Tiered validation / counterexamples — when extending `validate_ir`. |
 | — | [`evaluate_semantics.md`](evaluate_semantics.md) | **Evaluate contract:** \(T(\mathrm{IR})\) vs evidence \(E\), radio/PbEq, why all answered questions hit the solver, MCP structured ingest. |
-| — | [`docs/planning/sprint-cevi-corpus-induction.md`](../../docs/planning/sprint-cevi-corpus-induction.md) | Corpus persistence, publish-time induction (**no Tavily** in this path), **`legal`** toggle + legal ontology plan; editor corpus textarea superseded by **Lexicon** ([`sprint-cevi-lexicon-editor.md`](../../docs/planning/sprint-cevi-lexicon-editor.md)). |
-| — | [`docs/planning/sprint-cevi-lexicon-editor.md`](../../docs/planning/sprint-cevi-lexicon-editor.md) | **Shipped (editor MVP):** Lexicon tab, drafts, publish merge, Deploy/MCP + MCP tab; deterministic baseline unlocks editing; AI suggestions and legal ontology enrichment are non-blocking status layers. Staged modal / live discoverability = follow-up. |
-| — | [`docs/planning/dtq-to-reasoning-cutover.md`](../../docs/planning/dtq-to-reasoning-cutover.md) | **Completed cutover plan** (historical): naming, DB, API/MCP migration reference. |
-
-Repo-wide harness: [`CLAUDE.md`](../../CLAUDE.md) at the repository root.
 
 ---
 
@@ -63,7 +59,7 @@ Explicit **non-goals** (still open): minimization (B0.6), full CEVI surface area
 
 ### Axioms vs SMT encoding (proof theory vs models)
 
-On paper, \(T(\mathrm{IR})\) is a **set of formulas** (reachability, guard definitions, typed semantics). In code, each conjunct is added with **`solver.add(φ)`**: Z3 must satisfy **all** of them in one model. There is no separate natural-deduction engine: **finding a satisfying assignment** is the operational meaning of “the theory holds.” For **Boolean** guard and option variables, an equation **`G == p`** in Z3 is the same as the **biconditional** \(G \leftrightarrow p\)—a **definitional** axiom that pins a guard symbol to a **radio** option atom (see `theory/guards_radio.py`). User/session evidence (`evaluate_reasoning`) adds more **unit literals** on those atoms; the solver then decides **`SAT(T(IR) ∧ E)`**. Longer mathematical framing: [`ALGEBRA.md`](../../ALGEBRA.md) (Reachability section + **Model-theoretic packaging**).
+On paper, \(T(\mathrm{IR})\) is a **set of formulas** (reachability, guard definitions, typed semantics). In code, each conjunct is added with **`solver.add(φ)`**: Z3 must satisfy **all** of them in one model. There is no separate natural-deduction engine: **finding a satisfying assignment** is the operational meaning of “the theory holds.” For **Boolean** guard and option variables, an equation **`G == p`** in Z3 is the same as the **biconditional** \(G \leftrightarrow p\)—a **definitional** axiom that pins a guard symbol to a **radio** option atom (see `theory/guards_radio.py`). User/session evidence (`evaluate_reasoning`) adds more **unit literals** on those atoms; the solver then decides **`SAT(T(IR) ∧ E)`**.
 
 - **Phase 1 spine vs Phase 2+:** The compiled reachability theory and publish SAT gate are **structural** (`SAT(T(IR) ∧ φ)`). **User-grounded evaluate** (`evaluate_reasoning`) is shipped; **still Phase 2+ / incomplete:** minimization, proof traces, and the full CEVI / projection vision in `workflow_design.md`.
 - **Validated IR before Z3:** `compile_ir_to_z3(ir)` assumes `validate_ir(ir).valid` is true; it does not call `validate_ir` itself. Use `solve_reachability_witness(ir)` on integration paths (default validates and raises `IRValidationError` on failure).

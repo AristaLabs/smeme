@@ -18,8 +18,7 @@ Thin operator and contributor surface for the public Core tree.
 |-------|---------|
 | [Getting started](guides/getting-started.md) | Local Core development |
 | [Installation](guides/installation.md) | Dependencies and environment |
-| [MCP / OAuth](guides/dr3-mcp-oauth-authoritative-sources.md) | MCP endpoint, RFC 9728, Clerk Bearer |
-| [MCP connector runbooks](guides/cowork-reasoning-plugin-runbooks.md) | Connect agents; guidance via MCP tools |
+| [MCP / OAuth](guides/dr3-mcp-oauth-authoritative-sources.md) | Configure a self-hosted MCP endpoint, OAuth discovery, and Bearer validation |
 | [Frontend CSS build](guides/frontend-css-build.md) | Tailwind pre-build (`make css`) |
 | [Data migration](guides/data-migration.md) | Schema vs data migrations |
 

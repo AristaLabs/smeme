@@ -17,7 +17,7 @@ This document fixes the **architectural contract** for **Phase 2+** evidence gro
 
 Unless stated otherwise, **\(\mathcal{L}\)** in the terminology table above is **\(\mathcal{L}_{\text{decision}}\)** — the propositional carriers fixed by **graph → IR** and the theory \(T(\mathrm{IR})\).
 
-- **\(\mathcal{L}_{\text{decision}}\)** — Decision vocabulary and structure come **only** from the authored graph and its compiled IR. **CEVI induction** binds surface material to the **canonical IR atom catalog**; the default engineering scope does **not** mint new decision carriers at publish (see [`docs/planning/sprint-cevi-corpus-induction.md`](../../docs/planning/sprint-cevi-corpus-induction.md) — *Architecture anchor*).
+- **\(\mathcal{L}_{\text{decision}}\)** — Decision vocabulary and structure come **only** from the authored graph and its compiled IR. **CEVI induction** binds surface material to the **canonical IR atom catalog**; the default engineering scope does **not** mint new decision carriers at Deploy.
 
 - **Surface theory** — **`PublishedEvidenceContract`** holds **interpretive** and **surface-side** structure (glosses, bridge rules, lexical signatures, normalization, optional ontology snapshots when a QNR is marked **legal**). Its job is to **bind** natural language and lexical evidence **onto** \(\mathcal{L}_{\text{decision}}\) at evaluate time—not to replace \(T(\mathrm{IR})\) with a second unconstrained logical story.
 
@@ -25,7 +25,8 @@ Unless stated otherwise, **\(\mathcal{L}\)** in the terminology table above is *
 
 - **\(\mathcal{L}_{\text{evidence}}\) (future, explicit product choice)** — An optional **evidence-side** vocabulary for richer bridging (corpus + IR–anchored), with its own semantics and publish-time discipline. **Out of scope** until adopted by ADR or sprint; not implied by corpus text alone.
 
-**Related:** [D017](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline), [`workflow_design.md`](workflow_design.md) (CEVI, high level), [`ALGEBRA.md`](../../ALGEBRA.md) (Phase 1 vs \(T(\mathrm{IR}) \land E\)), [deterministic reasoning dev plan](../../docs/planning/Determinisitc%20Reasoning%20Planning/SMEme%20deterministic%20reasoning%20dev%20plan.md) (Stage 2 blob grounding), [Ideation](../../docs/planning/Determinisitc%20Reasoning%20Planning/Ideation.md) (corpus persistence and induction).
+**Related:** [`workflow_design.md`](workflow_design.md) (CEVI, high level) and
+[`evaluate_semantics.md`](evaluate_semantics.md) (\(T(\mathrm{IR}) \land E\)).
 
 ---
 
@@ -81,7 +82,10 @@ Induced **at compile / pre-publish**, then treated as **immutable for that artif
 
 Nothing in this list **adds** carriers to \(\mathcal{L}\). It **annotates** and **constrains** how text maps to **existing** names.
 
-**Operational checklist (six design commitments ↔ six engineering tracks):** when implementing corpus-backed induction and UI, use [`docs/planning/sprint-cevi-corpus-induction.md`](../../docs/planning/sprint-cevi-corpus-induction.md) — sections *Six design commitments* and *Six tracks ↔ commitments* — so **bridge rules**, **lexical signatures**, **normalization**, **induction provenance** (chunk ids), **dehydrate/rehydrate**, and **evaluate-time binding provenance** (§8.4; DTO in follow-up sprint) are each owned by a track.
+**Operational checklist:** corpus-backed induction and UI work must account for
+**bridge rules**, **lexical signatures**, **normalization**, **induction
+provenance** (chunk ids), **dehydrate/rehydrate**, and **evaluate-time binding
+provenance** (§8.4).
 
 ---
 
@@ -136,9 +140,7 @@ This section is **only** about **CEVI runtime** (not induction). A transformatio
 
 **Shipped (blob evaluate baseline):** **`evaluate_reasoning_with_blob`** kernel in `runtime/evaluate.py`, typed bridge-rule runtime in `cevi/bridge_runtime.py`, one-row artifact+contract loader in `runtime/blob_evaluate_loader.py`, MCP tool **`smeme_reasoning_evaluate_blob`** (implementation + capabilities when enabled) with plugin coupling, and unit coverage for kernel/loader/tool contract. **MCP surface:** registration and **`smeme_reasoning_capabilities`** listing for **`smeme_reasoning_evaluate_blob`** require **`MCP_REASONING_BLOB_TOOL_ENABLED=true`** (default **`false`** in `smeme/core/config.py`). Evaluation remains primarily **`evaluate_reasoning(raw_answers)`** for structured answers, and that path already uses explicit **Stage A** (`fact:*` records via `raw_answers_to_canonical_facts`) + **Stage B** (projection in `cevi/fact_projection.py`) before the shared Z3 tail.
 
-**Not yet:** **FOLIO** when `cevi_legal`, full product-facing **binding provenance DTO** for blob responses (beyond internal audit fields), and contract `normalization_rules` application in the blob bridge path. The operational sequence and boundaries remain in [§8](#8-implementation-roadmap) and `docs/planning/sprint-cevi-blob-evaluate.md`.
-
-**Sprint execution plan (DB, routes, editor UI, HTMX, tests, DoD):** [`docs/planning/sprint-cevi-corpus-induction.md`](../../docs/planning/sprint-cevi-corpus-induction.md). **Blob evaluate + CEVI runtime + MCP/REST:** [`docs/planning/sprint-cevi-blob-evaluate.md`](../../docs/planning/sprint-cevi-blob-evaluate.md) (encoding and policy detail cross-linked from **§8.4** below).
+**Not yet:** **FOLIO** when `cevi_legal`, full product-facing **binding provenance DTO** for blob responses (beyond internal audit fields), and contract `normalization_rules` application in the blob bridge path. The operational sequence and boundaries remain in [§8](#8-implementation-roadmap).
 
 ---
 
@@ -217,13 +219,16 @@ For NL-derived or bridge-attributed facts in traces, include **both** a human-re
 
 This dual payload keeps traces explainable to users while preserving deterministic mapping stability across refactors.
 
-**Crosslink:** `fact:*` atom grammar, `fact:*` → `ir_*` projection, Stage A vs Stage B typing, and blob-evaluate wiring are documented in [`docs/planning/sprint-cevi-blob-evaluate.md`](../../docs/planning/sprint-cevi-blob-evaluate.md). **IR v3:** compiled question vertices are **radio-only** (finite option sets); structured session answers map to `fact:radio:*` atoms alongside the existing reachability theory.
+**IR v3:** compiled question vertices are **radio-only** (finite option sets);
+structured session answers map to `fact:radio:*` atoms alongside the existing
+reachability theory.
 
 ### 8.5 Delivery order (concrete)
 
 **Done (IR-only path):** **`PublishedEvidenceContractV1`**, `induce_published_evidence_contract_ir_only`, publish writes **`cevi_contract_json`** + **`cevi_contract_hash`** (see `published_evidence_contract.py`, editor publish).
 
-**Next:** Implementation order should follow the [**phased delivery**](../../docs/planning/sprint-cevi-corpus-induction.md#phased-delivery) table in the sprint plan (persist + **artifact-grade** `research_corpus_hash` + honest **`ir_only` freeze** before LLM/FOLIO enrichment).
+**Next:** preserve an **artifact-grade** `research_corpus_hash` and an honest
+**`ir_only` freeze** before LLM/FOLIO enrichment.
 
 1. **Persist research corpus** when a QNR is produced/saved from agentic generation (durable store + hash; see generation/save hook).
 2. **Corpus-backed CEVI induction** on **publish** (enrich contract using IR + QNR + corpus; still one row on `ReasoningCompiledArtifact`).

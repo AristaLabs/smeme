@@ -86,7 +86,7 @@ MCP_ENABLED=false
 | **decision-tree** | questionnaire, QNR |
 | **Deploy** / **Redeploy** | publish (when meaning reasoning artifact) |
 | **Listed** / **Hidden** | MCP discoverability toggle |
-| **report** | an ad-hoc narrative instead of the server engine output |
+| **report** | server engine output (not a downstream narrative or memo) |
 
 ---
 
@@ -96,7 +96,7 @@ MCP_ENABLED=false
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engine promises](docs/guides/engine-promises.md)
 - [Self-host quickstart](docs/guides/self-host-quickstart.md)
-- [MCP connector runbooks](docs/guides/cowork-reasoning-plugin-runbooks.md) — after OAuth, agents fetch guidance via `smeme_reasoning_guidance_get`
+- [MCP / OAuth operator guide](docs/guides/dr3-mcp-oauth-authoritative-sources.md)
 - [Contribution paths](docs/CONTRIBUTION_PATHS.md)
 - [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md) · [Security](SECURITY.md)
 

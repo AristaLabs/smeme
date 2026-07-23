@@ -7,42 +7,22 @@ from urllib.parse import urlparse
 
 from smeme.core.config import Settings
 
-# Public PKCE client id for SMEme's first-party Clerk OAuth app (connector setup).
-MCP_SAAS_OAUTH_CLIENT_ID = "NRdsdBvrio0DW9yo"
-# Canonical remote MCP URL for SaaS prod.
-MCP_SAAS_PUBLIC_MCP_URL = "https://www.smeme.ai/api/v1/mcp"
-
-
-def _is_local_dev_host(hostname: str | None) -> bool:
-    if not hostname:
-        return True
-    if hostname in ("localhost", "127.0.0.1", "::1"):
-        return True
-    return hostname.endswith(".local")
-
 
 def mcp_connector_url(settings: Settings) -> str:
-    """URL end users paste into remote MCP clients (Claude, ChatGPT, etc.).
-
-    On localhost dev, docs/dashboard show SaaS prod — not ``effective_base_url``.
-    On deployed hosts (prod, staging, self-hosted), use this deployment's resource URL.
-    """
-    deployment = mcp_resource_url(settings)
-    parsed = urlparse(settings.effective_base_url)
-    if _is_local_dev_host(parsed.hostname):
-        return MCP_SAAS_PUBLIC_MCP_URL
-    return deployment
+    """URL users paste into remote MCP clients for this Core deployment."""
+    return mcp_resource_url(settings)
 
 
 def mcp_connect_template_context(settings: Settings) -> dict[str, Any]:
     """Jinja context for connector-first MCP setup (endpoint URL + static OAuth client id)."""
     deployment_url = mcp_resource_url(settings)
     connector_url = mcp_connector_url(settings)
+    static_client_id = next(iter(settings.mcp_allowed_oauth_client_ids), "")
     return {
         "mcp_endpoint_url": deployment_url,
         "mcp_connector_url": connector_url,
         "mcp_connector_url_differs": connector_url != deployment_url,
-        "mcp_oauth_client_id": MCP_SAAS_OAUTH_CLIENT_ID,
+        "mcp_oauth_client_id": static_client_id,
     }
 
 

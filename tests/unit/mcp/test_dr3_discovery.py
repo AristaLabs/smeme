@@ -5,16 +5,16 @@ from __future__ import annotations
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from smeme.app_factory import create_core_app as create_app
 from smeme.core.config import Settings
 from smeme.core.config import settings as process_settings
-from smeme.app_factory import create_core_app as create_app
 from smeme.mcp.discovery_routes import (
     _authorization_server_metadata_payload,
     _protected_resource_payload,
 )
 from smeme.mcp.reasoning_fastmcp import StripLastEventIdMiddleware, reset_mcp_runtime_for_tests
 from smeme.mcp.urls import (
-    MCP_SAAS_PUBLIC_MCP_URL,
+    mcp_connect_template_context,
     mcp_connector_url,
     mcp_resource_url,
     oauth_protected_resource_metadata_path,
@@ -62,15 +62,34 @@ def test_mcp_resource_url(monkeypatch: pytest.MonkeyPatch) -> None:
     assert mcp_resource_url(s) == "https://api.example.com/api/v1/mcp"
 
 
-def test_mcp_connector_url_localhost_uses_saas_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mcp_connector_url_localhost_matches_resource(monkeypatch: pytest.MonkeyPatch) -> None:
     s = _minimal_settings(monkeypatch, base_url="http://localhost:8000")
     assert mcp_resource_url(s) == "http://localhost:8000/api/v1/mcp"
-    assert mcp_connector_url(s) == MCP_SAAS_PUBLIC_MCP_URL
+    assert mcp_connector_url(s) == "http://localhost:8000/api/v1/mcp"
 
 
 def test_mcp_connector_url_deployed_host_matches_resource(monkeypatch: pytest.MonkeyPatch) -> None:
-    s = _minimal_settings(monkeypatch, base_url="https://www.smeme.ai")
-    assert mcp_connector_url(s) == "https://www.smeme.ai/api/v1/mcp"
+    s = _minimal_settings(monkeypatch, base_url="https://core.example.com")
+    assert mcp_connector_url(s) == "https://core.example.com/api/v1/mcp"
+
+
+def test_mcp_connect_context_uses_operator_static_client_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    s = _minimal_settings(
+        monkeypatch,
+        mcp_allowed_oauth_client_ids=["operator-client-id", "secondary-client-id"],
+    )
+    context = mcp_connect_template_context(s)
+    assert context["mcp_oauth_client_id"] == "operator-client-id"
+
+
+def test_mcp_connect_context_omits_client_id_when_dcr_or_unconfigured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    s = _minimal_settings(monkeypatch, mcp_allowed_oauth_client_ids=[])
+    context = mcp_connect_template_context(s)
+    assert context["mcp_oauth_client_id"] == ""
 
 
 def test_oauth_protected_resource_metadata_path(monkeypatch: pytest.MonkeyPatch) -> None:

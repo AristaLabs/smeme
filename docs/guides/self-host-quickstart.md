@@ -1,8 +1,8 @@
 # Self-host quickstart (SMEme Core)
 
 Run the **Core** product (editor, Deploy/Listed, reasoning, MCP) with Docker.
-It is not the full hosted stack: Core excludes Stripe, marketing landing pages,
-and Arista Labs legal pages.
+Core excludes billing, marketing pages, analytics, and vendor-specific legal
+pages.
 
 ## Requirements
 
@@ -75,11 +75,12 @@ Authors build trees in the **editor**; agents call MCP evaluate on your instance
 | | `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` | Static client allowlist when DCR is off |
 | | `SMEME_MCP_OAUTH_ACCESS_TOKEN_AUDIENCE` | Optional `aud` binding |
 | | Transport rate limits / invocation telemetry | See `.env.core.example` |
-| **Quotas** | *(no self-host Free/Pro switch)* | **Enforcement off** by default; MCP/wizard **metering stays on**. Hosted Free/Pro caps are registered only by the SaaS overlay. Operator-managed `defaults` / `per_user` remains stretch (D022). |
+| **Quotas** | Self-host metering | **Enforcement off** by default; MCP/wizard **metering stays on**. Core does not register plan-based caps. |
 
 **LangSmith:** hard-disabled (see [sovereignty](#sovereignty--third-party-egress)). Not an operator toggle today.
 
-Not for Core compose: `STRIPE_*`, `PLAUSIBLE_*`, Business waitlist / SendGrid waitlist mail, `MCP_COST_*` (SaaS COGS).
+Vendor billing, analytics, waitlist, and cost-accounting settings are not part
+of Core compose.
 
 ## Enable AI generation (with optional Tavily)
 
@@ -115,17 +116,6 @@ client calls **`smeme_reasoning_guidance_get`** (usually after
 `smeme_reasoning_capabilities`) and caches the returned markdown calling
 contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is
 the authoring source used to build that content. In-app detail: `/docs/mcp`.
-
-## How this differs from smeme.ai
-
-| | Core (this guide) | Hosted smeme.ai |
-|--|-------------------|-----------------|
-| Image | `Dockerfile.core` → `smeme` (`ghcr.io/AristaLabs/smeme`) | `smeme-cloud` = `FROM` public image + overlay |
-| Billing | Quota **metering** on; **enforcement off** (no Free/Pro hard caps) | Stripe Pro / Portal + hosted Free/Pro Mode B |
-| `/` | Redirect to dashboard | Marketing landing |
-| Legal / waitlist | Operator-supplied or none | Arista pages + Business waitlist |
-| Generation / Tavily | Optional operator keys | Same product paths when enabled |
-| Source | Public `AristaLabs/smeme` | Private hosted overlay on a pinned image |
 
 ## Build the image alone
 

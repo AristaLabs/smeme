@@ -6,16 +6,11 @@
   window.addEventListener("load", async function () {
     if (typeof Clerk === "undefined") return;
     try {
-      // allowedRedirectOrigins tells ClerkJS which origins are permitted as
-    // redirect_url targets. Without this, Clerk may silently reject redirect_url
-    // values that cross origins (e.g. accounts.dev → smeme-dev.onrender.com).
+    // The callback always returns to this Core instance.
     await Clerk.load({
       ui: { ClerkUI: window.__internal_ClerkUICtor },
       allowedRedirectOrigins: [
         window.location.origin,
-        "https://www.smeme.ai",
-        "https://smeme.ai",
-        "https://smeme-dev.onrender.com",
         "http://localhost:8000",
         "http://localhost:3000",
       ],

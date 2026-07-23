@@ -1,4 +1,4 @@
-# DR-3 — Authoritative sources (MCP, OAuth, March 2026)
+# MCP and OAuth operator guide
 
 Use this list when implementing or spiking **remote MCP + OAuth 2.1** for SMEme. Prefer these over third-party tutorials; re-check **Anthropic** and **MCP** docs each release (connectors and betas change).
 
@@ -12,7 +12,7 @@ Use this list when implementing or spiking **remote MCP + OAuth 2.1** for SMEme.
 | Lifecycle | https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle.md | Initialize, version negotiation, `MCP-Session-Id` when stateful |
 | Security best practices | https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices.md | Complements transport security rules |
 | Authorization tutorial | https://modelcontextprotocol.io/docs/tutorials/security/authorization.md | Implementation-oriented |
-| Connect remote servers | https://modelcontextprotocol.io/docs/develop/connect-remote-servers.md | Hosted URL + client setup |
+| Connect remote servers | https://modelcontextprotocol.io/docs/develop/connect-remote-servers.md | Remote URL + client setup |
 | MCP Inspector | https://modelcontextprotocol.io/docs/tools/inspector.md | Local debugging of HTTP servers |
 | Full doc index | https://modelcontextprotocol.io/llms.txt | Machine-discoverable sitemap |
 
@@ -45,7 +45,9 @@ OAuth 2.1 defines **four roles** and states that the **authorization server may 
 - **Scaling & rotation:** Token signing keys, client registries, and login UX can evolve on the AS without redeploying every RS instance; RS nodes only need verification material (JWKS, shared secret, or introspection URL).
 - **MCP alignment:** MCP treats the protected MCP server as an OAuth 2.1 **resource server** and expects **RFC 9728** metadata to point at one or more **authorization servers**—a **logical** split is already the interoperability model, even if both share a hostname in small deployments.
 
-**SMEme posture (D016):** Prefer a **logical** AS separable from the MCP **resource** worker for security and portability; a **single FastAPI app** may still host **both** URL families in early DR-3 (same issuer origin, distinct routes) as long as code paths keep **issuance** vs **MCP request handling** clearly separated so a later move to a dedicated AS (or edge gateway) is a config change, not a rewrite.
+**SMEme posture:** Prefer a **logical** AS separable from the MCP **resource**
+worker for security and portability. The Core app acts as the resource server
+and validates tokens issued by the operator-configured authorization server.
 
 ## Official Python SDK (SMEme implementation)
 
@@ -58,12 +60,12 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
 **Clerk access tokens** must be **JWTs** verifiable with JWKS (Clerk default for new OAuth apps in 2026; confirm per environment). **Opaque** access tokens need introspection — not implemented here.
 
-## Try locally (DR-3 P0)
+## Try locally
 
 1. **Environment** (e.g. `.env`):
    - `MCP_ENABLED=true`
    - Optional: `MCP_HTTP_PATH=/api/v1/mcp` (this is the **default** if unset)
-   - Set **`BASE_URL`** to the origin clients use (default `http://localhost:8000`). If the app runs on another host/port, `BASE_URL` must match or **RFC 9728** `resource` URLs in metadata will be wrong. On Render, **`RENDER_EXTERNAL_URL`** overrides when set (`Settings.effective_base_url` in `smeme/core/config.py`).
+   - Set **`BASE_URL`** to the origin clients use (default `http://localhost:8000`). If the app runs on another host/port, `BASE_URL` must match or **RFC 9728** `resource` URLs in metadata will be wrong.
 
 2. **Restart** the app so settings reload.
 
@@ -75,7 +77,7 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
    `curl -sS -o /dev/null -w "%{http_code}\n" --max-time 20 "http://127.0.0.1:8000/.well-known/oauth-protected-resource/api/v1/mcp"`
 
-   Expect **`200`**. Repo helper: `bash scripts/smoke_mcp_url.sh https://smeme-dev.onrender.com`
+   Expect **`200`**. Repo helper: `bash scripts/smoke_mcp_url.sh https://your-core.example`
 
    **Why `GET …/api/v1/mcp/` “times out” in curl:** That URL starts the **standalone SSE** leg of Streamable HTTP. The server keeps the response open to push events, so **`curl` waits for the body to end** until **`--max-time`** fires → **`curl: (28) Operation timed out`** and often **`0 bytes received`** on the wire for the **body** (headers may still have been parsed). **`-w "%{http_code}"` showing `200` usually means the TCP connection and HTTP status line succeeded** — it does **not** mean curl “failed to reach” the server. **Do not use this GET as your only uptime check**; use well-known above.
 
@@ -100,11 +102,11 @@ This repo uses **`mcp.server.fastmcp.FastMCP`** with **`streamable_http_app()`**
 
 ## Clerk + FastAPI (MVP roll-out, non-normative)
 
-Third-party summaries often conflate specs—**protected resource metadata** is **[RFC 9728](https://www.rfc-editor.org/rfc/rfc9728.html)**; **[RFC 8414](https://www.rfc-editor.org/rfc/rfc8414.html)** is **authorization server** metadata. Cowork still needs **both**: MCP clients read **9728** for the MCP URL, then **8414** (or OIDC discovery) for the AS.
+Third-party summaries often conflate specs—**protected resource metadata** is **[RFC 9728](https://www.rfc-editor.org/rfc/rfc9728.html)**; **[RFC 8414](https://www.rfc-editor.org/rfc/rfc8414.html)** is **authorization server** metadata. MCP clients need **both**: they read **9728** for the MCP URL, then **8414** (or OIDC discovery) for the AS.
 
 **Architecture (aligned with D016)**
 
-- **Authorization server:** **Clerk** — login, consent, PKCE, short-lived access tokens + refresh. **SaaS prod (2026-06-18):** **Clerk instance DCR on** + **`CLERK_OAUTH_DYNAMIC_REGISTRATION=true`** on SMEme; mirrored metadata includes **`registration_endpoint`**. **`SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` blank** — DCR client ids are not statically allowlistable. **Self-hosted DCR-off:** static Client ID (`MCP_SAAS_OAUTH_CLIENT_ID` / users paste into connector) + optional allowlist. See [Dynamic Client Registration](#dynamic-client-registration-clerk_oauth_dynamic_registration) and [runbooks](cowork-reasoning-plugin-runbooks.md).
+- **Authorization server:** **Clerk** — login, consent, PKCE, short-lived access tokens + refresh. For a static-client deployment, leave DCR off and set **`SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS`** to the client ID users paste into their connector. If the operator enables Clerk DCR, also set **`CLERK_OAUTH_DYNAMIC_REGISTRATION=true`** so mirrored metadata includes **`registration_endpoint`**; a static allowlist is not practical for dynamically minted client IDs. See [Dynamic Client Registration](#dynamic-client-registration-clerk_oauth_dynamic_registration).
 - **Resource server:** **SMEme** — Streamable HTTP MCP at **`MCP_HTTP_PATH`** (default **`/api/v1/mcp`**, not Clerk’s doc examples at **`/mcp`**); validate **`Authorization: Bearer`** with **Clerk JWKS** (Backend SDK or generic JWT library + issuer/audience checks); map **`sub`** → **`users`**; enforce **`dtq:*` scopes** as Clerk exposes them (custom OAuth scopes — **spike required**).
 - **Clients:** Clerk documents HTTP URLs for [Cursor](https://clerk.com/docs/guides/ai/mcp/connect-mcp-client), VS Code, **Claude Code** (`claude mcp add --transport http …`), and Claude Desktop/Windsurf via [`mcp-remote`](https://github.com/geelen/mcp-remote) where the host app does not speak authenticated remote MCP natively. Use **HTTPS** in production; drop dev-only flags like `--allow-http` when deployed.
 
@@ -115,22 +117,22 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 
 **Same FastAPI app as HTMX**
 
-- **Safe for MVP** if MCP never trusts **cookies** and only **validates Bearer tokens** issued for the MCP **resource** / audience. Splitting to a second **Render** service remains a **P5** hardening step, not a blocker for first Cowork tests.
+- A single app is acceptable when MCP never trusts **cookies** and only
+  **validates Bearer tokens** issued for the MCP **resource** / audience.
+  Operators with stricter isolation requirements can deploy the MCP resource
+  server separately.
 
 ## Product / connector practice (non-normative, high signal)
 
 | Source | URL | Use |
 |--------|-----|-----|
-| Anthropic — connect remote MCP | https://modelcontextprotocol.io/docs/develop/connect-remote-servers.md | Hosted MCP URL, OAuth-oriented setup |
+| Anthropic — connect remote MCP | https://modelcontextprotocol.io/docs/develop/connect-remote-servers.md | Remote MCP URL, OAuth-oriented setup |
 | **Clerk** — connect MCP clients | https://clerk.com/docs/guides/ai/mcp/connect-mcp-client | DCR (instance-level) vs static **Client ID**; Cursor / VS Code / Claude Code / Desktop+`mcp-remote`; pair with [Build an MCP server](https://clerk.com/docs/guides/ai/mcp/build-mcp-server) (stack may differ from this repo’s FastAPI **`mcp` SDK**) |
-| SMEme auth/MCP posture | (internal ADR; not in public tree) | AS/RS split, scopes, refresh tokens, narrow legacy REST |
 
-## SMEme implementation status (DR-3 wedge)
+## SMEme implementation status
 
-- **Done in repo (this phase):** Streamable HTTP MCP endpoint (opt-in **`MCP_ENABLED`**), **RFC 9728** protected resource metadata for the MCP URL, **RFC 8414-style** AS metadata + **OIDC discovery** mirrored inline from the Clerk issuer (no 302 to Clerk — CORS), **conditional** **`registration_endpoint`** via **`CLERK_OAUTH_DYNAMIC_REGISTRATION`** (see [below](#dynamic-client-registration-clerk_oauth_dynamic_registration)), **`StripLastEventIdMiddleware`** around the MCP mount (workaround for Python SDK + `Last-Event-ID` without `event_store` in stateless mode.
-- **Validated connectors:** **MCP Inspector**; **Anthropic** (Chat / Cowork / Desktop) with **DCR** or **custom connector** + static Client ID; **Cursor** with DCR.
-- **Next — D016:** **P3** **`dtq:*` scope enforcement** at transport when Clerk issues custom scopes; API keys + narrow REST; **P5** optional second Render service for MCP RS.
-- **Before full deployment (product / infra):** Clerk + Render tier limits; second **Render** Web Service for MCP **RS** when blast radius or scale warrants it (same app OK for MVP).
+- **Implemented:** Streamable HTTP MCP endpoint (opt-in **`MCP_ENABLED`**), **RFC 9728** protected resource metadata for the MCP URL, **RFC 8414-style** AS metadata + **OIDC discovery** mirrored inline from the Clerk issuer (no 302 to Clerk — CORS), conditional **`registration_endpoint`** via **`CLERK_OAUTH_DYNAMIC_REGISTRATION`** (see [below](#dynamic-client-registration-clerk_oauth_dynamic_registration)), and **`StripLastEventIdMiddleware`** around the MCP mount (a workaround for Python SDK reconnects without an event store).
+- **Validated clients:** **MCP Inspector**, Anthropic clients using DCR or a custom connector with a static client ID, and Cursor using DCR.
 
 ## Dynamic Client Registration (`CLERK_OAUTH_DYNAMIC_REGISTRATION`) {#dynamic-client-registration-clerk_oauth_dynamic_registration}
 
@@ -141,7 +143,7 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | **`/.well-known/oauth-authorization-server`** and **`/.well-known/openid-configuration`** |
 |-------------------------------------|------------------------------------------------------------------------------------------|
 | unset / `false` | **`registration_endpoint` omitted** — for **self-hosted DCR-off** + static **`oauth.clientId`**. |
-| `true` | **`registration_endpoint`** = **`{issuer}/oauth/register`** — **SaaS prod default** when Clerk instance **Dynamic OAuth Client Registration** is on. |
+| `true` | **`registration_endpoint`** = **`{issuer}/oauth/register`** when the operator has enabled Clerk **Dynamic OAuth Client Registration**. |
 
 **Operator steps:** (1) Enable **Dynamic OAuth Client Registration** in the **Clerk Dashboard** (instance-level; read Clerk’s security notice). (2) Set **`CLERK_OAUTH_DYNAMIC_REGISTRATION=true`** on SMEme; restart. (3) Verify **`GET /.well-known/oauth-authorization-server`** shows **`registration_endpoint`**. (4) Connect from Cursor again; allowlist **Cursor’s** redirect URI if Clerk reports **`redirect_uri` mismatch**.
 
@@ -165,4 +167,5 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 
 ## See also
 
-- **[Cowork reasoning plugin runbooks](cowork-reasoning-plugin-runbooks.md)** — operator checklist (env, Clerk redirects), end-user install, token expiry / `auth_error`, one-session list → evaluate → outcomes flow.
+- [Self-host quickstart](self-host-quickstart.md)
+- [MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/index.md)

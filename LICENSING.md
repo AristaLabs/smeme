@@ -24,7 +24,7 @@ The license text is adapted from the Sustainable Use License 1.0 published by n8
 
 ## Requires a commercial agreement with Arista Labs, LLC
 
-- Charging customers for access to a **hosted** SMEme instance (competing with `smeme.ai` / managed service).
+- Charging customers for access to a **hosted** SMEme instance or managed service.
 - **White-labeling** SMEme as another product.
 - **Reselling** SMEme or a substantially similar managed service.
 - **Embedding** the SMEme application as a **material customer-facing feature** of another commercial product or service — contact Arista Labs / commercial terms before shipping.
@@ -34,9 +34,9 @@ Consulting, implementation, and support engagements for a customer’s own inter
 
 ## What we copy from n8n — and what we do not
 
-SMEme follows an n8n-shaped **fair-code** model: public self-hostable product + commercial hosted service + optional paid proprietary functionality later.
-
-**We do not** mix enterprise-only code into the public repository under `.ee` filename conventions. Commercial / SaaS-only code lives in a **private overlay** (`smeme-cloud`), built on a pinned public `smeme` image. See [D023](docs/DECISIONS.md#d023-public-core-repo--private-saas-overlay-distribution).
+SMEme follows an n8n-shaped **fair-code** model: public self-hostable product +
+commercial hosted service + optional paid proprietary functionality later.
+Commercial-only code is not included in this repository.
 
 ## Outputs and model providers
 

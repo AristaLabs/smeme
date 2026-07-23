@@ -3,7 +3,7 @@
 #   cp .env.core.example .env.core   # then edit secrets
 #   docker compose --env-file .env.core -f docker-compose.core.yml up --build
 #
-# For hosted smeme.ai use the main Dockerfile + private overlay, not this file.
+# This compose file runs the self-hosted Core image.
 
 services:
   db:

@@ -154,18 +154,18 @@ Partial MCP evaluate (subset of questions answered) is therefore supported: unan
 
 ## 9. Query modes (product map)
 
-Same compiled \(T(\mathrm{IR})\); different queries. Canonical theory: [`ALGEBRA.md`](../../../ALGEBRA.md) §17.
+The same compiled \(T(\mathrm{IR})\) supports different query modes.
 
 | Mode | Tool | Notes |
 | ---- | ---- | ----- |
 | Apply | `smeme_reasoning_evaluate` | \(SAT(T \wedge E)\) + report |
 | Compare | `smeme_reasoning_what_if` | Two answer maps (open alternate world) |
-| Path under edit | `smeme_reasoning_edit_affects_path` | \(T \wedge E' \wedge \phi \models \bigwedge_{n \in R} reach(n)\) + conclusion side-car; not a `what_if` flag — see [`sprint-mcp-path-under-edit.md`](../../../docs/planning/sprint-mcp-path-under-edit.md) |
+| Path under edit | `smeme_reasoning_edit_affects_path` | \(T \wedge E' \wedge \phi \models \bigwedge_{n \in R} reach(n)\) + conclusion side-car; not a `what_if` flag |
 | Entail / Possible / Repair | `smeme_reasoning_how_to_reach` | `reach_mode=entailed\|possible`; plans are cardinality-minimal **answer edits**, not minimal sufficient evidence |
 | Assume | `force_reachable_ids` / `force_unreachable_ids` on evaluate + what_if + how_to_reach + decisive_support + edit_affects_path | ALGEBRA §18 (worked examples in §18.5); locks remain how_to_reach-only |
-| Minimal sufficient evidence | `smeme_reasoning_decisive_support` | Inclusion-minimal \(S \subseteq E\) that still forces \(c\) under fixed \(T\); **not** abduction ([D021](../../../docs/DECISIONS.md#d021-blind-protocol-retained-for-agent-reliability-not-license-dependent)) |
+| Minimal sufficient evidence | `smeme_reasoning_decisive_support` | Inclusion-minimal \(S \subseteq E\) that still forces \(c\) under fixed \(T\); **not** abduction |
 
-**Grounding:** callers supply structured `raw_answers` (LLM extract client-side). CEVI / blob grounding is **not** on the current product path. Optional reach assumptions \(\phi\) compose as \(SAT(T \wedge E \wedge \phi)\); see [`sprint-mcp-shared-assumptions.md`](../../../docs/planning/sprint-mcp-shared-assumptions.md) and [ALGEBRA §18.5](../../../ALGEBRA.md). Logical analysis tools often follow evaluate on the same envelope but do not require a prior evaluate.
+**Grounding:** callers supply structured `raw_answers` (LLM extract client-side). CEVI / blob grounding is **not** on the current product path. Optional reach assumptions \(\phi\) compose as \(SAT(T \wedge E \wedge \phi)\). Logical analysis tools often follow evaluate on the same envelope but do not require a prior evaluate.
 
 ---
 
@@ -174,4 +174,3 @@ Same compiled \(T(\mathrm{IR})\); different queries. Canonical theory: [`ALGEBRA
 - [`README.md`](README.md) — module map and publish path
 - [`evidence_contract.md`](evidence_contract.md) — CEVI / blob / frozen contract (evaluate boundary §8.4; deferred for product MCP)
 - [`workflow_design.md`](workflow_design.md) — phase separation (structural core vs interpretation); some Phase 1 wording predates shipped evaluate
-- [`docs/planning/sprint-mcp-query-modes.md`](../../../docs/planning/sprint-mcp-query-modes.md) — query-mode sprint
