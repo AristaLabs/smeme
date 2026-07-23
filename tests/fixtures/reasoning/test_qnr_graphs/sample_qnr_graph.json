@@ -7,6 +7,7 @@
         "text": "Pick",
         "type": "radio",
         "options": ["Yes", "No"],
+        "placeholder": null,
         "required": true,
         "help_text": null
       }
