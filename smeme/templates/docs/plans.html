@@ -60,7 +60,7 @@
                   <td class="px-4 py-3 text-center tabular-nums">50</td>
                 </tr>
                 <tr>
-                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">MCP deploy (Cowork)</th>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">MCP deploy</th>
                   <td class="px-4 py-3 text-center">✓</td>
                   <td class="px-4 py-3 text-center">✓</td>
                   <td class="px-4 py-3 text-center">✓</td>
@@ -79,7 +79,7 @@
             </div>
             <div>
               <dt class="font-medium text-ui-ink">MCP tool call</dt>
-              <dd class="mt-1">Weighted sum of successful MCP reasoning tool invocations this UTC month. Evidence validation and a standard evaluate each count as <strong class="text-ui-ink">1</strong> (a typical Cowork run uses both). Scenario comparisons (<code class="text-xs bg-ui-surface-muted px-1 rounded">what_if</code>) count as <strong class="text-ui-ink">2</strong>; repair plans (<code class="text-xs bg-ui-surface-muted px-1 rounded">how_to_reach</code>) count as <strong class="text-ui-ink">2.5</strong>. Listing decision trees, fetching the outcome catalog, and downloading worksheets count as <strong class="text-ui-ink">0</strong>.</dd>
+              <dd class="mt-1">Weighted sum of successful MCP reasoning tool invocations this UTC month. Evidence validation and a standard evaluate each count as <strong class="text-ui-ink">1</strong> (a typical MCP run uses both). Scenario comparisons (<code class="text-xs bg-ui-surface-muted px-1 rounded">what_if</code>) count as <strong class="text-ui-ink">2</strong>; repair plans (<code class="text-xs bg-ui-surface-muted px-1 rounded">how_to_reach</code>) count as <strong class="text-ui-ink">2.5</strong>. Listing decision trees, fetching the outcome catalog, and downloading worksheets count as <strong class="text-ui-ink">0</strong>.</dd>
             </div>
             <div>
               <dt class="font-medium text-ui-ink">AI-assisted wizard build</dt>
@@ -106,9 +106,9 @@
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-disc pl-5">
             <li><strong class="text-ui-ink">Decision trees</strong> — you cannot create a new decision tree until you delete/archive one or upgrade.</li>
             <li><strong class="text-ui-ink">AI builds</strong> — you cannot start a new AI-assisted wizard build when your monthly allowance is exhausted.</li>
-            <li><strong class="text-ui-ink">MCP</strong> — Cowork receives a structured <code class="text-xs bg-ui-surface-muted px-1 rounded">quota_exceeded</code> error with remaining allowance and reset time.</li>
+            <li><strong class="text-ui-ink">MCP</strong> — your agent receives a structured <code class="text-xs bg-ui-surface-muted px-1 rounded">quota_exceeded</code> error with remaining allowance and reset time.</li>
           </ul>
-          <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more decision trees than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through Cowork until you either delete enough decision trees to get back under the limit or upgrade again.</p>
+          <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more decision trees than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through MCP until you either delete enough decision trees to get back under the limit or upgrade again.</p>
         </section>
       </div>
     </article>

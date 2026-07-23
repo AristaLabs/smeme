@@ -90,7 +90,7 @@ jobs:
             exit 1
           fi
 
-      - name: Validate Cowork skills
+      - name: Validate agent skills
         run: uv run python scripts/validate_agent_skills.py
 
       - name: Verify guidance artifact is fresh
@@ -99,7 +99,7 @@ jobs:
       - name: Verify design guidance artifact is fresh
         run: uv run python scripts/build_design_guidance_artifact.py --check
 
-      - name: Cowork skills validator unit tests
+      - name: Agent skills validator unit tests
         env:
           SECRET_KEY: github-actions-ci-secret-key-min-32-chars!!
           JWT_SECRET_KEY: github-actions-ci-jwt-secret-key-min-32b!

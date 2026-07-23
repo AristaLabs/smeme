@@ -115,7 +115,7 @@ docker compose -f docker-compose.core.yml up --build
 4. Authoring tools (`smeme_authoring_*`) are registered when MCP is enabled. Set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false` only if you want to disable them.
 5. Restart the `web` service.
 
-**How agents get guidance:** there is no plugin zip to download. After OAuth, the
+**How agents get guidance:** there is no installable zip to download. After OAuth, the
 client calls **`smeme_reasoning_guidance_get`** (usually after
 `smeme_reasoning_capabilities`) and caches the returned markdown calling
 contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is
