@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from smeme.qnr.helpers.validation import has_cycle, validate_graph
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 
-def enforce_reasoning_authoring_contract(graph: QNRGraph) -> list[str]:
+def enforce_reasoning_authoring_contract(graph: DTGraph) -> list[str]:
     """
     Return human-readable blocking errors, or [] if the graph can compile to validated IR.
 

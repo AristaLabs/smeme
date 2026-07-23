@@ -10,7 +10,7 @@ import logging
 from copy import deepcopy
 from typing import Literal
 
-from smeme.qnr.models import ConclusionData, GraphEdge, GraphNode, QNRGraph, QuestionData
+from smeme.qnr.models import ConclusionData, DTGraph, GraphEdge, GraphNode, QuestionData
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 def create_node(
-    graph: QNRGraph,
+    graph: DTGraph,
     node_id: str,
     question_text: str,
     question_type: str = "radio",
     options: list[str] | None = None,
     help_text: str | None = None,
     required: bool = True,
-) -> QNRGraph:
+) -> DTGraph:
     """
     Create a new question node in the graph (radio-only).
 
@@ -84,13 +84,13 @@ def create_node(
 
 
 def create_conclusion_node(
-    graph: QNRGraph,
+    graph: DTGraph,
     node_id: str,
     title: str,
     summary: str,
     recommendations: list[str] | None = None,
     severity: Literal["info", "warning", "critical"] | None = "info",
-) -> QNRGraph:
+) -> DTGraph:
     """
     Create a new conclusion node in the graph.
 
@@ -138,14 +138,14 @@ def create_conclusion_node(
 
 
 def update_node(
-    graph: QNRGraph,
+    graph: DTGraph,
     node_id: str,
     question_text: str,
     question_type: str,
     options: list[str] | None = None,
     help_text: str | None = None,
     required: bool = True,
-) -> QNRGraph:
+) -> DTGraph:
     """
     Update an existing question node's data.
 
@@ -209,13 +209,13 @@ def update_node(
 
 
 def update_conclusion_node(
-    graph: QNRGraph,
+    graph: DTGraph,
     node_id: str,
     title: str,
     summary: str,
     recommendations: list[str] | None = None,
     severity: Literal["info", "warning", "critical"] | None = "info",
-) -> QNRGraph:
+) -> DTGraph:
     """
     Update an existing conclusion node's data.
 
@@ -265,7 +265,7 @@ def update_conclusion_node(
     return new_graph
 
 
-def delete_node(graph: QNRGraph, node_id: str) -> QNRGraph:
+def delete_node(graph: DTGraph, node_id: str) -> DTGraph:
     """
     Delete a node and all connected edges.
 
@@ -294,7 +294,7 @@ def delete_node(graph: QNRGraph, node_id: str) -> QNRGraph:
     return new_graph
 
 
-def create_node_wired(graph: QNRGraph, operation_data: dict) -> QNRGraph:
+def create_node_wired(graph: DTGraph, operation_data: dict) -> DTGraph:
     """
     Create a question or conclusion node and required edges in one atomic graph edit.
 
@@ -333,7 +333,7 @@ def create_node_wired(graph: QNRGraph, operation_data: dict) -> QNRGraph:
     return _create_node_wired_conclusion(graph, node_id, operation_data)
 
 
-def _require_question_source(graph: QNRGraph, source_id: str) -> None:
+def _require_question_source(graph: DTGraph, source_id: str) -> None:
     node = graph.get_node(source_id)
     if not node:
         msg = f"Source node '{source_id}' not found"
@@ -343,7 +343,7 @@ def _require_question_source(graph: QNRGraph, source_id: str) -> None:
         raise ValueError(msg)
 
 
-def _create_node_wired_question(graph: QNRGraph, node_id: str, operation_data: dict) -> QNRGraph:
+def _create_node_wired_question(graph: DTGraph, node_id: str, operation_data: dict) -> DTGraph:
     question_text = operation_data.get("question_text") or ""
     question_text = question_text.strip()
     if not question_text:
@@ -415,7 +415,7 @@ def _create_node_wired_question(graph: QNRGraph, node_id: str, operation_data: d
     raise ValueError(msg)
 
 
-def _create_node_wired_conclusion(graph: QNRGraph, node_id: str, operation_data: dict) -> QNRGraph:
+def _create_node_wired_conclusion(graph: DTGraph, node_id: str, operation_data: dict) -> DTGraph:
     if not graph.nodes:
         raise ValueError("Add at least one question before adding a conclusion.")
 
@@ -464,9 +464,7 @@ def _create_node_wired_conclusion(graph: QNRGraph, node_id: str, operation_data:
 # =============================================================================
 
 
-def create_edge(
-    graph: QNRGraph, source: str, target: str, condition: str | None = None
-) -> QNRGraph:
+def create_edge(graph: DTGraph, source: str, target: str, condition: str | None = None) -> DTGraph:
     """
     Create a new edge between two nodes.
 
@@ -510,13 +508,13 @@ def create_edge(
 
 
 def update_edge(
-    graph: QNRGraph,
+    graph: DTGraph,
     source: str,
     old_target: str,
     new_target: str,
     old_condition: str | None = None,
     condition: str | None = None,
-) -> QNRGraph:
+) -> DTGraph:
     """
     Update an existing edge's target and/or condition.
 
@@ -578,9 +576,7 @@ def update_edge(
     return new_graph
 
 
-def delete_edge(
-    graph: QNRGraph, source: str, target: str, condition: str | None = None
-) -> QNRGraph:
+def delete_edge(graph: DTGraph, source: str, target: str, condition: str | None = None) -> DTGraph:
     """
     Delete an edge between two nodes.
 
@@ -636,7 +632,7 @@ def delete_edge(
 # =============================================================================
 
 
-def apply_operation(graph: QNRGraph, operation: str, operation_data: dict) -> QNRGraph:
+def apply_operation(graph: DTGraph, operation: str, operation_data: dict) -> DTGraph:
     """
     Apply an operation to the graph.
 

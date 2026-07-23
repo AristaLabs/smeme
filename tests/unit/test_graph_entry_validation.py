@@ -1,16 +1,16 @@
-"""Single-entry-node invariant for QNR graphs."""
+"""Single-entry-node invariant for DTGraphs."""
 
 from smeme.qnr.helpers.validation import (
     bare_create_node_blocked_message,
     validate_graph,
     validate_graph_for_editing,
 )
-from smeme.qnr.models import GraphNode, QNRGraph, QNRMetadata, QuestionData
+from smeme.qnr.models import DTGraph, GraphNode, QNRMetadata, QuestionData
 
 
-def _two_entry_questions_graph() -> QNRGraph:
+def _two_entry_questions_graph() -> DTGraph:
     """Two questions, no edges: two indegree-zero nodes."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q_alpha",
@@ -46,7 +46,7 @@ def test_validate_graph_for_editing_blocks_multiple_entry_nodes():
 
 
 def test_bare_create_node_allowed_empty_graph():
-    graph = QNRGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+    graph = DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
     assert bare_create_node_blocked_message(graph) is None
 
 

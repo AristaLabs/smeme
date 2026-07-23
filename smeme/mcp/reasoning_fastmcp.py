@@ -50,7 +50,10 @@ Tools
 - ``smeme_reasoning_list_conclusions`` — catalog conclusion ids/titles and structural reachability (no answers required).
 - ``smeme_reasoning_template_check`` / ``smeme_reasoning_template_get`` — minimal drift/digest probe vs full worksheet markdown (owner, discoverable, deployed).
 - ``smeme_reasoning_guidance_check`` / ``smeme_reasoning_guidance_get`` — platform calling contract version/digest vs full stitched guidance markdown (connector-only bootstrap).
-- ``smeme_authoring_validate_graph`` / ``smeme_authoring_create_draft`` / ``smeme_authoring_design_guidance`` — (optional) chat-authored design standard + graph validate → dashboard draft; gated by ``Settings.mcp_authoring_graph_tools_enabled``.
+- ``smeme_authoring_validate_graph`` / ``smeme_authoring_create_draft`` / ``smeme_authoring_design_guidance`` — chat-authored decision-tree design standard + graph validate → dashboard draft; on when MCP is enabled (opt-out via ``Settings.mcp_authoring_graph_tools_enabled``).
+
+Capabilities version history (``REASONING_CAPABILITIES_VERSION``):
+- **2.19.0** — Authoring wire param renamed ``qnr_graph_json`` → ``dt_graph_json``; skill ``smeme-workflow-author`` → ``smeme-decision-tree-author``; design guidance 1.1.0.
 
 DR-3 P2 adds Bearer-authenticated reasoning tools.
 
@@ -131,7 +134,7 @@ from smeme.mcp.tool_contract import (
 )
 from smeme.mcp.urls import mcp_resource_url, transport_security_allowed_hosts
 from smeme.qnr.helpers.db_queries import parse_graph_data
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_from_json
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION, IRNodeKind
@@ -173,7 +176,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning-plugin/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "2.18.0"
+REASONING_CAPABILITIES_VERSION = "2.19.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -343,9 +346,9 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
         cap["authoring_graph"] = {
             "note": (
                 "Authoring helpers — not evaluation tools. "
-                "Fetch design guidance, validate a chat-built workflow graph, then create a "
-                "dashboard draft (bypasses the generation wizard). Deploy still happens in "
-                "the SMEme editor."
+                "Fetch design guidance, validate a chat-built decision-tree graph "
+                "(``dt_graph_json``), then create a dashboard draft (bypasses the "
+                "generation wizard). Deploy still happens in the SMEme editor."
             ),
             "design_guidance": "smeme_authoring_design_guidance",
             "validate": "smeme_authoring_validate_graph",
@@ -356,7 +359,7 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
             "content_digest": DESIGN_GUIDANCE_DIGEST,
             "note": (
                 "Authoring helper — not an evaluation tool. "
-                "Returns the standard for designing branching workflows in chat."
+                "Returns the standard for designing decision trees in chat."
             ),
         }
     return cap
@@ -367,7 +370,7 @@ async def _mcp_load_owner_reasoning_context(
     *,
     user: User,
     qnr_uuid: UUID,
-) -> tuple[QNR, ReasoningCompiledArtifact, QNRGraph, str] | str:
+) -> tuple[QNR, ReasoningCompiledArtifact, DTGraph, str] | str:
     """Owner + discoverability + artifact + parsed graph + live graph hash (single DB read).
 
     Does **not** apply ``stale_theory`` — template tools use ``in_sync`` instead.
@@ -379,8 +382,8 @@ async def _mcp_load_owner_reasoning_context(
     if qnr is None or qnr.author_id != user.id:
         return tool_error_json(
             "not_found",
-            "Workflow not found, or you are not its owner. "
-            "Call smeme_reasoning_list to see the workflows available to your account, "
+            "Decision tree not found, or you are not its owner. "
+            "Call smeme_reasoning_list to see the decision trees available to your account, "
             "and pass an id from that list.",
         )
 
@@ -408,7 +411,7 @@ async def _mcp_load_owner_reasoning_context(
     if artifact is None:
         return tool_error_json(
             "no_reasoning_artifact",
-            "This workflow has not been published for reasoning yet. "
+            "This decision tree has not been published for reasoning yet. "
             "Publish it from the SMEme editor, then try again.",
         )
 
@@ -422,7 +425,7 @@ async def _mcp_load_owner_reasoning_context(
     if artifact.ir_format_version != IR_FORMAT_VERSION:
         return tool_error_json(
             "no_reasoning_artifact",
-            "This workflow's published reasoning is outdated. "
+            "This decision tree's published reasoning is outdated. "
             "Re-publish it from the SMEme editor to update it, then try again.",
         )
 
@@ -446,7 +449,7 @@ async def _mcp_load_owner_compiled_artifact(
     if live_hash != artifact.graph_hash:
         return tool_error_json(
             "stale_theory",
-            "This workflow has changed since it was last published. "
+            "This decision tree has changed since it was last published. "
             "Re-publish it from the SMEme editor, then retry the same answers.",
             current_hash=live_hash,
             compiled_hash=artifact.graph_hash,
@@ -629,9 +632,9 @@ def _fastmcp_clerk_auth(
 def _build_mcp_instructions(cfg: Settings) -> str:
     """Build the MCP server instructions string (shown to LLM clients as system context)."""
     base = (
-        "SMEme — deterministic workflow evaluation over MCP.\n\n"
+        "SMEme — deterministic decision tree evaluation over MCP.\n\n"
         "Use these tools when the user mentions evaluating a case, running a "
-        "workflow, checking implications against expert rules, or any task "
+        "decision tree, checking implications against expert rules, or any task "
         "involving structured decision analysis.\n\n"
         "All tools require OAuth 2.1 Bearer. On auth_error with "
         "auth_reason 'no_local_user_for_clerk_sub': the user needs a SMEme "
@@ -644,16 +647,16 @@ def _build_mcp_instructions(cfg: Settings) -> str:
         "3. smeme_reasoning_list → smeme_reasoning_template_get → build answers → "
         "smeme_reasoning_validate_answers → "
         "smeme_reasoning_evaluate\n\n"
-        "smeme_reasoning_list returns only workflows you can invoke now. "
-        "If empty, the user has not yet published/shared a workflow — "
-        "do not guess workflow ids."
+        "smeme_reasoning_list returns only decision trees you can invoke now. "
+        "If empty, the user has not yet published/shared a decision tree — "
+        "do not guess decision tree ids."
     )
     if cfg.mcp_authoring_graph_tools_enabled:
         base += (
-            "\n\nChat authoring: when the user wants to build a workflow in chat "
+            "\n\nChat authoring: when the user wants to build a decision tree in chat "
             "(not the web wizard), call smeme_authoring_design_guidance once, iterate "
             "questions/options/branches in plain language until they say they are ready, "
-            "then structure a qnr_graph, call smeme_authoring_validate_graph, fix errors, "
+            "then structure a dt_graph, call smeme_authoring_validate_graph, fix errors, "
             "and only then smeme_authoring_create_draft. Do not auto-Deploy."
         )
     return base
@@ -781,7 +784,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """Fetch the full SMEme reasoning calling contract as markdown.
 
             Returns platform guidance: calling sequence, provenance envelope shape,
-            error recovery, report interpretation. Does NOT return per-workflow
+            error recovery, report interpretation. Does NOT return per decision tree
             content (use smeme_reasoning_template_get for worksheets).
 
             Cache the result locally. Refresh when guidance.content_digest from
@@ -814,12 +817,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             @_holder.tool(
                 annotations=ToolAnnotations(
-                    title="Get workflow design guidance",
+                    title="Get decision tree design guidance",
                     readOnlyHint=True,
                 )
             )
             async def smeme_authoring_design_guidance(ctx: Context) -> str:
-                """Get SMEme's standard for designing reasoning workflows in chat.
+                """Get SMEme's standard for designing reasoning decision trees in chat.
 
                 AUTHORING helper (not evaluation). Returns the versioned design standard:
                 radio-only product constraints, conclusion-first outcome sets, anti-funnel
@@ -854,17 +857,17 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             @_holder.tool(
                 annotations=ToolAnnotations(
-                    title="Validate workflow graph",
+                    title="Validate decision tree graph",
                     readOnlyHint=True,
                 )
             )
             async def smeme_authoring_validate_graph(
-                qnr_graph_json: str,
+                dt_graph_json: str,
                 ctx: Context,
             ) -> str:
-                """Validate a chat-authored workflow graph (draft readiness).
+                """Validate a chat-authored decision tree graph (draft readiness).
 
-                AUTHORING helper (not evaluation). Pass ``qnr_graph_json`` as a serialized
+                AUTHORING helper (not evaluation). Pass ``dt_graph_json`` as a serialized
                 JSON object: either a raw graph ``{nodes, edges, metadata}`` or a SMEme
                 ``.smeme.json`` export envelope (``qnr.graph``).
 
@@ -885,7 +888,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             if isinstance(user_or_err, str):
                                 rec.note_json_response(user_or_err)
                                 return user_or_err
-                        parsed = parse_authoring_graph_json(qnr_graph_json)
+                        parsed = parse_authoring_graph_json(dt_graph_json)
                         if isinstance(parsed, str):
                             rec.note_json_response(parsed)
                             return parsed
@@ -901,30 +904,30 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             @_holder.tool(
                 annotations=ToolAnnotations(
-                    title="Create workflow draft",
+                    title="Create decision tree draft",
                     readOnlyHint=False,
                     destructiveHint=False,
                     idempotentHint=False,
                 )
             )
             async def smeme_authoring_create_draft(
-                qnr_graph_json: str,
+                dt_graph_json: str,
                 ctx: Context,
                 title: str | None = None,
             ) -> str:
-                """Create a dashboard draft from a validated workflow graph.
+                """Create a dashboard draft from a validated decision tree graph.
 
-                AUTHORING helper (not evaluation). Creates a new unpublished workflow owned
+                AUTHORING helper (not evaluation). Creates a new unpublished decision tree owned
                 by the authenticated user. Requires edit-valid graph (same gate as
                 ``smeme_authoring_validate_graph`` with ``draft_ready`` true). Does **not**
                 Deploy / publish for MCP evaluate — tell the user to open the editor URL
                 and Deploy when ready.
 
-                ``qnr_graph_json``: same shapes as validate (raw graph or export envelope).
+                ``dt_graph_json``: same shapes as validate (raw graph or export envelope).
                 Optional ``title`` overrides ``metadata.title``.
 
-                Enforces the plan's active-workflow cap (``quota_exceeded`` / dimension
-                ``workflows``). Does not consume monthly MCP weighted quota.
+                Enforces the plan's active decision-tree cap (``quota_exceeded`` / dimension
+                ``decision trees``). Does not consume monthly MCP weighted quota.
 
                 Requires OAuth Bearer.
                 """
@@ -938,7 +941,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         if isinstance(user_or_err, str):
                             rec.note_json_response(user_or_err)
                             return user_or_err
-                        parsed = parse_authoring_graph_json(qnr_graph_json)
+                        parsed = parse_authoring_graph_json(dt_graph_json)
                         if isinstance(parsed, str):
                             rec.note_json_response(parsed)
                             return parsed
@@ -965,7 +968,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 "mcp_discoverable": False,
                                 "next_step": (
                                     "Open editor_url in the SMEme web app to polish "
-                                    "and Deploy. Until Deployed + Listed, this workflow "
+                                    "and Deploy. Until Deployed + Listed, this decision tree "
                                     "will not appear in smeme_reasoning_list."
                                 ),
                             }
@@ -978,21 +981,21 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
         @_holder.tool(
             annotations=ToolAnnotations(
-                title="List workflows",
+                title="List decision trees",
                 readOnlyHint=True,
             )
         )
         async def smeme_reasoning_list(ctx: Context) -> str:
-            """List the authenticated user's published workflows that are discoverable for MCP tools.
+            """List the authenticated user's published decision trees that are discoverable for MCP tools.
 
             Returns a JSON object with a ``reasoning_qnrs`` array and a ``count``. Each entry includes:
-            - ``id`` — workflow UUID (pass to smeme_reasoning_evaluate / template tools)
+            - ``id`` — decision tree UUID (pass to smeme_reasoning_evaluate / template tools)
             - ``title``, ``is_public``, ``reasoning_status`` (``compiled`` in this list)
 
-            A workflow appears only when the owner has (1) published it for reasoning and
+            A decision tree appears only when the owner has (1) published it for reasoning and
             (2) set it to **Listed** on the SMEme dashboard. When ``count`` is ``0`` the response
-            includes a ``hint`` describing how the owner makes a workflow appear — surface it to the
-            user instead of guessing a workflow id.
+            includes a ``hint`` describing how the owner makes a decision tree appear — surface it to the
+            user instead of guessing a decision tree id.
 
             Requires ``Authorization: Bearer <Clerk OAuth token>``.
 
@@ -1039,14 +1042,14 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     }
                     if not reasoning_qnrs:
                         hint = (
-                            "No workflows are currently discoverable for your account. "
-                            "This is not an error. In the SMEme web app, make sure the workflow is "
+                            "No decision trees are currently discoverable for your account. "
+                            "This is not an error. In the SMEme web app, make sure the decision tree is "
                             "(1) published for reasoning from the editor and (2) set to Listed (not hidden) "
-                            "on your dashboard (Listed column), then try again. Do not guess a workflow id."
+                            "on your dashboard (Listed column), then try again. Do not guess a decision tree id."
                         )
                         if cfg.mcp_authoring_graph_tools_enabled:
                             hint += (
-                                " Tip: to build a new workflow in chat, iterate the decision tree "
+                                " Tip: to build a new decision tree in chat, iterate the decision tree "
                                 "in plain language, then smeme_authoring_validate_graph → "
                                 "smeme_authoring_create_draft."
                             )
@@ -1142,7 +1145,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -1208,10 +1211,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             force_reachable_ids: list[str] | None = None,
             force_unreachable_ids: list[str] | None = None,
         ) -> str:
-            """Evaluate a published workflow using its deployed reasoning model.
+            """Evaluate a published decision tree using its deployed reasoning model.
 
             Args:
-                qnr_id: UUID of the workflow (from smeme_reasoning_list).
+                qnr_id: UUID of the decision tree (from smeme_reasoning_list).
                 raw_answers_json: JSON-encoded **legacy flat answers** or **provenance envelope** object:
                     ``{"answers": {...}, "evidence_items": [...], "evidence_refs": {...}}``.
                     If ``evidence_items`` or ``evidence_refs`` is present, ``answers`` is required.
@@ -1243,11 +1246,11 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             - ``auth_error``          — Bearer token invalid or user not found
             - ``invalid_answers_json`` — raw_answers_json is not valid JSON or not an object
             - ``invalid_qnr_id``      — qnr_id is not a valid UUID
-            - ``not_found``           — workflow not found or caller is not the owner
-            - ``not_discoverable``    — workflow exists but is hidden from MCP (set it Listed)
-            - ``no_reasoning_artifact`` — workflow has not been published for reasoning
-            - ``invalid_graph``       — workflow data is structurally invalid (rare)
-            - ``stale_theory``        — workflow changed since last publish; re-publish needed
+            - ``not_found``           — decision tree not found or caller is not the owner
+            - ``not_discoverable``    — decision tree exists but is hidden from MCP (set it Listed)
+            - ``no_reasoning_artifact`` — decision tree has not been published for reasoning
+            - ``invalid_graph``       — decision tree data is structurally invalid (rare)
+            - ``stale_theory``        — decision tree changed since last publish; re-publish needed
             - ``invalid_answers``     — answer values fail reasoning input validation rules
             - ``invalid_assumption_node_id`` / ``conflicting_assumptions`` / ``assumptions_cap_exceeded``
             - ``ingest_*``            — provenance envelope hard rejects (see tool_contract)
@@ -1337,7 +1340,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -1524,7 +1527,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -1598,7 +1601,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             force_reachable_ids: list[str] | None = None,
             force_unreachable_ids: list[str] | None = None,
         ) -> str:
-            """Compare baseline vs hypothetical assignments on the same published workflow.
+            """Compare baseline vs hypothetical assignments on the same published decision tree.
 
             Ingests ``base_raw_answers_json`` and ``override_raw_answers_json`` independently
             (same provenance envelope shape as ``smeme_reasoning_evaluate``), merges answers
@@ -1687,7 +1690,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -1774,7 +1777,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """Find cardinality-minimal answer-edit plans that would reach a target outcome.
 
             ``target_conclusion_id`` must come from ``smeme_reasoning_list_conclusions`` for the
-            same workflow — not from evaluate ``report`` output. Returns up to ``top_k`` plans with
+            same decision tree — not from evaluate ``report`` output. Returns up to ``top_k`` plans with
             ``preview_report`` per plan.
 
             ``reach_mode`` (default ``entailed``):
@@ -1874,7 +1877,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -2048,7 +2051,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
-                        "This workflow has changed since it was last published. "
+                        "This decision tree has changed since it was last published. "
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
@@ -2167,7 +2170,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             )
         )
         async def smeme_reasoning_list_conclusions(qnr_id: str, ctx: Context) -> str:
-            """List the possible conclusions for a published workflow (no answers required).
+            """List the possible conclusions for a published decision tree (no answers required).
 
             Returns each conclusion's ``conclusion_id`` and ``conclusion_title`` plus whether it is
             **reachable** under the published branching rules. Use this before probing with
@@ -2212,7 +2215,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         if live_hash != artifact.graph_hash:
                             err = tool_error_json(
                                 "stale_theory",
-                                "This workflow has changed since it was last published. "
+                                "This decision tree has changed since it was last published. "
                                 "Re-publish it from the SMEme editor, then try again.",
                             )
                             rec.note_json_response(err)
@@ -2289,10 +2292,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             )
         )
         async def smeme_reasoning_template_check(qnr_id: str, ctx: Context) -> str:
-            """Is my reasoning worksheet up to date for this workflow? — minimal agent-facing probe.
+            """Is my reasoning worksheet up to date for this decision tree? — minimal agent-facing probe.
 
             Same auth and gates as ``smeme_reasoning_evaluate`` (owner, ``mcp_discoverable``, compiled artifact).
-            Returns ``qnr_id``, ``slug`` (filesystem-safe fragment from the workflow title, aligned with
+            Returns ``qnr_id``, ``slug`` (filesystem-safe fragment from the decision tree title, aligned with
             ``template_get``'s suggested path), ``in_sync``, and ``manifest_core_digest`` so clients
             can (a) detect live vs last-published graph drift, (b) name local worksheet files, and
             (c) skip ``template_get`` when a cached digest still matches — without exposing compiler /
@@ -2303,7 +2306,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             differs — use ``in_sync: false`` (Option A).
 
             Args:
-                qnr_id: UUID string for the workflow.
+                qnr_id: UUID string for the decision tree.
 
             Requires ``Authorization: Bearer <Clerk OAuth token>``.
             """
@@ -2335,7 +2338,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             )
         )
         async def smeme_reasoning_template_get(qnr_id: str, ctx: Context) -> str:
-            """Download the per-workflow reasoning worksheet — markdown prompt for slot-filling answers.
+            """Download the per decision tree reasoning worksheet — markdown prompt for slot-filling answers.
 
             Returns ``manifest_markdown`` (question ids, labels, and allowed option strings) plus
             a small envelope: ``manifest_core_digest``, ``in_sync``, ``suggested_relative_path``.
@@ -2343,7 +2346,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             On oversized worksheets, returns ``payload_too_large`` with **no** partial body.
 
             Args:
-                qnr_id: UUID string for the workflow.
+                qnr_id: UUID string for the decision tree.
 
             Requires ``Authorization: Bearer <Clerk OAuth token>``.
             """
@@ -2374,7 +2377,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         err = tool_error_json(
                             "payload_too_large",
                             "Worksheet exceeds the maximum size for this server version; shorten the "
-                            "workflow or split it into smaller workflows, then retry.",
+                            "decision tree or split it into smaller decision trees, then retry.",
                         )
                         rec.note_json_response(err)
                         return err

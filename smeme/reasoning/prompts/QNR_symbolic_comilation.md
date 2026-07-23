@@ -1,7 +1,7 @@
 
 ## Task
 
-Compile the provided **SME-validated `qnr_graph` JSON** into a **solver-ready predicate-calculus theory package** for the separate CEVI + satisfiability workflows.
+Compile the provided **SME-validated `dt_graph` JSON** into a **solver-ready predicate-calculus theory package** for the separate CEVI + satisfiability workflows.
 
 This is **Workflow B (symbolic compilation)** in the architecture.
 
@@ -31,7 +31,7 @@ No natural-language prose outside required notes.
 
 ## Compiler objective
 
-Treat the `qnr_graph` as the **authoritative decision semantics**.
+Treat the `dt_graph` as the **authoritative decision semantics**.
 
 The goal is to extract:
 

@@ -1,4 +1,4 @@
-"""Unit tests for QNR graph operations.
+"""Unit tests for DTGraph operations.
 
 These are pure unit tests - no database, no async, no network.
 All operations are pure functions that take a graph and return a modified graph.
@@ -26,9 +26,9 @@ from smeme.qnr.editor.operations import (
 )
 from smeme.qnr.models import (
     ConclusionData,
+    DTGraph,
     GraphEdge,
     GraphNode,
-    QNRGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -39,9 +39,9 @@ from smeme.qnr.models import (
 
 
 @pytest.fixture
-def empty_graph() -> QNRGraph:
+def empty_graph() -> DTGraph:
     """Empty graph for testing node creation."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[],
         edges=[],
         metadata=QNRMetadata(title="Test Graph"),
@@ -49,9 +49,9 @@ def empty_graph() -> QNRGraph:
 
 
 @pytest.fixture
-def simple_graph() -> QNRGraph:
+def simple_graph() -> DTGraph:
     """Graph with one question and one conclusion for testing operations."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -82,9 +82,9 @@ def simple_graph() -> QNRGraph:
 
 
 @pytest.fixture
-def multi_edge_graph() -> QNRGraph:
+def multi_edge_graph() -> DTGraph:
     """Graph with multiple conditional edges for edge operation testing."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -140,7 +140,7 @@ def multi_edge_graph() -> QNRGraph:
 class TestCreateNode:
     """Tests for create_node function."""
 
-    def test_create_question_node(self, empty_graph: QNRGraph):
+    def test_create_question_node(self, empty_graph: DTGraph):
         """Create a basic radio question node."""
         result = create_node(
             empty_graph,
@@ -158,7 +158,7 @@ class TestCreateNode:
         assert result.nodes[0].data.options == ["A", "B"]
         assert result.nodes[0].data.required is True
 
-    def test_create_radio_node_with_options(self, empty_graph: QNRGraph):
+    def test_create_radio_node_with_options(self, empty_graph: DTGraph):
         """Create a radio node with options."""
         result = create_node(
             empty_graph,
@@ -171,7 +171,7 @@ class TestCreateNode:
         assert result.nodes[0].data.type == "radio"
         assert result.nodes[0].data.options == ["Yes", "No", "Maybe"]
 
-    def test_invalid_question_type_raises(self, empty_graph: QNRGraph):
+    def test_invalid_question_type_raises(self, empty_graph: DTGraph):
         with pytest.raises(ValueError, match="Only radio"):
             create_node(
                 empty_graph,
@@ -181,7 +181,7 @@ class TestCreateNode:
                 options=["Item 1", "Item 2"],
             )
 
-    def test_create_node_with_help_text(self, empty_graph: QNRGraph):
+    def test_create_node_with_help_text(self, empty_graph: DTGraph):
         """Create a node with help text."""
         result = create_node(
             empty_graph,
@@ -194,7 +194,7 @@ class TestCreateNode:
 
         assert result.nodes[0].data.help_text == "We won't spam you"
 
-    def test_create_node_duplicate_id_raises(self, simple_graph: QNRGraph):
+    def test_create_node_duplicate_id_raises(self, simple_graph: DTGraph):
         """Creating a node with existing ID should raise ValueError."""
         with pytest.raises(ValueError, match="Node 'q1' already exists"):
             create_node(
@@ -205,7 +205,7 @@ class TestCreateNode:
                 options=["X", "Y"],
             )
 
-    def test_create_node_immutability(self, empty_graph: QNRGraph):
+    def test_create_node_immutability(self, empty_graph: DTGraph):
         """Original graph should not be modified."""
         original_node_count = len(empty_graph.nodes)
 
@@ -223,7 +223,7 @@ class TestCreateNode:
 class TestCreateConclusionNode:
     """Tests for create_conclusion_node function."""
 
-    def test_create_conclusion_node(self, empty_graph: QNRGraph):
+    def test_create_conclusion_node(self, empty_graph: DTGraph):
         """Create a basic conclusion node."""
         result = create_conclusion_node(
             empty_graph,
@@ -240,7 +240,7 @@ class TestCreateConclusionNode:
         assert result.nodes[0].data.recommendations == []
         assert result.nodes[0].data.severity == "info"
 
-    def test_create_conclusion_with_recommendations(self, empty_graph: QNRGraph):
+    def test_create_conclusion_with_recommendations(self, empty_graph: DTGraph):
         """Create conclusion with recommendations."""
         result = create_conclusion_node(
             empty_graph,
@@ -254,7 +254,7 @@ class TestCreateConclusionNode:
         assert result.nodes[0].data.recommendations == ["Step 1", "Step 2", "Step 3"]
         assert result.nodes[0].data.severity == "warning"
 
-    def test_create_conclusion_critical_severity(self, empty_graph: QNRGraph):
+    def test_create_conclusion_critical_severity(self, empty_graph: DTGraph):
         """Create conclusion with critical severity."""
         result = create_conclusion_node(
             empty_graph,
@@ -266,7 +266,7 @@ class TestCreateConclusionNode:
 
         assert result.nodes[0].data.severity == "critical"
 
-    def test_create_conclusion_duplicate_id_raises(self, simple_graph: QNRGraph):
+    def test_create_conclusion_duplicate_id_raises(self, simple_graph: DTGraph):
         """Creating conclusion with existing ID should raise ValueError."""
         with pytest.raises(ValueError, match="Node 'conclusion_1' already exists"):
             create_conclusion_node(
@@ -285,7 +285,7 @@ class TestCreateConclusionNode:
 class TestUpdateNode:
     """Tests for update_node function."""
 
-    def test_update_question_text(self, simple_graph: QNRGraph):
+    def test_update_question_text(self, simple_graph: DTGraph):
         """Update question text."""
         result = update_node(
             simple_graph,
@@ -298,7 +298,7 @@ class TestUpdateNode:
         updated_node = next(n for n in result.nodes if n.id == "q1")
         assert updated_node.data.text == "Updated question text"
 
-    def test_update_question_type_stays_radio(self, simple_graph: QNRGraph):
+    def test_update_question_type_stays_radio(self, simple_graph: DTGraph):
         """Update options while remaining radio-only."""
         result = update_node(
             simple_graph,
@@ -312,7 +312,7 @@ class TestUpdateNode:
         assert updated_node.data.type == "radio"
         assert len(updated_node.data.options) == 3
 
-    def test_update_question_options(self, simple_graph: QNRGraph):
+    def test_update_question_options(self, simple_graph: DTGraph):
         """Update question options."""
         result = update_node(
             simple_graph,
@@ -325,7 +325,7 @@ class TestUpdateNode:
         updated_node = next(n for n in result.nodes if n.id == "q1")
         assert updated_node.data.options == ["New A", "New B", "New C"]
 
-    def test_update_nonexistent_node_raises(self, simple_graph: QNRGraph):
+    def test_update_nonexistent_node_raises(self, simple_graph: DTGraph):
         """Updating non-existent node should raise ValueError."""
         with pytest.raises(ValueError, match="Node 'nonexistent' not found"):
             update_node(
@@ -336,7 +336,7 @@ class TestUpdateNode:
                 options=["A", "B"],
             )
 
-    def test_update_conclusion_as_question_raises(self, simple_graph: QNRGraph):
+    def test_update_conclusion_as_question_raises(self, simple_graph: DTGraph):
         """Using update_node on conclusion should raise ValueError."""
         with pytest.raises(
             ValueError,
@@ -350,7 +350,7 @@ class TestUpdateNode:
                 options=["A", "B"],
             )
 
-    def test_update_node_immutability(self, simple_graph: QNRGraph):
+    def test_update_node_immutability(self, simple_graph: DTGraph):
         """Original graph should not be modified."""
         original_text = simple_graph.nodes[0].data.text
 
@@ -368,7 +368,7 @@ class TestUpdateNode:
 class TestUpdateConclusionNode:
     """Tests for update_conclusion_node function."""
 
-    def test_update_conclusion_title(self, simple_graph: QNRGraph):
+    def test_update_conclusion_title(self, simple_graph: DTGraph):
         """Update conclusion title."""
         result = update_conclusion_node(
             simple_graph,
@@ -380,7 +380,7 @@ class TestUpdateConclusionNode:
         updated_node = next(n for n in result.nodes if n.id == "conclusion_1")
         assert updated_node.data.title == "New Title"
 
-    def test_update_conclusion_summary(self, simple_graph: QNRGraph):
+    def test_update_conclusion_summary(self, simple_graph: DTGraph):
         """Update conclusion summary."""
         result = update_conclusion_node(
             simple_graph,
@@ -392,7 +392,7 @@ class TestUpdateConclusionNode:
         updated_node = next(n for n in result.nodes if n.id == "conclusion_1")
         assert updated_node.data.summary == "Updated summary content"
 
-    def test_update_conclusion_severity(self, simple_graph: QNRGraph):
+    def test_update_conclusion_severity(self, simple_graph: DTGraph):
         """Update conclusion severity."""
         result = update_conclusion_node(
             simple_graph,
@@ -405,7 +405,7 @@ class TestUpdateConclusionNode:
         updated_node = next(n for n in result.nodes if n.id == "conclusion_1")
         assert updated_node.data.severity == "critical"
 
-    def test_update_nonexistent_conclusion_raises(self, simple_graph: QNRGraph):
+    def test_update_nonexistent_conclusion_raises(self, simple_graph: DTGraph):
         """Updating non-existent node should raise ValueError."""
         with pytest.raises(ValueError, match="Node 'fake' not found"):
             update_conclusion_node(
@@ -415,7 +415,7 @@ class TestUpdateConclusionNode:
                 summary="Never created",
             )
 
-    def test_update_question_as_conclusion_raises(self, simple_graph: QNRGraph):
+    def test_update_question_as_conclusion_raises(self, simple_graph: DTGraph):
         """Using update_conclusion_node on question should raise ValueError."""
         with pytest.raises(
             ValueError,
@@ -437,7 +437,7 @@ class TestUpdateConclusionNode:
 class TestDeleteNode:
     """Tests for delete_node function."""
 
-    def test_delete_question_node(self, simple_graph: QNRGraph):
+    def test_delete_question_node(self, simple_graph: DTGraph):
         """Delete a question node."""
         result = delete_node(simple_graph, node_id="q1")
 
@@ -446,7 +446,7 @@ class TestDeleteNode:
         # Edge from q1 should also be removed
         assert not any(e.source == "q1" for e in result.edges)
 
-    def test_delete_conclusion_node(self, simple_graph: QNRGraph):
+    def test_delete_conclusion_node(self, simple_graph: DTGraph):
         """Delete a conclusion node."""
         result = delete_node(simple_graph, node_id="conclusion_1")
 
@@ -455,7 +455,7 @@ class TestDeleteNode:
         # Edge to conclusion_1 should also be removed
         assert not any(e.target == "conclusion_1" for e in result.edges)
 
-    def test_delete_node_removes_all_connected_edges(self, multi_edge_graph: QNRGraph):
+    def test_delete_node_removes_all_connected_edges(self, multi_edge_graph: DTGraph):
         """Deleting a node removes all edges connected to it."""
         result = delete_node(multi_edge_graph, node_id="q1")
 
@@ -464,12 +464,12 @@ class TestDeleteNode:
         # Edge from q2 -> conclusion_a should remain
         assert any(e.source == "q2" and e.target == "conclusion_a" for e in result.edges)
 
-    def test_delete_nonexistent_node_raises(self, simple_graph: QNRGraph):
+    def test_delete_nonexistent_node_raises(self, simple_graph: DTGraph):
         """Deleting non-existent node should raise ValueError."""
         with pytest.raises(ValueError, match="Node 'nonexistent' not found"):
             delete_node(simple_graph, node_id="nonexistent")
 
-    def test_delete_node_immutability(self, simple_graph: QNRGraph):
+    def test_delete_node_immutability(self, simple_graph: DTGraph):
         """Original graph should not be modified."""
         original_node_count = len(simple_graph.nodes)
         original_edge_count = len(simple_graph.edges)
@@ -488,7 +488,7 @@ class TestDeleteNode:
 class TestCreateEdge:
     """Tests for create_edge function."""
 
-    def test_create_default_edge(self, simple_graph: QNRGraph):
+    def test_create_default_edge(self, simple_graph: DTGraph):
         """Create an edge without condition (default path)."""
         # Add another node first
         graph = create_node(
@@ -508,7 +508,7 @@ class TestCreateEdge:
         assert new_edge is not None
         assert new_edge.condition is None
 
-    def test_create_conditional_edge(self, simple_graph: QNRGraph):
+    def test_create_conditional_edge(self, simple_graph: DTGraph):
         """Create an edge with a condition."""
         # Add another node first
         graph = create_node(
@@ -531,17 +531,17 @@ class TestCreateEdge:
         )
         assert new_edge is not None
 
-    def test_create_edge_missing_source_raises(self, simple_graph: QNRGraph):
+    def test_create_edge_missing_source_raises(self, simple_graph: DTGraph):
         """Creating edge from non-existent source should raise ValueError."""
         with pytest.raises(ValueError, match="Source node 'fake' not found"):
             create_edge(simple_graph, source="fake", target="conclusion_1")
 
-    def test_create_edge_missing_target_raises(self, simple_graph: QNRGraph):
+    def test_create_edge_missing_target_raises(self, simple_graph: DTGraph):
         """Creating edge to non-existent target should raise ValueError."""
         with pytest.raises(ValueError, match="Target node 'fake' not found"):
             create_edge(simple_graph, source="q1", target="fake")
 
-    def test_create_duplicate_edge_raises(self, simple_graph: QNRGraph):
+    def test_create_duplicate_edge_raises(self, simple_graph: DTGraph):
         """Creating duplicate edge should raise ValueError."""
         # Edge q1 -> conclusion_1 already exists
         with pytest.raises(
@@ -550,7 +550,7 @@ class TestCreateEdge:
         ):
             create_edge(simple_graph, source="q1", target="conclusion_1")
 
-    def test_create_edge_same_nodes_different_condition_allowed(self, multi_edge_graph: QNRGraph):
+    def test_create_edge_same_nodes_different_condition_allowed(self, multi_edge_graph: DTGraph):
         """Multiple edges between same nodes with different conditions are allowed."""
         # Add edge from q1 to conclusion_a with condition "C"
         # (q1 already has edges to q2 with "A" and conclusion_b with "B")
@@ -559,7 +559,7 @@ class TestCreateEdge:
         edges_from_q1 = [e for e in result.edges if e.source == "q1"]
         assert len(edges_from_q1) == 3
 
-    def test_create_edge_immutability(self, simple_graph: QNRGraph):
+    def test_create_edge_immutability(self, simple_graph: DTGraph):
         """Original graph should not be modified."""
         # Add a node to create edge to
         graph = create_node(
@@ -584,7 +584,7 @@ class TestCreateEdge:
 class TestUpdateEdge:
     """Tests for update_edge function."""
 
-    def test_update_edge_target(self, multi_edge_graph: QNRGraph):
+    def test_update_edge_target(self, multi_edge_graph: DTGraph):
         """Update edge target."""
         result = update_edge(
             multi_edge_graph,
@@ -605,7 +605,7 @@ class TestUpdateEdge:
             for e in result.edges
         )
 
-    def test_update_edge_condition(self, multi_edge_graph: QNRGraph):
+    def test_update_edge_condition(self, multi_edge_graph: DTGraph):
         """Update edge condition."""
         result = update_edge(
             multi_edge_graph,
@@ -623,7 +623,7 @@ class TestUpdateEdge:
         assert updated_edge is not None
         assert updated_edge.condition == "New Condition"
 
-    def test_update_edge_condition_normalization_empty_to_none(self, multi_edge_graph: QNRGraph):
+    def test_update_edge_condition_normalization_empty_to_none(self, multi_edge_graph: DTGraph):
         """Empty string condition should be normalized to None."""
         result = update_edge(
             multi_edge_graph,
@@ -641,7 +641,7 @@ class TestUpdateEdge:
         assert updated_edge.condition is None
 
     def test_update_edge_condition_normalization_whitespace_to_none(
-        self, multi_edge_graph: QNRGraph
+        self, multi_edge_graph: DTGraph
     ):
         """Whitespace-only condition should be normalized to None."""
         result = update_edge(
@@ -659,7 +659,7 @@ class TestUpdateEdge:
         )
         assert updated_edge.condition is None
 
-    def test_update_edge_not_found_raises(self, simple_graph: QNRGraph):
+    def test_update_edge_not_found_raises(self, simple_graph: DTGraph):
         """Updating non-existent edge should raise ValueError."""
         with pytest.raises(
             ValueError,
@@ -672,7 +672,7 @@ class TestUpdateEdge:
                 new_target="conclusion_1",
             )
 
-    def test_update_edge_invalid_new_target_raises(self, simple_graph: QNRGraph):
+    def test_update_edge_invalid_new_target_raises(self, simple_graph: DTGraph):
         """Updating edge to non-existent target should raise ValueError."""
         with pytest.raises(ValueError, match="Target node 'fake' not found"):
             update_edge(
@@ -682,7 +682,7 @@ class TestUpdateEdge:
                 new_target="fake",
             )
 
-    def test_update_edge_immutability(self, multi_edge_graph: QNRGraph):
+    def test_update_edge_immutability(self, multi_edge_graph: DTGraph):
         """Original graph should not be modified."""
         original_edge = next(
             e for e in multi_edge_graph.edges if e.source == "q1" and e.condition == "A"
@@ -713,13 +713,13 @@ class TestUpdateEdge:
 class TestDeleteEdge:
     """Tests for delete_edge function."""
 
-    def test_delete_default_edge(self, simple_graph: QNRGraph):
+    def test_delete_default_edge(self, simple_graph: DTGraph):
         """Delete edge without condition."""
         result = delete_edge(simple_graph, source="q1", target="conclusion_1")
 
         assert len(result.edges) == 0
 
-    def test_delete_conditional_edge(self, multi_edge_graph: QNRGraph):
+    def test_delete_conditional_edge(self, multi_edge_graph: DTGraph):
         """Delete edge with specific condition."""
         result = delete_edge(multi_edge_graph, source="q1", target="q2", condition="A")
 
@@ -730,13 +730,13 @@ class TestDeleteEdge:
         # Other edges should remain
         assert any(e.source == "q1" and e.target == "conclusion_b" for e in result.edges)
 
-    def test_delete_edge_condition_normalization(self, simple_graph: QNRGraph):
+    def test_delete_edge_condition_normalization(self, simple_graph: DTGraph):
         """Empty string condition should match None edge."""
         result = delete_edge(simple_graph, source="q1", target="conclusion_1", condition="")
 
         assert len(result.edges) == 0
 
-    def test_delete_edge_not_found_raises(self, simple_graph: QNRGraph):
+    def test_delete_edge_not_found_raises(self, simple_graph: DTGraph):
         """Deleting non-existent edge should raise ValueError."""
         with pytest.raises(
             ValueError,
@@ -744,7 +744,7 @@ class TestDeleteEdge:
         ):
             delete_edge(simple_graph, source="q1", target="fake")
 
-    def test_delete_edge_wrong_condition_raises(self, multi_edge_graph: QNRGraph):
+    def test_delete_edge_wrong_condition_raises(self, multi_edge_graph: DTGraph):
         """Deleting edge with wrong condition should raise ValueError."""
         with pytest.raises(
             ValueError,
@@ -752,7 +752,7 @@ class TestDeleteEdge:
         ):
             delete_edge(multi_edge_graph, source="q1", target="q2", condition="WrongCondition")
 
-    def test_delete_edge_immutability(self, simple_graph: QNRGraph):
+    def test_delete_edge_immutability(self, simple_graph: DTGraph):
         """Original graph should not be modified."""
         original_edge_count = len(simple_graph.edges)
 
@@ -769,7 +769,7 @@ class TestDeleteEdge:
 class TestApplyOperation:
     """Tests for apply_operation dispatcher function."""
 
-    def test_apply_create_node(self, empty_graph: QNRGraph):
+    def test_apply_create_node(self, empty_graph: DTGraph):
         """Apply create_node operation via dispatcher."""
         result = apply_operation(
             empty_graph,
@@ -785,7 +785,7 @@ class TestApplyOperation:
         assert len(result.nodes) == 1
         assert result.nodes[0].id == "q1"
 
-    def test_apply_create_conclusion_node(self, empty_graph: QNRGraph):
+    def test_apply_create_conclusion_node(self, empty_graph: DTGraph):
         """Apply create_conclusion_node operation via dispatcher."""
         result = apply_operation(
             empty_graph,
@@ -800,7 +800,7 @@ class TestApplyOperation:
         assert len(result.nodes) == 1
         assert result.nodes[0].type == "conclusion"
 
-    def test_apply_update_node(self, simple_graph: QNRGraph):
+    def test_apply_update_node(self, simple_graph: DTGraph):
         """Apply update_node operation via dispatcher."""
         result = apply_operation(
             simple_graph,
@@ -816,7 +816,7 @@ class TestApplyOperation:
         updated = next(n for n in result.nodes if n.id == "q1")
         assert updated.data.text == "Updated via dispatcher"
 
-    def test_apply_update_conclusion_node(self, simple_graph: QNRGraph):
+    def test_apply_update_conclusion_node(self, simple_graph: DTGraph):
         """Apply update_conclusion_node operation via dispatcher."""
         result = apply_operation(
             simple_graph,
@@ -831,7 +831,7 @@ class TestApplyOperation:
         updated = next(n for n in result.nodes if n.id == "conclusion_1")
         assert updated.data.title == "Updated Title"
 
-    def test_apply_delete_node(self, simple_graph: QNRGraph):
+    def test_apply_delete_node(self, simple_graph: DTGraph):
         """Apply delete_node operation via dispatcher."""
         result = apply_operation(
             simple_graph,
@@ -841,7 +841,7 @@ class TestApplyOperation:
 
         assert not any(n.id == "q1" for n in result.nodes)
 
-    def test_apply_create_edge(self, simple_graph: QNRGraph):
+    def test_apply_create_edge(self, simple_graph: DTGraph):
         """Apply create_edge operation via dispatcher."""
         # Add another node first
         graph = apply_operation(
@@ -866,7 +866,7 @@ class TestApplyOperation:
             for e in result.edges
         )
 
-    def test_apply_update_edge(self, multi_edge_graph: QNRGraph):
+    def test_apply_update_edge(self, multi_edge_graph: DTGraph):
         """Apply update_edge operation via dispatcher."""
         result = apply_operation(
             multi_edge_graph,
@@ -885,7 +885,7 @@ class TestApplyOperation:
             for e in result.edges
         )
 
-    def test_apply_delete_edge(self, simple_graph: QNRGraph):
+    def test_apply_delete_edge(self, simple_graph: DTGraph):
         """Apply delete_edge operation via dispatcher."""
         result = apply_operation(
             simple_graph,
@@ -895,7 +895,7 @@ class TestApplyOperation:
 
         assert len(result.edges) == 0
 
-    def test_apply_unknown_operation_raises(self, simple_graph: QNRGraph):
+    def test_apply_unknown_operation_raises(self, simple_graph: DTGraph):
         """Unknown operation should raise ValueError."""
         with pytest.raises(ValueError, match="Unknown operation: fake_operation"):
             apply_operation(simple_graph, "fake_operation", {})
@@ -909,7 +909,7 @@ class TestApplyOperation:
 class TestImmutability:
     """Tests ensuring all operations are immutable."""
 
-    def test_nested_data_immutability(self, simple_graph: QNRGraph):
+    def test_nested_data_immutability(self, simple_graph: DTGraph):
         """Nested data structures should also be copied, not shared."""
         original_options = simple_graph.nodes[0].data.options.copy()
 
@@ -924,7 +924,7 @@ class TestImmutability:
         # Original nested data unchanged
         assert simple_graph.nodes[0].data.options == original_options
 
-    def test_chained_operations_immutability(self, empty_graph: QNRGraph):
+    def test_chained_operations_immutability(self, empty_graph: DTGraph):
         """Multiple chained operations shouldn't affect each other."""
         # Create first node
         graph1 = create_node(

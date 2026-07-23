@@ -8,7 +8,7 @@
 
   {% if readiness.validation_errors %}
     <div class="mb-6 border-l-4 border-red-500 pl-4">
-      <h2 class="text-sm font-semibold text-red-800 mb-2">Workflow structure</h2>
+      <h2 class="text-sm font-semibold text-red-800 mb-2">Graph structure</h2>
       <ul class="list-disc list-inside text-sm text-red-900 space-y-1">
         {% for err in readiness.validation_errors %}
           <li>{{ err }}</li>

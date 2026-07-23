@@ -1,6 +1,6 @@
 """Parse / validate / create-draft helpers for MCP authoring graph tools.
 
-Accepts a raw ``QNRGraph`` JSON object or a ``.smeme.json`` export envelope
+Accepts a raw ``DTGraph`` JSON object or a ``.smeme.json`` export envelope
 (``smeme_export_version`` + ``qnr.graph``). Draft accept uses
 ``validate_graph_for_editing`` — not publication / Deploy readiness.
 """
@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from smeme.core.models import QNR, User
 from smeme.mcp.tool_contract import tool_error_json
 from smeme.qnr.helpers.validation import ValidationResult, validate_graph_for_editing
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES = 512 * 1024
 
@@ -38,13 +38,13 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
         if not raw:
             return tool_error_json(
                 "invalid_graph",
-                "qnr_graph_json is empty. Pass a QNR graph object "
+                "dt_graph_json is empty. Pass a decision-tree graph object "
                 "(nodes, edges, metadata) or a SMEme export envelope.",
             )
         if len(raw.encode("utf-8")) > AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES:
             return tool_error_json(
                 "payload_too_large",
-                f"qnr_graph_json exceeds {AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES} bytes. "
+                f"dt_graph_json exceeds {AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES} bytes. "
                 "Reduce the graph size and try again.",
             )
         try:
@@ -52,13 +52,13 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
         except json.JSONDecodeError as exc:
             return tool_error_json(
                 "invalid_graph",
-                f"qnr_graph_json is not valid JSON: {exc.msg}",
+                f"dt_graph_json is not valid JSON: {exc.msg}",
             )
 
     if not isinstance(payload, dict):
         return tool_error_json(
             "invalid_graph",
-            "qnr_graph_json must be a JSON object (graph or SMEme export envelope).",
+            "dt_graph_json must be a JSON object (graph or SMEme export envelope).",
         )
 
     if "nodes" in payload and "edges" in payload:
@@ -90,13 +90,13 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
     )
 
 
-def parse_authoring_graph_json(qnr_graph_json: str) -> QNRGraph | str:
-    """Parse agent JSON into ``QNRGraph``, or return tool-error JSON."""
-    graph_dict = extract_graph_dict(qnr_graph_json)
+def parse_authoring_graph_json(dt_graph_json: str) -> DTGraph | str:
+    """Parse agent JSON into ``DTGraph``, or return tool-error JSON."""
+    graph_dict = extract_graph_dict(dt_graph_json)
     if isinstance(graph_dict, str):
         return graph_dict
     try:
-        return QNRGraph.model_validate(graph_dict)
+        return DTGraph.model_validate(graph_dict)
     except ValidationError as exc:
         # Keep message short — full Pydantic dump is noisy for agents.
         first = exc.errors()[0] if exc.errors() else None
@@ -113,7 +113,7 @@ def parse_authoring_graph_json(qnr_graph_json: str) -> QNRGraph | str:
         return tool_error_json("invalid_graph", msg)
 
 
-def validation_payload(graph: QNRGraph, result: ValidationResult) -> dict[str, Any]:
+def validation_payload(graph: DTGraph, result: ValidationResult) -> dict[str, Any]:
     """Structured validate response body (no watermark — caller adds via ``_tool_json``)."""
     suggestions = result.get("suggestions") or {}
     return {
@@ -141,10 +141,10 @@ async def create_draft_from_graph(
     db: AsyncSession,
     *,
     user: User,
-    graph: QNRGraph,
+    graph: DTGraph,
     title_override: str | None = None,
 ) -> tuple[QNR, ValidationResult] | str:
-    """Insert a draft QNR when edit-valid; enforce active-workflow quota.
+    """Insert a draft QNR when edit-valid; enforce active decision-tree quota.
 
     Returns ``(qnr, validation)`` or tool-error JSON.
     """
@@ -175,7 +175,7 @@ async def create_draft_from_graph(
             quota.message,
             remaining=quota.remaining,
             limit=quota.limit,
-            dimension="workflows",
+            dimension="decision trees",
             resets_at=quota.resets_at_iso,
         )
 
@@ -184,7 +184,7 @@ async def create_draft_from_graph(
     if not title:
         return tool_error_json(
             "invalid_graph",
-            "Workflow title is required. Set metadata.title on the graph, or pass title.",
+            "Decision tree title is required. Set metadata.title on the graph, or pass title.",
         )
     if len(title) > 200:
         title = title[:200]

@@ -1,4 +1,4 @@
-"""User-facing copy for agentic QNR generation (no API/infra jargon)."""
+"""User-facing copy for agentic decision-tree generation (no API/infra jargon)."""
 
 _IN_PROGRESS_LINK = (
     '<a href="/qnr/dashboard#in-progress" class="text-brand-600 underline hover:text-brand-800">'

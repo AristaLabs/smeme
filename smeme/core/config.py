@@ -149,7 +149,7 @@ class Settings(BaseSettings):
             )
         return self
 
-    # Tavily (web search for agentic QNR generation)
+    # Tavily (web search for agentic decision-tree generation)
     tavily_api_key: str | None = Field(default=None, alias="TAVILY_API_KEY")
 
     # Email (SendGrid)
@@ -311,15 +311,16 @@ class Settings(BaseSettings):
     )
 
     mcp_authoring_graph_tools_enabled: bool = Field(
-        default=False,
+        default=True,
         alias="MCP_AUTHORING_GRAPH_TOOLS_ENABLED",
     )
     """When true, register chat-authoring tools: design guidance, validate graph, create draft.
 
-    Secondary authoring path: agent builds a workflow in chat using server-owned design
-    guidance, validates the graph, then creates a dashboard draft (bypasses the generation
-    wizard). Default false until dogfood. Quota weight 0 for MCP weighted calls;
-    create_draft still enforces the active-workflow plan cap.
+    Defaults on whenever MCP is used: the agent builds a decision-tree draft in chat using
+    server-owned design guidance (no server-side LLM/search), validates ``dt_graph_json``,
+    then creates a dashboard draft. Set ``false`` to opt out. Independent of
+    ``SMEME_AI_GENERATION_ENABLED`` (web wizard only). Quota weight 0 for MCP weighted
+    calls; create_draft still enforces the active decision-tree plan cap.
     """
 
     # Clerk (hosted auth). When ``clerk_secret_key`` and ``clerk_sign_in_url`` are set, the app uses

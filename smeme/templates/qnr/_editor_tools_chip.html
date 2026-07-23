@@ -2,7 +2,7 @@
 {% set tr = tools_row_state|default('not_built') %}
 {% if tr == 'live' %}
 <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-600/15"
-      title="Your workflow is deployed and up to date.">
+      title="Your decision tree is deployed and up to date.">
   Live
 </span>
 {% elif tr == 'stale' %}

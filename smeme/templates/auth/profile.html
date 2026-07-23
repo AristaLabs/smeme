@@ -92,7 +92,7 @@
 
         {% if usage_summary is defined %}
         <div class="grid gap-3 sm:grid-cols-3 mb-5">
-          {% for key, label in [('workflows', 'Workflows'), ('mcp_weighted', 'MCP calls (mo)'), ('wizard_completions', 'AI builds (mo)')] %}
+          {% for key, label in [('decision trees', 'Decision trees'), ('mcp_weighted', 'MCP calls (mo)'), ('wizard_completions', 'AI builds (mo)')] %}
           {% set dim = usage_summary[key] %}
           <div class="rounded-lg border px-3 py-2.5 {% if dim.at_warning %}border-amber-300 bg-amber-50/50{% else %}border-ui-line bg-ui-surface-muted/40{% endif %}">
             <p class="text-xs font-medium text-ui-ink-muted uppercase tracking-wide">{{ label }}</p>
@@ -171,7 +171,7 @@
         <div class="rounded-lg border border-danger-300 bg-danger-100/70 px-4 py-3.5 mb-5 space-y-2">
           <p class="text-xs font-bold uppercase tracking-wide text-danger-900">You will lose everything:</p>
           <ul class="list-disc pl-5 space-y-1 text-sm font-medium text-danger-900/90">
-            <li>All workflows, versions, deployed reasoning tools, and evaluation history</li>
+            <li>All decision trees, versions, deployed reasoning tools, and evaluation history</li>
             <li>Sessions, memos, and creator profile data</li>
             <li>Active Pro subscription — canceled immediately; remaining prepaid time is forfeited and cannot be recovered if you sign up again</li>
           </ul>

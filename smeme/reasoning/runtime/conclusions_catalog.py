@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.runtime.analyze import ConclusionSatQueryEnumeration
 from smeme.reasoning.runtime.counterfactual import conclusion_title_from_graph
 
@@ -13,7 +13,7 @@ from smeme.reasoning.runtime.counterfactual import conclusion_title_from_graph
 def build_conclusions_catalog_wire(
     *,
     qnr_id: UUID,
-    graph: QNRGraph,
+    graph: DTGraph,
     enumeration: ConclusionSatQueryEnumeration,
 ) -> dict[str, Any]:
     """Product-shaped catalog of conclusion nodes and structural reachability.

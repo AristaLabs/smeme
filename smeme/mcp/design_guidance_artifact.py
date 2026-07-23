@@ -10,10 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = ROOT / "agent-skills"
-DESIGN_SOURCE_PATH = SKILLS_ROOT / "smeme-workflow-author" / "DESIGN.md"
+DESIGN_SOURCE_PATH = SKILLS_ROOT / "smeme-decision-tree-author" / "DESIGN.md"
 GENERATED_PATH = Path(__file__).resolve().parent / "_generated_design_guidance.py"
 
-DESIGN_GUIDANCE_CONTENT_VERSION = "1.0.0"
+DESIGN_GUIDANCE_CONTENT_VERSION = "1.1.0"
 
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
 

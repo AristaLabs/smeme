@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.ir.types import IR, IRNodeKind
 from smeme.reasoning.runtime.assumptions import (
     EMPTY_ASSUMPTIONS,
@@ -104,7 +104,7 @@ def _conclusion_ids(ir: IR) -> list[str]:
     return sorted(n.id for n in ir.nodes if n.kind == IRNodeKind.CONCLUSION)
 
 
-def _question_label(graph: QNRGraph, node_id: str) -> str:
+def _question_label(graph: DTGraph, node_id: str) -> str:
     for node in graph.nodes:
         if node.id != node_id:
             continue
@@ -116,7 +116,7 @@ def _question_label(graph: QNRGraph, node_id: str) -> str:
     return node_id
 
 
-def _path_node_wire(graph: QNRGraph, ir: IR, node_id: str) -> PathNodeWire:
+def _path_node_wire(graph: DTGraph, ir: IR, node_id: str) -> PathNodeWire:
     kinds = {n.id: n.kind for n in ir.nodes}
     kind = kinds.get(node_id)
     if kind == IRNodeKind.CONCLUSION:
@@ -128,7 +128,7 @@ def _path_node_wire(graph: QNRGraph, ir: IR, node_id: str) -> PathNodeWire:
     return PathNodeWire(kind="answered", label=_question_label(graph, node_id))
 
 
-def _conclusion_wire(graph: QNRGraph, conclusion_id: str) -> dict[str, str]:
+def _conclusion_wire(graph: DTGraph, conclusion_id: str) -> dict[str, str]:
     return {
         "conclusion_id": conclusion_id,
         "conclusion_title": conclusion_title_from_graph(graph, conclusion_id),
@@ -225,7 +225,7 @@ def _changed_answers_wire(
 
 def run_edit_affects_path(
     ir: IR,
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     base_payload: dict[str, Any],
     override_payload: dict[str, Any],

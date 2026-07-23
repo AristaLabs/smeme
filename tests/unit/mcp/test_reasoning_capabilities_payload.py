@@ -25,7 +25,7 @@ def test_reasoning_capabilities_document_shape() -> None:
     assert SEMVER_RE.fullmatch(doc["version"])
     assert doc["version"] == REASONING_CAPABILITIES_VERSION
     assert doc["reasoning_mcp_surface"] == REASONING_CAPABILITIES_MCP_SURFACE
-    assert doc["reasoning"]["tools"] == [
+    expected_tools = [
         "smeme_reasoning_list",
         "smeme_reasoning_validate_answers",
         "smeme_reasoning_evaluate",
@@ -39,6 +39,15 @@ def test_reasoning_capabilities_document_shape() -> None:
         "smeme_reasoning_guidance_check",
         "smeme_reasoning_guidance_get",
     ]
+    if settings.mcp_authoring_graph_tools_enabled:
+        expected_tools.extend(
+            [
+                "smeme_authoring_design_guidance",
+                "smeme_authoring_validate_graph",
+                "smeme_authoring_create_draft",
+            ]
+        )
+    assert doc["reasoning"]["tools"] == expected_tools
     assert doc["reasoning"]["harness_next_enum"] == [
         "phase_1_continue",
         "phase_2_ok",
@@ -80,7 +89,7 @@ def test_reasoning_capabilities_document_shape() -> None:
 
 def test_reasoning_capabilities_document_has_stable_top_level_keys() -> None:
     doc = reasoning_capabilities_document()
-    assert set(doc.keys()) == {
+    expected_keys = {
         "service",
         "version",
         "latest_plugin_version",
@@ -89,5 +98,8 @@ def test_reasoning_capabilities_document_has_stable_top_level_keys() -> None:
         "reasoning",
         "docs",
     }
+    if settings.mcp_authoring_graph_tools_enabled:
+        expected_keys |= {"authoring_graph", "authoring_design"}
+    assert set(doc.keys()) == expected_keys
     # latest_plugin_version is an unambiguous alias for skill-side version comparison.
     assert doc["latest_plugin_version"] == doc["version"]

@@ -34,7 +34,7 @@ Warnings (machine-readable codes)
 
 from __future__ import annotations
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.cevi.corpus_attribution import (
     attributed_chunk_ids_conclusion,
     attributed_chunk_ids_question,
@@ -66,7 +66,7 @@ def _truncate_gloss(raw: str) -> tuple[str, bool]:
     return t[:CEVI_MAX_GLOSS_TEXT_LENGTH], True
 
 
-def _conclusion_gloss_text(graph: QNRGraph, node_id: str) -> str:
+def _conclusion_gloss_text(graph: DTGraph, node_id: str) -> str:
     """Compose the human-facing gloss string stored on ``node:{id}`` for conclusions."""
     node = graph.get_node(node_id)
     if node is None or not node.is_conclusion():
@@ -83,7 +83,7 @@ def _conclusion_gloss_text(graph: QNRGraph, node_id: str) -> str:
 
 def build_deterministic_corpus_partial_contract(
     *,
-    graph: QNRGraph,
+    graph: DTGraph,
     corpus_snapshot: ResearchCorpusSnapshot,
     graph_hash: str,
     ir_format_version: int,

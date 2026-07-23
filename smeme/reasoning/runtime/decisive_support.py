@@ -16,7 +16,7 @@ import itertools
 from dataclasses import dataclass, field
 from typing import Any
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.ir.types import IR, IRNodeKind
 from smeme.reasoning.runtime.assumptions import (
     EMPTY_ASSUMPTIONS,
@@ -213,7 +213,7 @@ def _is_inclusion_minimal(
 
 def find_minimal_decisive_supports(
     ir: IR,
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     base_norm: NormalizedAnswers,
     target_conclusion_id: str,

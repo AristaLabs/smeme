@@ -1,4 +1,4 @@
-"""State models for agentic QNR generation workflow.
+"""State models for agentic decision-tree generation workflow.
 
 TypedDict state for LangGraph workflows following project patterns
 from LANGGRAPH_INTEGRATION_GUIDE.md.
@@ -38,7 +38,7 @@ class AugmentationRecord(TypedDict):
 
 class AgenticQNRGenerationState(TypedDict, total=False):
     """
-    LangGraph workflow state for agentic QNR generation.
+    LangGraph workflow state for agentic decision-tree generation.
 
     Following project patterns (per LANGGRAPH_INTEGRATION_GUIDE.md):
     - All fields must be serializable (no AsyncSession, no complex objects)
@@ -97,7 +97,7 @@ class AgenticQNRGenerationState(TypedDict, total=False):
     design_token_usage: NotRequired[dict]  # Token usage stats (prompt/completion/total)
 
     # === Phase 3: Build + Validate + Fix (Subgraph) ===
-    generated_graph: NotRequired[dict]  # QNRGraph as dict (Pydantic model_dump)
+    generated_graph: NotRequired[dict]  # DTGraph as dict (Pydantic model_dump)
     build_source: NotRequired[str]  # Track source: "llm_generated" or "llm_failed"
     build_raw: NotRequired[dict]  # Full build response for debugging
     build_token_usage: NotRequired[dict]  # Token stats for build call

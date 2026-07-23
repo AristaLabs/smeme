@@ -1,1 +1,1 @@
-"""Subgraphs for agentic QNR generation workflow."""
+"""Subgraphs for agentic decision-tree generation workflow."""

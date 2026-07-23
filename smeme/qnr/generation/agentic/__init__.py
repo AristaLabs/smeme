@@ -15,7 +15,7 @@ Flow:
         - Author review/edit
 
     Phase 3: Build + Deterministic Fix
-        - Build QNRGraph from edited markdown
+        - Build DTGraph from edited markdown
         - Validate and auto-fix structural issues
         - Save to database
 """

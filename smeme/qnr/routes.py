@@ -128,19 +128,31 @@ async def _dashboard_page_context(
     success_message: str | None = None,
 ) -> dict[str, Any]:
     """Single context dict for every ``qnr/dashboard.html`` render (HTMX full swaps included)."""
-    from smeme.qnr.generation.agentic.services import checkpoint_manager
-
     my_qnrs = await _fetch_dashboard_qnrs(db, current_user.id)
     tools_row = await _assistant_tools_row_map(db, my_qnrs)
-    in_progress_generations = await checkpoint_manager.list_user_generations(
-        db=db,
-        user_id=current_user.id,
-    )
-    in_progress_generations = await _prune_completed_dashboard_generations(
-        db,
-        current_user,
-        in_progress_generations,
-    )
+
+    ai_generation_enabled = settings.smeme_ai_generation_enabled
+    in_progress_generations: list[Any] = []
+    wizard_start_block = None
+    if ai_generation_enabled:
+        from smeme.billing.quota import check_wizard_start_block
+        from smeme.qnr.generation.agentic.services import checkpoint_manager
+
+        in_progress_generations = await checkpoint_manager.list_user_generations(
+            db=db,
+            user_id=current_user.id,
+        )
+        in_progress_generations = await _prune_completed_dashboard_generations(
+            db,
+            current_user,
+            in_progress_generations,
+        )
+        wizard_start_block = await check_wizard_start_block(
+            db,
+            current_user,
+            in_progress_count=len(in_progress_generations),
+        )
+
     show_deploy_success = request.query_params.get("deployed") == "1"
     show_generation_deleted = request.query_params.get("generation_deleted") == "1"
     from smeme.billing.access_policy import (
@@ -149,7 +161,6 @@ async def _dashboard_page_context(
         is_qnr_dashboard_grayed,
     )
     from smeme.billing.providers import hosted_quota_enforcement_enabled
-    from smeme.billing.quota import check_wizard_start_block
     from smeme.billing.usage import build_usage_summary, mcp_weighted_by_qnr_month
 
     mcp_connect_ctx = {
@@ -157,11 +168,6 @@ async def _dashboard_page_context(
         **mcp_connect_template_context(settings),
     }
     usage_summary = await build_usage_summary(db, current_user)
-    wizard_start_block = await check_wizard_start_block(
-        db,
-        current_user,
-        in_progress_count=len(in_progress_generations),
-    )
     mcp_calls_by_qnr = await mcp_weighted_by_qnr_month(db, current_user)
     active_root_count = await count_active_root_workflows(db, current_user.id)
     billing_ctx = billing_lifecycle_context(current_user, active_root_count=active_root_count)
@@ -178,6 +184,10 @@ async def _dashboard_page_context(
         "quota_enforcement_enabled": hosted_quota_enforcement_enabled(),
         "usage_summary": usage_summary,
         "wizard_start_block": wizard_start_block,
+        "ai_generation_enabled": ai_generation_enabled,
+        "mcp_authoring_enabled": (
+            settings.mcp_enabled and settings.mcp_authoring_graph_tools_enabled
+        ),
         "mcp_calls_by_qnr": mcp_calls_by_qnr,
         "show_upgraded": show_upgraded,
         "show_deploy_success": show_deploy_success,

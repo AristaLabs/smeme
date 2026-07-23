@@ -11,7 +11,7 @@ from collections import deque
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 BRANCHING_QUALITY_PREFIX = "Branching quality:"
 
@@ -76,7 +76,7 @@ def _is_collect_only(node_id: str, collect_only_question_ids: frozenset[str]) ->
     return node_id in collect_only_question_ids
 
 
-def _entry_node_id(graph: QNRGraph) -> str | None:
+def _entry_node_id(graph: DTGraph) -> str | None:
     has_incoming = {edge.target for edge in graph.edges}
     has_outgoing = {edge.source for edge in graph.edges}
     candidates = sorted(has_outgoing - has_incoming)
@@ -85,7 +85,7 @@ def _entry_node_id(graph: QNRGraph) -> str | None:
     return candidates[0] if candidates else None
 
 
-def _reachable_from_entry(graph: QNRGraph, start: str | None) -> set[str]:
+def _reachable_from_entry(graph: DTGraph, start: str | None) -> set[str]:
     if not start:
         return set()
     reachable: set[str] = {start}
@@ -102,7 +102,7 @@ def _reachable_from_entry(graph: QNRGraph, start: str | None) -> set[str]:
     return reachable
 
 
-def _path_lengths_to_conclusions(graph: QNRGraph) -> list[int]:
+def _path_lengths_to_conclusions(graph: DTGraph) -> list[int]:
     """Count question hops from entry to each conclusion path (edge-count DFS)."""
     entry = _entry_node_id(graph)
     conclusion_ids = graph.conclusion_ids
@@ -127,7 +127,7 @@ def _path_lengths_to_conclusions(graph: QNRGraph) -> list[int]:
 
 
 def _compute_metrics(
-    graph: QNRGraph,
+    graph: DTGraph,
     collect_only_question_ids: frozenset[str],
 ) -> BranchingMetrics:
     question_nodes = [node for node in graph.nodes if node.type == "question"]
@@ -176,7 +176,7 @@ def _compute_metrics(
     )
 
 
-def _detect_sequential_prefix_funnel(graph: QNRGraph) -> BranchingDiagnostic | None:
+def _detect_sequential_prefix_funnel(graph: DTGraph) -> BranchingDiagnostic | None:
     """Error when Q1→Q2→Q3→Q4 pass-through with ≥4 questions and no early split."""
     question_count = sum(1 for node in graph.nodes if node.type == "question")
     if question_count < 4:
@@ -209,7 +209,7 @@ def _detect_sequential_prefix_funnel(graph: QNRGraph) -> BranchingDiagnostic | N
     )
 
 
-def _detect_early_reconvergence(graph: QNRGraph) -> BranchingDiagnostic | None:
+def _detect_early_reconvergence(graph: DTGraph) -> BranchingDiagnostic | None:
     """Warn when Q1 cosmetic fork reconverges within one hop."""
     node = graph.get_node("q1")
     if node is None or node.type != "question":
@@ -252,7 +252,7 @@ def _detect_early_reconvergence(graph: QNRGraph) -> BranchingDiagnostic | None:
 
 
 def _validate_conclusion_allowlist(
-    graph: QNRGraph,
+    graph: DTGraph,
     allowed_conclusion_ids: frozenset[str],
 ) -> list[BranchingDiagnostic]:
     from smeme.qnr.generation.agentic.conclusions_parse import graph_conclusion_id_to_allowlist_id
@@ -299,7 +299,7 @@ def _validate_conclusion_allowlist(
 
 
 def assess_branching_quality(
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     collect_only_question_ids: frozenset[str] | None = None,
     allowed_conclusion_ids: frozenset[str] | None = None,
@@ -440,6 +440,6 @@ def assess_branching_quality(
     return assessment
 
 
-def validate_branching_quality(graph: QNRGraph) -> list[str]:
+def validate_branching_quality(graph: DTGraph) -> list[str]:
     """Return blocking error messages only (backward-compatible helper)."""
     return assess_branching_quality(graph).errors

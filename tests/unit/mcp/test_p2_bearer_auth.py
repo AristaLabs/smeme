@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
+import time as time_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
-import time as time_module
 
 from smeme.mcp.bearer_auth import (
     MCPAuthError,

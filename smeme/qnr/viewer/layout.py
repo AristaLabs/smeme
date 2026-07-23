@@ -6,7 +6,7 @@ This module is VIEWER-ONLY. The Editor never calculates positions.
 import logging
 from collections import deque
 
-from smeme.qnr.models import GraphNode, QNRGraph
+from smeme.qnr.models import DTGraph, GraphNode
 from smeme.qnr.viewer.models import GraphVisualization, NodePosition, VisualEdge, VisualNode
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def visual_node_tooltip(node: GraphNode, full_text: str) -> str:
 
 
 def _connectivity_maps(
-    graph: QNRGraph,
+    graph: DTGraph,
 ) -> tuple[dict[str, list], dict[str, list]]:
     """Incoming and outgoing adjacency lists (edge list order preserved per source)."""
     incoming = {node.id: [] for node in graph.nodes}
@@ -63,7 +63,7 @@ def _connectivity_maps(
 
 
 def _bfs_layers_grouped(
-    graph: QNRGraph,
+    graph: DTGraph,
 ) -> tuple[list[str], dict[int, list[str]], dict[str, list], dict[str, list]]:
     """
     Entry node ids (layout fallback if none), layer -> node ids in layout order,
@@ -95,7 +95,7 @@ def _bfs_layers_grouped(
     return entry_nodes, layers, outgoing, incoming
 
 
-def linear_node_ids_for_layout(graph: QNRGraph) -> list[str]:
+def linear_node_ids_for_layout(graph: DTGraph) -> list[str]:
     """
     Flat node id order implied by the same BFS layering as ``calculate_layout``.
 
@@ -111,7 +111,7 @@ def linear_node_ids_for_layout(graph: QNRGraph) -> list[str]:
     return ordered
 
 
-def ordered_nodes_for_checklist(graph: QNRGraph) -> list[GraphNode]:
+def ordered_nodes_for_checklist(graph: DTGraph) -> list[GraphNode]:
     """``GraphNode`` list in ``linear_node_ids_for_layout`` order for templates."""
     id_order = linear_node_ids_for_layout(graph)
     id_to_node = {n.id: n for n in graph.nodes}
@@ -119,12 +119,12 @@ def ordered_nodes_for_checklist(graph: QNRGraph) -> list[GraphNode]:
 
 
 def calculate_layout(
-    graph: QNRGraph,
+    graph: DTGraph,
     selected_node_id: str | None = None,
     node_validation_status: dict[str, dict[str, list[str]]] | None = None,
 ) -> GraphVisualization:
     """
-    Calculate hierarchical layout for QNR graph using BFS.
+    Calculate hierarchical layout for DTGraph using BFS.
 
     Algorithm:
     1. Find entry points (nodes with no incoming edges)
@@ -133,7 +133,7 @@ def calculate_layout(
     4. Create VisualNodes and VisualEdges with styling
 
     Args:
-        graph: Semantic QNR graph
+        graph: Semantic DTGraph
         selected_node_id: Optional node to highlight
         node_validation_status: Optional dict mapping node_id -> validation issues
 

@@ -1,4 +1,4 @@
-"""Viewer-specific models for QNR graph visualization.
+"""Viewer-specific models for DTGraph visualization.
 
 These models are ephemeral outputs of the Viewer Workflow.
 They are NEVER used by the Editor Workflow.
@@ -9,7 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 # =============================================================================
 # Ephemeral Visualization Models (Viewer-Only Outputs)
@@ -28,7 +28,7 @@ class VisualNode(BaseModel):
     """
     Visual representation of a node (ephemeral, viewer-only).
 
-    Combines semantic data (from QNRGraph) with visual layout.
+    Combines semantic data (from DTGraph) with visual layout.
     """
 
     id: str = Field(description="Node ID")
@@ -50,7 +50,7 @@ class VisualEdge(BaseModel):
     """
     Visual representation of an edge (ephemeral, viewer-only).
 
-    Combines semantic data (from QNRGraph) with visual styling.
+    Combines semantic data (from DTGraph) with visual styling.
 
     Note: When multiple edges exist between the same source and target nodes,
     they are grouped into a single VisualEdge with multiple conditions.
@@ -107,7 +107,7 @@ class QNRViewerState(TypedDict):
     selected_node_id: NotRequired[str | None]  # Optional node selection
 
     # Loaded data
-    graph: NotRequired[QNRGraph]  # Loaded from cache or DB
+    graph: NotRequired[DTGraph]  # Loaded from cache or DB
     qnr_title: NotRequired[str]
     is_public: NotRequired[bool]  # Controls public visibility
     was_ever_public: NotRequired[bool]  # Track if QNR was ever public

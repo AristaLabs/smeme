@@ -49,7 +49,7 @@ from smeme.qnr.helpers.validation import (
     get_node_validation_status,
     validate_graph_for_editing,
 )
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.qnr.viewer.layout import ordered_nodes_for_checklist
 from smeme.qnr.viewer.workflow import build_viewer_workflow
 from smeme.qnr.viewer.workflow_config import build_viewer_workflow_config
@@ -243,7 +243,7 @@ def render_editor_oob_swaps(
     """
 
 
-def _allocate_question_node_id(graph: QNRGraph, requested: str | None) -> str:
+def _allocate_question_node_id(graph: DTGraph, requested: str | None) -> str:
     """Pick a unique question node id from ``requested`` or autogenerate ``q_<hex>``."""
     existing = {n.id for n in graph.nodes}
     rid = (requested or "").strip()
@@ -263,7 +263,7 @@ def _allocate_question_node_id(graph: QNRGraph, requested: str | None) -> str:
     raise ValueError(msg)
 
 
-def _allocate_conclusion_node_id(graph: QNRGraph, requested: str | None) -> str:
+def _allocate_conclusion_node_id(graph: DTGraph, requested: str | None) -> str:
     """Pick a unique conclusion node id from ``requested`` or autogenerate ``c_<hex>``."""
     existing = {n.id for n in graph.nodes}
     rid = (requested or "").strip()
@@ -842,7 +842,7 @@ async def create_edge(
     req: CreateEdgeRequest = Depends(),
 ) -> HTMLResponse:
     """
-    Create a new edge in the QNR graph.
+    Create a new edge in the DTGraph.
 
     Returns updated editor view via HTMX swap.
     """
@@ -1050,7 +1050,7 @@ async def delete_edge(
     req: DeleteEdgeRequest = Depends(),
 ) -> HTMLResponse:
     """
-    Delete an edge from the QNR graph.
+    Delete an edge from the DTGraph.
 
     Returns updated editor view via HTMX swap.
     """

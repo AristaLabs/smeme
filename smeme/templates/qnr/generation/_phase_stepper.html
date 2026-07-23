@@ -1,6 +1,6 @@
 {#- Read-only phase stepper for generation flow.
     current_phase: None | research | conclusions | design | build | complete
-    Step 1 = Relevant Factors Analysis + Possible Conclusions, Step 2 = Design Workflow Decision Tree, Step 3 = Generate Workflow + Open in Editor
+    Step 1 = Relevant Factors Analysis + Possible Conclusions, Step 2 = Design Decision Tree, Step 3 = Generate Graph + Open in Editor
 -#}
 {% set current_phase = current_phase | default(none) %}
 {% set step1_current = current_phase in (none, 'research', 'conclusions') %}
@@ -44,12 +44,12 @@
                 <span class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-ui-line-strong bg-ui-surface text-ui-ink-subtle text-sm font-semibold">2</span>
                 {% endif %}
                 <span class="text-sm font-medium {% if step2_current %}text-brand-700 dark:text-brand-300{% elif step2_complete %}text-green-700 dark:text-green-400{% else %}text-ui-ink-subtle{% endif %}">
-                    Design Workflow Decision Tree
+                    Design Decision Tree
                 </span>
             </span>
         </li>
 
-        {# Step 3: Generate Workflow + Open in Editor #}
+        {# Step 3: Generate graph + open in editor #}
         <li class="flex items-center">
             <span class="flex items-center gap-2">
                 {% if step3_complete %}
@@ -62,7 +62,7 @@
                 <span class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-ui-line-strong bg-ui-surface text-ui-ink-subtle text-sm font-semibold">3</span>
                 {% endif %}
                 <span class="text-sm font-medium {% if step3_current %}text-brand-700 dark:text-brand-300{% elif step3_complete %}text-green-700 dark:text-green-400{% else %}text-ui-ink-subtle{% endif %}">
-                    Generate Workflow + Open in Editor
+                    Generate Graph + Open in Editor
                 </span>
             </span>
         </li>

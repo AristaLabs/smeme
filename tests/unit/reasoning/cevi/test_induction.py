@@ -4,7 +4,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -14,8 +14,8 @@ from smeme.reasoning.ir.types import IR_FORMAT_VERSION
 from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
 
 
-def _minimal_publish_graph() -> QNRGraph:
-    return QNRGraph(
+def _minimal_publish_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

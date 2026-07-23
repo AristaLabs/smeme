@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.cevi.atom_catalog import canonical_ir_atom_catalog
 from smeme.reasoning.cevi.corpus_normalize import (
     ResearchCorpusSnapshot,
@@ -19,7 +19,7 @@ from smeme.reasoning.published_evidence_contract import PublishedEvidenceContrac
 def induce_published_evidence_contract_at_publish(
     *,
     ir_json: dict[str, Any],
-    graph: QNRGraph,
+    graph: DTGraph,
     graph_hash: str,
     ir_format_version: int,
     corpus_body: str | None,

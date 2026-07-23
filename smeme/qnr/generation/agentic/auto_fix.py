@@ -1,4 +1,4 @@
-"""Deterministic auto-fix for QNRGraph validation issues.
+"""Deterministic auto-fix for DTGraph validation issues.
 
 Applies rule-based fixes for common structural problems.
 Reuses existing operations from smeme/qnr/editor/operations.py.
@@ -17,18 +17,18 @@ import time
 from difflib import get_close_matches
 
 from smeme.qnr.editor.operations import create_edge, delete_edge, delete_node
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 logger = logging.getLogger("smeme.qnr.generation.agentic")
 
 
 def auto_fix_graph(
-    graph: QNRGraph,
+    graph: DTGraph,
     errors: list[str],
     warnings: list[str],
-) -> tuple[QNRGraph, list[str], list[str], list[str]]:
+) -> tuple[DTGraph, list[str], list[str], list[str]]:
     """
-    Apply deterministic fixes to a QNRGraph.
+    Apply deterministic fixes to a DTGraph.
 
     Fixes are applied in order:
     1. Edge fixes (self-loops, duplicates, multiple defaults, condition typos)
@@ -37,13 +37,13 @@ def auto_fix_graph(
     4. Warning fixes (missing default edges) - but NOT to conclusions
 
     Args:
-        graph: The QNRGraph to fix
+        graph: The DTGraph to fix
         errors: List of validation errors
         warnings: List of validation warnings
 
     Returns:
         Tuple of:
-        - Fixed QNRGraph
+        - Fixed DTGraph
         - Remaining errors (not fixed)
         - Remaining warnings (not fixed)
         - List of fixes applied (for UI display)
@@ -170,7 +170,7 @@ def auto_fix_graph(
     return graph, remaining_errors, remaining_warnings, fixes_applied
 
 
-def _remove_outgoing_edges_from_conclusion(graph: QNRGraph, node_id: str) -> tuple[QNRGraph, int]:
+def _remove_outgoing_edges_from_conclusion(graph: DTGraph, node_id: str) -> tuple[DTGraph, int]:
     """
     Remove all outgoing edges from a conclusion node.
 
@@ -190,7 +190,7 @@ def _remove_outgoing_edges_from_conclusion(graph: QNRGraph, node_id: str) -> tup
     return graph, removed
 
 
-def _remove_self_loops(graph: QNRGraph, node_id: str) -> QNRGraph:
+def _remove_self_loops(graph: DTGraph, node_id: str) -> DTGraph:
     """Remove all edges where source == target for a given node."""
     for edge in list(graph.edges):
         if edge.source == node_id and edge.target == node_id:
@@ -201,7 +201,7 @@ def _remove_self_loops(graph: QNRGraph, node_id: str) -> QNRGraph:
     return graph
 
 
-def _keep_first_default_edge(graph: QNRGraph, node_id: str) -> tuple[QNRGraph, int]:
+def _keep_first_default_edge(graph: DTGraph, node_id: str) -> tuple[DTGraph, int]:
     """
     Keep only the first default edge (condition=None) from a node.
 
@@ -226,7 +226,7 @@ def _keep_first_default_edge(graph: QNRGraph, node_id: str) -> tuple[QNRGraph, i
     return graph, removed
 
 
-def _remove_duplicate_edges(graph: QNRGraph, source: str, target: str) -> tuple[QNRGraph, int]:
+def _remove_duplicate_edges(graph: DTGraph, source: str, target: str) -> tuple[DTGraph, int]:
     """
     Remove duplicate edges between source and target.
 
@@ -254,8 +254,8 @@ def _remove_duplicate_edges(graph: QNRGraph, source: str, target: str) -> tuple[
 
 
 def _fuzzy_fix_condition(
-    graph: QNRGraph, node_id: str, bad_condition: str
-) -> tuple[QNRGraph, str] | None:
+    graph: DTGraph, node_id: str, bad_condition: str
+) -> tuple[DTGraph, str] | None:
     """
     Try to fix a condition typo by fuzzy matching to valid options.
 
@@ -298,15 +298,15 @@ def _fuzzy_fix_condition(
 
 
 def _remove_orphan_nodes(
-    graph: QNRGraph, exclude_conclusions: bool = False
-) -> tuple[QNRGraph, list[str]]:
+    graph: DTGraph, exclude_conclusions: bool = False
+) -> tuple[DTGraph, list[str]]:
     """
     Remove nodes with no incoming or outgoing edges (except entry node).
 
     Entry node is identified as the node with no incoming edges but has outgoing.
 
     Args:
-        graph: The QNRGraph to fix
+        graph: The DTGraph to fix
         exclude_conclusions: If True, don't remove conclusion nodes even if orphaned.
             Conclusions are terminal by design - they have no outgoing edges.
 
@@ -345,8 +345,8 @@ def _remove_orphan_nodes(
 
 
 def _add_default_edge_to_next(
-    graph: QNRGraph, node_id: str, conclusion_ids: set[str] | None = None
-) -> tuple[QNRGraph, str] | None:
+    graph: DTGraph, node_id: str, conclusion_ids: set[str] | None = None
+) -> tuple[DTGraph, str] | None:
     """
     Add a default edge from a node to the "next" node.
 
@@ -359,7 +359,7 @@ def _add_default_edge_to_next(
     Conclusions must be reached via conditional edges only.
 
     Args:
-        graph: The QNRGraph to fix
+        graph: The DTGraph to fix
         node_id: The node to add a default edge from
         conclusion_ids: Set of conclusion node IDs to avoid
 
@@ -401,7 +401,7 @@ def _add_default_edge_to_next(
 
 
 def _find_next_node_id(
-    graph: QNRGraph, current_id: str, conclusion_ids: set[str] | None = None
+    graph: DTGraph, current_id: str, conclusion_ids: set[str] | None = None
 ) -> str | None:
     """
     Find the next sequential question node ID.
@@ -414,7 +414,7 @@ def _find_next_node_id(
     Will NOT return conclusion nodes - only questions.
 
     Args:
-        graph: The QNRGraph
+        graph: The DTGraph
         current_id: Current node ID
         conclusion_ids: Set of conclusion node IDs to exclude
     """

@@ -35,8 +35,8 @@ Unless stated otherwise, **\(\mathcal{L}\)** in the terminology table above is *
 | Layer | Role |
 | ----- | ---- |
 | **IR** | **What may be said:** formal carriers, structural constraints, and the compiled theory \(T(\mathrm{IR})\) over a fixed atom set \(\mathcal{L}\). |
-| **QNR graph** | **How** the decision structure was **authored** (nodes, edges, question copy, options). Provenance for “who said what in the product.” |
-| **Research corpus** | **Why** those symbols **mean** what they mean in the SME domain: the same text (pasted + files + research merge) that fed **agentic QNR generation**, when present. Supplies **interpretive legitimacy** for **CEVI induction** (and thus for later runtime encoding). |
+| **DTGraph** | **How** the decision structure was **authored** (nodes, edges, question copy, options). Provenance for “who said what in the product.” |
+| **Research corpus** | **Why** those symbols **mean** what they mean in the SME domain: the same text (pasted + files + research merge) that fed **agentic decision-tree generation**, when present. Supplies **interpretive legitimacy** for **CEVI induction** (and thus for later runtime encoding). |
 | **CEVI induction** | **Pre-publish:** from QNR + IR + corpus (and policies), build **`PublishedEvidenceContract`**. |
 | **CEVI runtime** | **Per request:** map blob / encoded output to facts over \(\mathcal{L}\) via **admissible rewrites** using **only** the frozen contract—**not** a second prover, **not** a language extension, **not** a repeat of induction. |
 
@@ -48,8 +48,8 @@ Unless stated otherwise, **\(\mathcal{L}\)** in the terminology table above is *
 
 ```text
 research corpus
-   ├── agentic QNR generation
-   │      └── qnr_graph
+   ├── agentic decision-tree generation
+   │      └── dt_graph
    │             └── IR / solver theory T(IR)
    │
    └── CEVI induction (compile-time)
@@ -60,7 +60,7 @@ research corpus
 
 At **evaluate**, **CEVI runtime** (not induction) maps user/tool evidence into facts using that contract.
 
-- **Corpus alignment (induction only):** **CEVI induction** uses the **same** research corpus as agentic QNR generation when that corpus is persisted, so lexical context matches the graph’s domain. If there is no saved corpus, induction may fall back to graph-only metadata (weaker texture; product policy may require corpus for certain tiers).
+- **Corpus alignment (induction only):** **CEVI induction** uses the **same** research corpus as agentic decision-tree generation when that corpus is persisted, so lexical context matches the graph’s domain. If there is no saved corpus, induction may fall back to graph-only metadata (weaker texture; product policy may require corpus for certain tiers).
 - **No open-web search in CEVI induction:** **Tavily** (or equivalent live crawl) is **not** part of the publish-time surface-theory pipeline—results would be hard to freeze and would weaken `cevi_contract_hash` reproducibility. **Agentic QNR generation** may keep its own research stack; that is separate from **freezing** `PublishedEvidenceContract`.
 - **Established ontologies (validation):** When a QNR is marked **legal** (product toggle), induction may call a **stable ontology HTTP API** (e.g. [FOLIO — Federated Open Legal Information Ontology](https://openlegalstandard.org/resources/folio-api/), base `https://folio.openlegalstandard.org/`) **after** the LLM proposes glosses, synonym tables, and bridge rules, to **check** proposals for errors and omissions—not to replace the LLM as the primary author of bindings. **Snapshot** ontology hits (class id + definition text or digest at induction time) into the contract so audit and hashes remain stable if the public ontology evolves.
 - **Published boundary:** At publish, the product commits an artifact that includes **IR** and **PublishedEvidenceContract**. **CEVI runtime** only reads that contract—it does not re-derive it.
@@ -95,7 +95,7 @@ The compile row (e.g. `ReasoningCompiledArtifact`) should be able to attest:
 
 - **`ir_json`**, **`ir_format_version`**, **`graph_hash`** (existing story).
 - **`PublishedEvidenceContract`:** stored as **`cevi_contract_json`** with **`cevi_contract_hash`**. Columns are nullable in DDL for legacy or incomplete rows; **successful publish** writes both (today: v1 with `kind: ir_only` until corpus-backed induction).
-- **Provenance (hashes or ids):** at least `qnr_graph_hash` (or canonical graph hash already stored), `ir_hash` if you maintain a separate IR digest, **`research_corpus_hash`** (of the byte-identical corpus used for induction, or empty if none), **`cevi_contract_hash`**.
+- **Provenance (hashes or ids):** at least `dt_graph_hash` (or canonical graph hash already stored), `ir_hash` if you maintain a separate IR digest, **`research_corpus_hash`** (of the byte-identical corpus used for induction, or empty if none), **`cevi_contract_hash`**.
 
 **Reference implementation (Python):** [`evidence_contract.py`](evidence_contract.py) — `canonical_json_dumps`, `sha256_hex`, `hash_contract`; use anywhere that persists or compares `cevi_contract_hash` (covered by [`test_evidence_contract_hash.py`](../../tests/unit/reasoning/test_evidence_contract_hash.py)).
 

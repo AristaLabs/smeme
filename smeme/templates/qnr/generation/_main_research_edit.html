@@ -12,7 +12,7 @@
         <p class="mt-1 text-ui-ink-muted line-clamp-3">{{ user_prompt }}</p>
         {% endif %}
         <p class="mt-2 text-xs text-ui-ink-subtle">
-            <a href="/qnr/dashboard#in-progress" class="text-brand-600 underline hover:text-brand-800">In-progress workflows</a>
+            <a href="/qnr/dashboard#in-progress" class="text-brand-600 underline hover:text-brand-800">In-progress wizard drafts</a>
             — resume later if you leave this page.
         </p>
     </div>
@@ -41,7 +41,7 @@
             {% else %}
             We've searched the web for research relevant to your question.
             {% endif %}
-            You're the expert — review the results for errors and omissions. If desired, augment with additional AI-assisted web searches before accepting the set of factors and moving on to design the workflow.
+            You're the expert — review the results for errors and omissions. If desired, augment with additional AI-assisted web searches before accepting the set of factors and moving on to design the decision tree.
         </p>
     </div>
     
@@ -111,7 +111,7 @@
         <p class="text-sm text-ui-ink-muted mt-2">Edit the research content above in Markdown format</p>
     </div>
     
-    <!-- Workflow Actions: Organized by Intent -->
+    <!-- Decision tree Actions: Organized by Intent -->
     
     <!-- Section 1: Refine Current Research -->
     <div class="border-t border-ui-line pt-6 mt-6">
@@ -213,7 +213,7 @@
     <!-- Section 2: Proceed to Next Phase -->
     <div class="border-t border-ui-line pt-6 mt-8">
         <h3 class="text-lg font-semibold text-ui-ink mb-3">
-            2. Next Step: Move to Phase 2 - provide or generate the workflow's possible conclusions
+            2. Next Step: Move to Phase 2 - provide or generate the decision tree's possible conclusions
         </h3>
         <p class="text-sm text-ui-ink-muted mb-5">
             Based on these research factors, we need to identify possible conclusions. Choose your approach:
@@ -283,7 +283,7 @@
             href="/qnr/dashboard"
             class="btn-secondary"
         >
-            Cancel Workflow
+            Cancel wizard
         </a>
     </div>
     

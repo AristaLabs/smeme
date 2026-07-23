@@ -31,7 +31,7 @@ from smeme.qnr.helpers.validation import (
     has_conditional_edges,
     validate_graph,
 )
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.qnr.workflow_state import QNRSessionState, SessionStateUpdate
 
 # Per-workflow structured logger
@@ -48,7 +48,7 @@ jinja_env = Environment(loader=FileSystemLoader("smeme/templates"))
 
 async def load_qnr_node(state: QNRSessionState, config: RunnableConfig) -> SessionStateUpdate:
     """
-    Load QNR graph from database or cache.
+    Load DTGraph from database or cache.
 
     Returns:
         Partial state with 'graph' field
@@ -190,7 +190,7 @@ async def determine_next_question_node(
     # Extract runtime context
     user_id: int = config["configurable"].get("user_id")
 
-    graph = cast(QNRGraph, state.get("graph"))
+    graph = cast(DTGraph, state.get("graph"))
     session = state["session"]
     session_id = str(session.id)
     current_id = session.current_node_id
@@ -560,7 +560,7 @@ async def render_question_node(
     db: AsyncSession = config["configurable"]["db"]
     user_id: int = config["configurable"].get("user_id")
 
-    graph = cast(QNRGraph, state.get("graph"))
+    graph = cast(DTGraph, state.get("graph"))
     session = state["session"]
     session_id = str(session.id)
     node_id = state.get("next_question_id")
@@ -658,7 +658,7 @@ async def render_question_node(
 
 
 async def _render_conclusion_node(
-    graph: QNRGraph,
+    graph: DTGraph,
     node,
     session,
     db: AsyncSession,

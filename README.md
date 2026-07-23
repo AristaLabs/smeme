@@ -95,6 +95,7 @@ MCP_ENABLED=false
 
 - [Docs index](docs/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Authoring decision trees](docs/guides/authoring-decision-trees.md) — web wizard vs MCP chat; shared Deploy → Listed lifecycle
 - [Engine promises](docs/guides/engine-promises.md)
 - [Self-host quickstart](docs/guides/self-host-quickstart.md)
 - [MCP / OAuth operator guide](docs/guides/dr3-mcp-oauth-authoritative-sources.md)

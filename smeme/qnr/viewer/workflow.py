@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 async def load_qnr_node(state: QNRViewerState, config: RunnableConfig) -> dict[str, Any]:
     """
-    Node 1: Load QNR graph from cache or database.
+    Node 1: Load DTGraph from cache or database.
 
     This is the only node that touches the database.
     Aggressive caching for fast repeated loads.
@@ -52,7 +52,7 @@ async def load_qnr_node(state: QNRViewerState, config: RunnableConfig) -> dict[s
     cached_graph = await get_cached_graph(qnr_id)
     if cached_graph:
         logger.info(
-            "QNR graph loaded from cache",
+            "DTGraph loaded from cache",
             extra={"qnr_id": str(qnr_id), "node_count": len(cached_graph.nodes)},
         )
 
@@ -98,7 +98,7 @@ async def load_qnr_node(state: QNRViewerState, config: RunnableConfig) -> dict[s
     graph = parse_graph_data(qnr)
 
     logger.info(
-        "QNR graph loaded from database",
+        "DTGraph loaded from database",
         extra={
             "qnr_id": str(qnr_id),
             "node_count": len(graph.nodes),

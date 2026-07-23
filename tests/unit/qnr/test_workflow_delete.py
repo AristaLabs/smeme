@@ -7,6 +7,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, func, select, update
 
+from smeme.app_factory import create_core_app as create_app
 from smeme.core.models import (
     QNR,
     Memo,
@@ -14,7 +15,6 @@ from smeme.core.models import (
     ReasoningCompiledArtifact,
     User,
 )
-from smeme.app_factory import create_core_app as create_app
 from smeme.qnr.helpers.workflow_delete import DELETE_CONFIRM_PHRASE
 from tests.conftest import auth_as
 
@@ -31,14 +31,14 @@ async def _delete_workflow(client, qnr_id, *, confirm_phrase: str):
 def _minimal_graph(title: str = "Test QNR") -> dict:
     from smeme.qnr.models import (
         ConclusionData,
+        DTGraph,
         GraphEdge,
         GraphNode,
-        QNRGraph,
         QNRMetadata,
         QuestionData,
     )
 
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -232,7 +232,7 @@ async def test_delete_removes_entire_family_and_related_rows(
     assert r.status_code == 200
     assert b"permanently deleted" in r.content
     assert title.encode() in r.content  # success flash
-    assert b"No workflows yet" in r.content
+    assert b"No decision trees yet" in r.content
 
     async with test_session_factory() as session:
         remaining_qnrs = await session.execute(select(QNR.id).where(QNR.id.in_(family_ids)))

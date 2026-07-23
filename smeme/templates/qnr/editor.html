@@ -65,36 +65,36 @@
     cursor: col-resize !important;
   }
 
-  .qnr-graph {
+  .dt-graph {
     display: block;
     max-width: none;
     /* width/height set by editorGraphZoom from data-graph-width/height */
   }
 
-  .qnr-graph .graph-edge--default {
+  .dt-graph .graph-edge--default {
     stroke: var(--ui-graph-edge);
     stroke-width: 2;
   }
 
-  .qnr-graph .graph-edge--conditional {
+  .dt-graph .graph-edge--conditional {
     stroke: #f59e0b;
     stroke-width: 2;
   }
 
-  .qnr-graph .graph-edge--highlighted {
+  .dt-graph .graph-edge--highlighted {
     stroke: #3b82f6;
     stroke-width: 3;
   }
 
-  .qnr-graph .graph-edge-arrow--default {
+  .dt-graph .graph-edge-arrow--default {
     fill: var(--ui-graph-edge);
   }
 
-  .qnr-graph .graph-edge-arrow--conditional {
+  .dt-graph .graph-edge-arrow--conditional {
     fill: #f59e0b;
   }
 
-  .qnr-graph .graph-edge-arrow--highlighted {
+  .dt-graph .graph-edge-arrow--highlighted {
     fill: #3b82f6;
   }
 
@@ -292,7 +292,7 @@ function editorShowView(view) {
 
   function graphSvg() {
     var pane = graphPane();
-    return pane && pane.querySelector('#graph-scroll-body .qnr-graph');
+    return pane && pane.querySelector('#graph-scroll-body .dt-graph');
   }
 
   function storageKey() {

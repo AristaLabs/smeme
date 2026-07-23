@@ -9,7 +9,7 @@ Supports both question nodes and conclusion nodes.
 from typing import NotRequired, TypedDict
 
 from smeme.core.models import QNRSession
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 
 class QNRSessionState(TypedDict):
@@ -32,7 +32,7 @@ class QNRSessionState(TypedDict):
     session: QNRSession
 
     # Graph data (loaded once, cached)
-    graph: NotRequired[QNRGraph]
+    graph: NotRequired[DTGraph]
 
     # Navigation state
     current_node_id: NotRequired[str | None]
@@ -58,7 +58,7 @@ class SessionStateUpdate(TypedDict, total=False):
     All fields are optional since nodes only return what they modify.
     """
 
-    graph: QNRGraph
+    graph: DTGraph
     current_node_id: str | None
     next_question_id: str | None
     navigation_intent: str | None

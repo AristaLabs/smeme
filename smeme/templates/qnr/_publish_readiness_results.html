@@ -11,7 +11,7 @@
 
 {% if readiness.validation_errors %}
 <div class="border-l-4 border-danger-500 dark:border-danger-400 pl-3 mt-3">
-  <p class="text-xs font-semibold text-danger-800 dark:text-danger-300 mb-2">Workflow structure</p>
+  <p class="text-xs font-semibold text-danger-800 dark:text-danger-300 mb-2">Graph structure</p>
   <ul class="list-disc list-inside space-y-1 text-danger-900 dark:text-danger-200 text-xs">
     {% for err in readiness.validation_errors %}
       <li>{{ err }}</li>
@@ -22,7 +22,7 @@
 
 {% if readiness.compile_error %}
 <div class="border-l-4 border-danger-500 dark:border-danger-400 pl-3 mt-3">
-  <p class="text-xs font-semibold text-danger-800 dark:text-danger-300 mb-2">Workflow issue</p>
+  <p class="text-xs font-semibold text-danger-800 dark:text-danger-300 mb-2">Decision tree issue</p>
   <p class="text-danger-900 dark:text-danger-200 text-xs">{{ readiness.compile_error }}</p>
 </div>
 {% endif %}

@@ -46,18 +46,33 @@ agent-skills/        # Authoring source for MCP guidance markdown
 
 ## Runtime flow
 
-1. An author saves a decision-tree.
-2. **Deploy** validates it and persists a compiled reasoning artifact.
-3. An MCP client authenticates with the configured OAuth provider.
-4. The client loads the calling contract via **`smeme_reasoning_guidance_get`**
+### Authoring (two draft paths → one artifact)
+
+1. **Web wizard** (`SMEME_AI_GENERATION_ENABLED`) — optional OpenAI/Tavily-assisted
+   research, design, and build; LangGraph interrupts for human edits.
+2. **MCP chat** (`smeme-decision-tree-author` skill) — agent iterates in prose,
+   validates `dt_graph_json`, creates a dashboard draft; no server LLM egress.
+3. Both paths persist the same **DTGraph** in `QNR.graph_data`, then converge on
+   the **editor**.
+
+### Deploy, list, evaluate
+
+4. An author saves edits and **Deploy** validates and compiles the tree (IR/Z3).
+5. **Listed** / **Hidden** controls MCP discoverability on the dashboard.
+6. An MCP client authenticates with the configured OAuth provider.
+7. The client loads the calling contract via **`smeme_reasoning_guidance_get`**
    (after capabilities / guidance digest check) — served from content built out
    of `agent-skills/`, not a local skill install.
-5. The client evaluates structured answers and/or asks graph-level questions
+8. The client evaluates structured answers and/or asks graph-level questions
    about a Listed, deployed decision-tree.
-6. The server answers from the deployed artifact (report and/or analysis).
+9. The server answers from the deployed artifact (report and/or analysis).
+
+See [Authoring decision trees](guides/authoring-decision-trees.md) for path
+comparison, DTGraph shape, flags, and egress.
 
 ## Operator references
 
+- [Authoring decision trees](guides/authoring-decision-trees.md)
 - [Engine promises](guides/engine-promises.md)
 - [Self-host quickstart](guides/self-host-quickstart.md)
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)

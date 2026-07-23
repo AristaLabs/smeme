@@ -1,9 +1,9 @@
 {% extends "layouts/base.html" %}
-{% block title %}Download your workflow — Docs{% endblock %}
+{% block title %}Download your decision tree — Docs{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
-  {% set docs_breadcrumb_current = "Download your workflow" %}
+  {% set docs_breadcrumb_current = "Download your decision tree" %}
   {% include "docs/_docs_breadcrumb.html" %}
 
   <div class="mt-6 lg:flex lg:gap-12">
@@ -24,9 +24,9 @@
       </div>
 
       <header class="mb-10">
-        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Download your workflow</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Download your decision tree</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Your workflows are yours. You can download the current saved graph as a JSON file at any time —
+          Your decision trees are yours. You can download the current saved graph as a JSON file at any time —
           no email request, no waiting period.
         </p>
       </header>
@@ -36,12 +36,12 @@
         <section aria-labelledby="how-heading">
           <h2 id="how-heading" class="text-base font-semibold text-ui-ink mb-3">How to download</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            You must be signed in as the workflow owner. Use either location:
+            You must be signed in as the decision tree owner. Use either location:
           </p>
           <ul class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed">
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              <span><strong class="font-medium text-ui-ink">Dashboard</strong> — in the workflow row, click the download icon in <strong class="font-medium text-ui-ink">Actions</strong> (before Edit).</span>
+              <span><strong class="font-medium text-ui-ink">Dashboard</strong> — in the decision tree row, click the download icon in <strong class="font-medium text-ui-ink">Actions</strong> (before Edit).</span>
             </li>
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
@@ -49,7 +49,7 @@
             </li>
           </ul>
           <p class="mt-4 text-sm text-ui-ink-muted">
-            The browser saves a file named like <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">My_Workflow.smeme.json</code>.
+            The browser saves a file named like <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">My_Decision_Tree.smeme.json</code>.
           </p>
         </section>
 
@@ -58,7 +58,7 @@
         <section aria-labelledby="contents-heading">
           <h2 id="contents-heading" class="text-base font-semibold text-ui-ink mb-3">What's in the file</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            The download is your workflow graph: question nodes, conclusion nodes, edges, conditions, and metadata (title, description, tags, and so on). It also includes basic workflow identity — ID, title, version number, and created/updated timestamps.
+            The download is your decision tree graph: question nodes, conclusion nodes, edges, conditions, and metadata (title, description, tags, and so on). It also includes basic decision tree identity — ID, title, version number, and created/updated timestamps.
           </p>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
             The file uses a small export envelope so future import tools can recognize it:
@@ -93,12 +93,12 @@
             </li>
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              Other workflows on your account
+              Other decision trees on your account
             </li>
           </ul>
           <p class="mt-4 text-sm text-ui-ink-muted">
             Connected AI tools evaluate the <strong class="font-medium text-ui-ink">deployed snapshot in SMEme</strong> — not the JSON file on your computer.
-            If you edit the workflow in the SMEme editor, click <strong class="font-medium text-ui-ink">Redeploy</strong> so your tools pick up the change.
+            If you edit the decision tree in the SMEme editor, click <strong class="font-medium text-ui-ink">Redeploy</strong> so your tools pick up the change.
             <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a> explains Live vs Stale.
           </p>
         </section>
@@ -115,8 +115,8 @@
         <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
           <p class="font-medium text-ui-ink">See also</p>
           <ul class="space-y-1">
-            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and manage workflows on the dashboard</li>
-            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building workflows</a> — create and edit the graph before downloading</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and manage decision trees on the dashboard</li>
+            <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building decision trees</a> — create and edit the graph before downloading</li>
           </ul>
         </div>
 

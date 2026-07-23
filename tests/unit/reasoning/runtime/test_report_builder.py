@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from smeme.qnr.models import ConclusionData, GraphNode, QNRGraph, QNRMetadata, QuestionData
+from smeme.qnr.models import ConclusionData, GraphNode, DTGraph, QNRMetadata, QuestionData
 from smeme.reasoning.runtime.evaluate import EvaluationResult
 from smeme.reasoning.runtime.ingest_envelope import ParsedIngestEnvelope
 from smeme.reasoning.runtime.report_builder import build_evaluation_report
 
 
-def _graph() -> QNRGraph:
-    return QNRGraph(
+def _graph() -> DTGraph:
+    return DTGraph(
         metadata=QNRMetadata(title="Test QNR", description=""),
         nodes=[
             GraphNode(
@@ -36,8 +36,8 @@ def _graph() -> QNRGraph:
     )
 
 
-def _branching_graph() -> QNRGraph:
-    return QNRGraph(
+def _branching_graph() -> DTGraph:
+    return DTGraph(
         metadata=QNRMetadata(title="Branching QNR", description=""),
         nodes=[
             GraphNode(

@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from z3 import And, Bool, BoolRef, Implies, Not, is_true, sat, unknown, unsat
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.cevi.fact_projection import apply_canonical_facts_to_solver
 from smeme.reasoning.ir.types import IR, IRNodeKind
 from smeme.reasoning.runtime.assumptions import (
@@ -227,7 +227,7 @@ def build_what_if_delta(
 
 def run_what_if(
     ir: IR,
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     base_payload: dict[str, Any],
     override_payload: dict[str, Any],
@@ -292,7 +292,7 @@ def _conclusion_ids(ir: IR) -> frozenset[str]:
     return frozenset(n.id for n in ir.nodes if n.kind == IRNodeKind.CONCLUSION)
 
 
-def conclusion_title_from_graph(graph: QNRGraph, conclusion_id: str) -> str:
+def conclusion_title_from_graph(graph: DTGraph, conclusion_id: str) -> str:
     for node in graph.nodes:
         if node.id == conclusion_id and node.is_conclusion():
             cd = node.conclusion_data
@@ -675,7 +675,7 @@ def _preflight_how_to_reach(
 
 def find_repairs_for_target(
     ir: IR,
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     base_norm: NormalizedAnswers,
     base_envelope: ParsedIngestEnvelope,

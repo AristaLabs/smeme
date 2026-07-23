@@ -1,4 +1,4 @@
-"""Design subgraph for agentic QNR generation.
+"""Design subgraph for agentic decision-tree generation.
 
 Handles questionnaire design generation from research and conclusions.
 Includes token optimization and retry mechanism.

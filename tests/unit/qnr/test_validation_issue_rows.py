@@ -6,7 +6,7 @@ from smeme.qnr.helpers.validation import (
     node_ids_for_validation_message,
     validate_graph_for_editing,
 )
-from smeme.qnr.models import GraphEdge, GraphNode, QNRGraph, QNRMetadata, QuestionData
+from smeme.qnr.models import GraphEdge, GraphNode, DTGraph, QNRMetadata, QuestionData
 
 
 def test_extract_validation_node_id_from_question_message() -> None:
@@ -87,7 +87,7 @@ def test_build_validation_issue_rows_propagates_suggestion_to_split_orphans() ->
 
 
 def test_validate_graph_for_editing_includes_suggestions_for_errors() -> None:
-    graph = QNRGraph(
+    graph = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

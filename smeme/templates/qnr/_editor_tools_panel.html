@@ -7,7 +7,7 @@
       <div>
         <h2 class="text-lg font-semibold text-ui-ink">Tools</h2>
         <p class="text-sm text-ui-ink-muted mt-1 leading-relaxed max-w-xl">
-          Deploy your workflow to make it available to your AI.
+          Deploy your decision tree to make it available to your AI.
           Run <strong class="font-medium text-ui-ink-secondary">checks</strong> first —
           all must pass before you can deploy.
         </p>
@@ -26,11 +26,11 @@
   {% if tr == 'stale' and not is_read_only %}
   {% call callout("warning", title="MCP is still using your previous deploy", variant="prominent", extra_class="shadow-sm mb-0") %}
     <p>Your recent edits are saved, but they will <strong class="font-medium">not</strong> affect AI tool calls until you redeploy.
-      Connected tools continue to evaluate the older workflow version.</p>
+      Connected tools continue to evaluate the older deployed version.</p>
   {% endcall %}
   {% elif reasoning_status == 'compiled' and not mcp_discoverable and not is_read_only %}
   {% call callout("warning", title="Hidden from your AI's tool list", variant="prominent", role="status", extra_class="shadow-sm mb-0") %}
-    <p>This workflow is deployed, but MCP-connected tools will <strong class="font-medium">not</strong> discover or invoke it until you set visibility to Listed.</p>
+    <p>This decision tree is deployed, but MCP-connected tools will <strong class="font-medium">not</strong> discover or invoke it until you set visibility to Listed.</p>
   {% endcall %}
   {% endif %}
 
@@ -49,7 +49,7 @@
       {% if tr != 'stale' %}
       <p class="text-xs text-ui-ink-muted max-w-md">
         {% if readiness and readiness.ready %}
-        Checks passed — deploy to make this workflow available to your AI.
+        Checks passed — deploy to make this decision tree available to your AI.
         {% else %}
         Run checks above and resolve all issues before deploying.
         {% endif %}
@@ -76,7 +76,7 @@
       <div class="max-w-md">
         <p class="text-sm font-medium text-ui-ink">AI visibility</p>
         <p class="mt-0.5 text-xs text-ui-ink-muted leading-relaxed">
-          Listed workflows appear in your AI's MCP tool list. Hidden keeps them off the list.
+          Listed decision trees appear in your AI's MCP tool list. Hidden keeps them off the list.
         </p>
       </div>
       {% with qnr_id=qnr_id, mcp_discoverable=mcp_discoverable, select_id='disc-tools-' ~ qnr_id, return_next='tools' %}

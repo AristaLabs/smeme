@@ -1,27 +1,27 @@
 ---
-name: smeme-workflow-author
+name: smeme-decision-tree-author
 description: >-
-  Chat-native workflow authoring — help the user pick a decision workflow, iterate
-  questions/options/branches in plain language, then validate and create a SMEme
-  dashboard draft via MCP (bypasses the generation wizard).
+  Chat-native decision-tree authoring — help the user pick a judgment to encode,
+  iterate questions/options/branches in plain language, then validate and create
+  a SMEme dashboard draft via MCP (bypasses the generation wizard).
 ---
 
-# SMEme workflow author (chat path)
+# SMEme decision-tree author (chat path)
 
 ## Your role
 
-You help the user **design a SMEme reasoning workflow in chat**, then hand it to
-SMEme as a **dashboard draft**. The web **generation wizard stays available** —
-this skill is the secondary path when the user wants to build with you in
+You help the user **design a SMEme decision tree in chat**, then hand it to SMEme
+as a **dashboard draft**. The web **generation wizard stays available** — this
+skill is the secondary path when the user wants to build with you in
 conversation.
 
 You are a **design facilitator**, not a Deploy button. Create drafts only.
-Deploy / Listed happens in the SMEme web app.
+**Deploy** / **Listed** happens in the SMEme web app editor.
 
 ## When to use
 
-- User asks to build / design / encode a decision workflow (or “decision tree”)
-  with your help in chat.
+- User asks to build / design / encode a **decision tree** (expert judgment
+  with branching questions → conclusions) with your help in chat.
 - User has an existing `.smeme.json` export and wants to re-import as a new draft.
 
 Do **not** use this path for case evaluation (use **`smeme-reasoning-plugin`**).
@@ -32,7 +32,9 @@ Do **not** use this path for case evaluation (use **`smeme-reasoning-plugin`**).
 2. Authoring tools appear in **`smeme_reasoning_capabilities` → `reasoning.tools`**:
    **`smeme_authoring_design_guidance`**, **`smeme_authoring_validate_graph`**,
    **`smeme_authoring_create_draft`**.
-   If missing, tell the user those tools are not enabled on this server.
+   When MCP is enabled, authoring tools are **on by default**. If missing, the
+   server may have opted out with **`MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false`**
+   — tell the user to ask their operator to enable authoring or remove that opt-out.
 
 ## Phases (do not skip)
 
@@ -53,7 +55,7 @@ repeatable). Offer a clear fork when both paths exist:
 3. Apply the design standard: radio-only, anti-funnel branching, Unsure
    forward-only, every path reaches a conclusion.
 
-**Do not** emit wire `qnr_graph` JSON until the user says they are ready (or
+**Do not** emit wire `dt_graph` JSON until the user says they are ready (or
 explicitly asks to push / validate).
 
 Preflight before structuring (also in the design guidance):
@@ -66,13 +68,14 @@ Preflight before structuring (also in the design guidance):
 
 ### Phase C — Structure → validate → draft
 
-1. Build `qnr_graph` JSON: `{nodes, edges, metadata}` (see shape below).
-2. **`smeme_authoring_validate_graph`** with `qnr_graph_json` (serialized object,
+1. Build `dt_graph` JSON: `{nodes, edges, metadata}` (see shape below).
+2. **`smeme_authoring_validate_graph`** with `dt_graph_json` (serialized object,
    not double-encoded).
 3. If `draft_ready` is false: fix `errors` with the user; re-validate. Do not create.
 4. When `draft_ready` is true and the user confirms: **`smeme_authoring_create_draft`**.
-5. Show `editor_url` and `next_step`. Remind them: polish → **Deploy** → **Listed**
-   before the workflow appears in **`smeme_reasoning_list`**.
+5. Show `editor_url` and `next_step`. Remind them: polish in the editor → **Deploy**
+   → **Listed** before the tree’s published decision tree appears in
+   **`smeme_reasoning_list`**.
 
 ## Graph shape (wire)
 
@@ -119,8 +122,8 @@ Rules agents miss most often:
 | `auth_error` | Reconnect MCP once; if `no_local_user_for_clerk_sub`, user must sign in on SMEme web first. |
 | `invalid_graph` | Show `error.message` (and `errors` if present). Stay in Phase B/C; fix; re-validate. |
 | `payload_too_large` | Shrink the graph; split or remove unused nodes. |
-| `quota_exceeded` | Plan workflow cap hit — quote `error.message`; user must delete a workflow or upgrade. |
-| `account_downgrade_pending` | User must pick live workflows on the dashboard first. |
+| `quota_exceeded` | Plan decision-tree cap hit — quote `error.message`; user must delete a tree or upgrade. |
+| `account_downgrade_pending` | User must pick live trees on the dashboard first. |
 | `internal_error` | Tell the user SMEme hit an unexpected error; do not retry in a tight loop. |
 
 ## Hard boundaries
@@ -140,7 +143,7 @@ identify / confirm scope
   → smeme_authoring_design_guidance (once; cache by digest)
   → iterate plain-language tree with user (conclusions first)
   → user: ready
-  → structure qnr_graph
+  → structure dt_graph
   → smeme_authoring_validate_graph
   → fix until draft_ready
   → smeme_authoring_create_draft

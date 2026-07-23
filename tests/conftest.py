@@ -206,7 +206,7 @@ def auth_as(app, user):
 
 @pytest.fixture
 def test_graph_data():
-    """Sample QNR graph data for testing.
+    """Sample decision-tree graph data for testing.
 
     Returns a minimal valid graph with:
     - 2 question nodes

@@ -5,7 +5,7 @@ from __future__ import annotations
 import unicodedata
 from typing import Any
 
-from smeme.qnr.models import ConclusionData, QNRGraph
+from smeme.qnr.models import ConclusionData, DTGraph
 from smeme.reasoning.runtime.evaluate import EvaluationResult
 from smeme.reasoning.runtime.ingest_envelope import ParsedIngestEnvelope
 
@@ -34,7 +34,7 @@ def _result_kind(eval_result: EvaluationResult) -> str:
     return "needs_more_information"
 
 
-def _graph_question_labels(graph: QNRGraph) -> dict[str, str]:
+def _graph_question_labels(graph: DTGraph) -> dict[str, str]:
     out: dict[str, str] = {}
     for node in graph.nodes:
         if not node.is_question():
@@ -46,7 +46,7 @@ def _graph_question_labels(graph: QNRGraph) -> dict[str, str]:
     return out
 
 
-def _graph_conclusion_by_id(graph: QNRGraph) -> dict[str, ConclusionData]:
+def _graph_conclusion_by_id(graph: DTGraph) -> dict[str, ConclusionData]:
     out: dict[str, ConclusionData] = {}
     for node in graph.nodes:
         if not node.is_conclusion():
@@ -121,7 +121,7 @@ def _topological_node_order(triggered_edges: list[str]) -> list[str]:
 
 
 def _build_candidates(
-    graph: QNRGraph,
+    graph: DTGraph,
     eval_result: EvaluationResult,
 ) -> list[dict[str, Any]]:
     conclusions = _graph_conclusion_by_id(graph)
@@ -162,7 +162,7 @@ def _build_candidates(
 
 
 def reasoning_path_node_ids(
-    graph: QNRGraph,
+    graph: DTGraph,
     envelope: ParsedIngestEnvelope,
     eval_result: EvaluationResult,
 ) -> list[str]:
@@ -187,7 +187,7 @@ def reasoning_path_node_ids(
 
 
 def _build_reasoning_path(
-    graph: QNRGraph,
+    graph: DTGraph,
     envelope: ParsedIngestEnvelope,
     eval_result: EvaluationResult,
     *,
@@ -230,7 +230,7 @@ def _build_reasoning_path(
     return steps
 
 
-def _worksheet_question_ids(graph: QNRGraph) -> list[str]:
+def _worksheet_question_ids(graph: DTGraph) -> list[str]:
     return sorted(
         (n.id for n in graph.nodes if n.is_question()),
         key=str,
@@ -238,7 +238,7 @@ def _worksheet_question_ids(graph: QNRGraph) -> list[str]:
 
 
 def _build_answer_sheet(
-    graph: QNRGraph,
+    graph: DTGraph,
     envelope: ParsedIngestEnvelope,
     *,
     question_labels: dict[str, str],
@@ -282,7 +282,7 @@ def _answered_questions_on_path(
 
 
 def _not_reached_question_labels(
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     question_labels: dict[str, str],
     path_order: list[str],
@@ -330,7 +330,7 @@ def _join_memo_paragraphs(parts: list[str]) -> str:
 
 
 def _build_headline(
-    graph: QNRGraph,
+    graph: DTGraph,
     eval_result: EvaluationResult,
     result_kind: str,
 ) -> str:
@@ -399,7 +399,7 @@ def _build_brief_memo(
 
 def build_evaluation_report(
     *,
-    graph: QNRGraph,
+    graph: DTGraph,
     envelope: ParsedIngestEnvelope,
     eval_result: EvaluationResult,
 ) -> dict[str, Any]:
