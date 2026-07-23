@@ -3,7 +3,7 @@
 **Product path:** after OAuth, an MCP client calls
 ``smeme_reasoning_capabilities`` (or ``smeme_reasoning_guidance_check``), then
 ``smeme_reasoning_guidance_get``, which returns the calling contract as markdown.
-Agents do **not** install a local plugin zip — they ask the server for guidance.
+Agents do **not** install a local zip bundle — they ask the server for guidance.
 
 This folder is the **human authoring source** for that guidance (and related MCP
 content). Each skill is a directory with **`SKILL.md`** plus optional
@@ -26,7 +26,7 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 | Use (product layer) | Do **not** use (implementation layer) |
 |---------------------|----------------------------------------|
-| **reasoning engine**, **server**, **report**, **results**, **outcome** | Z3, SAT, UNSAT, SMT, solver, satisfiable, entailment, theory (except wire `error.code` literals in backticks) |
+| **reasoning engine**, **server**, **report**, **results**, **outcome**, **MCP client** | Z3, SAT, UNSAT, SMT, solver, satisfiable, entailment, theory (except wire `error.code` literals in backticks); host framing (**plugin**, **Cowork**) |
 | **`report.result_kind`**, **`brief_memo`**, **`candidates`**, **`blockers`** | `SAT_*`, `triggered_edges`, `true_conclusion_id`, guard/clause/reach atom names |
 | Plain-language error meanings (“reasoning engine timed out”) | “Z3 check timed out”, “SAT call budget”, “unsatisfiable” |
 
@@ -34,9 +34,10 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 **Server messages:** `error.message` and `blockers.message` on MCP tool responses follow the same product-vocabulary rules as skills (reasoning engine, report, outcome — not Z3/SAT/entailment). When you change a user-quoted server string, update the matching skill row in the same PR.
 
-`scripts/validate_agent_skills.py` enforces a denylist on all shipped skills
-(prose only — text inside `` `backticks` `` may use wire field names such as
-``satisfiable`` or ``blockers.sat_calls``). Generated per decision tree manifests
+`scripts/validate_agent_skills.py` enforces a denylist on agent-skills markdown
+(prose only — text inside `` `backticks` `` or HTML comments may use wire field
+names such as ``satisfiable``, ``_server_plugin_version``, or
+``installed_plugin_version``). Generated per decision tree manifests
 ([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/))
 must follow the same rules.
 

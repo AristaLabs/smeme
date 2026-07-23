@@ -24,7 +24,7 @@ Build **`raw_answers_json`** as a JSON object with **`answers`**, **`evidence_it
     {
       "id": "file:04-call-transcript",
       "title": "Call transcript — property use",
-      "locator": "/path/in/cowork-project/local-files/04-call-transcript.txt",
+      "locator": "/path/in/project/local-files/04-call-transcript.txt",
       "locator_kind": "workspace_path",
       "source_id": "local-files",
       "retrieved_at": "2026-05-19T18:00:00Z",
