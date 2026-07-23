@@ -17,7 +17,7 @@ Please **do not** open a public GitHub issue for security vulnerabilities.
 Prefer one of:
 
 1. **GitHub private vulnerability reporting** on this repository (Security → Report a vulnerability), if enabled.
-2. Email **security@smeme.ai** with a description, affected version/tag or image digest, and steps to reproduce.
+2. Email **contact@aristalabs.ai** with a description, affected version/tag or image digest, and steps to reproduce.
 
 We will acknowledge receipt and coordinate a fix and disclosure timeline. Please give us a reasonable window before public disclosure.
 
