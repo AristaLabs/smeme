@@ -51,7 +51,7 @@ Build **`raw_answers_json`** as a JSON object with **`answers`**, **`evidence_it
 
 Establish **one subject** (case, patient, vendor, matter, etc.) before wide search. Connector results count only if they pertain to that subject. Do not merge two subjects into one payload.
 
-## Decision tree
+## Slot-fill steps
 
 1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to re-publish the decision tree in the SMEme web app.
 2. **Subject** — Confirm with the user when ambiguous.

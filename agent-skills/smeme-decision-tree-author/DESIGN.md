@@ -1,7 +1,7 @@
-# SMEme — Decision tree Design Guidance
+# SMEme — Decision Tree Design Guidance
 
 _Versioned standard for designing reasoning decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 1.0.0_
+`smeme_authoring_design_guidance`. Content version: 2.0.0_
 
 ---
 

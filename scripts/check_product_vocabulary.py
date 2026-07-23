@@ -62,6 +62,7 @@ LINE_ALLOW_PATTERNS = (
     re.compile(r"foreign national property tax workflow"),  # example prompt in docs
     re.compile(r"published workflow appears", re.IGNORECASE),  # agent skill deploy note
     re.compile(r"smeme-workflow-author"),  # historical skill slug in changelogs / renames
+    re.compile(r"/billing/choose-workflow|choose_workflow\.html|choose_workflow_"),
 )
 
 

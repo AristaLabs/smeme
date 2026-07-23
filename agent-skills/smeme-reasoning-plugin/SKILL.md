@@ -56,7 +56,7 @@ Every **success** response includes `_server_plugin_version`. Compare it against
 
 When the user asks **what these tools let them do**, call **`smeme_reasoning_capabilities`**, summarize **both** intents, and ask which they want — do **not** default to evaluate unless the open thread is already a case run.
 
-## Decision tree (case evaluation happy path)
+## Case evaluation happy path
 
 1. **`smeme_reasoning_capabilities`** — session bootstrap; `reasoning.tools` is the authoritative tool list. See [Tool catalog](#tool-catalog).
 2. **`smeme_reasoning_list`** — your discoverable decision trees. **If this is empty, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
@@ -144,7 +144,7 @@ Reachability is **structural** (some valid answer path could reach the conclusio
 
 **`how_to_reach` input:** copy **`conclusion_id`** from a row here into **`target_conclusion_id`**. Show **`conclusion_title`** to the user when choosing a target. Do **not** take ids from evaluate **`report.candidates`** or guess from titles alone.
 
-### `how_to_reach` decision tree
+### `how_to_reach` procedure
 
 1. **`smeme_reasoning_list_conclusions`** — list outcomes; pick **`conclusion_id`** + **`conclusion_title`** for the target.
 2. Build baseline **`base_raw_answers_json`** (same provenance envelope as evaluate).
@@ -177,7 +177,7 @@ Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumpti
 
 Explain deltas to the user in plain language — never invent graph ids or branch rules.
 
-### `edit_affects_path` decision tree
+### `edit_affects_path` procedure
 
 Use when the user asks whether a **hypothetical change** would **affect the current decision path** (not when they want a full alternate-world tour — that is **`what_if`**).
 
@@ -199,7 +199,7 @@ On **`path_not_entailed_at_baseline`**: gather or fix answers via evaluate/valid
 | `assumptions` | Echo of force lists when non-empty |
 | `warnings` | Same ingest warnings as validate/evaluate |
 
-### `decisive_support` decision tree (minimal sufficient evidence)
+### `decisive_support` procedure (minimal sufficient evidence)
 
 Use **only** when the current answers already force the target outcome (typically after **`concluded`** evaluate, or when the user asks “which answers mattered?”). This returns inclusion-minimal answered supports under fixed decision tree rules and fixed answers — **not** a tentative conclusion from incomplete evidence, and **not** conflict reconciliation.
 
@@ -305,7 +305,7 @@ If `reasoning.tools` includes **`smeme_authoring_design_guidance`** /
 are for **building** a decision tree in chat — they create an **unpublished** decision tree
 in the user’s SMEme account (`create_draft` returns `editor_url`). That decision tree
 is **not** ready for evaluate until the user **Deploys** it and sets **Listed**.
-Do not use these tools for case evaluation. Follow **`smeme-decision tree-author`**
+Do not use these tools for case evaluation. Follow **`smeme-decision-tree-author`**
 for the build path.
 
 ### Other quick checks
