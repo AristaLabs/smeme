@@ -24,17 +24,11 @@ from smeme.core.models import (  # noqa: F401
     User,
     UserAuditLog,
 )
-from smeme.mcp.models import McpToolInvocation  # noqa: F401
 from smeme.decision_tree.models import (  # noqa: F401
     InProgressDecisionTreeGeneration,
     WizardGenerationEvent,
 )
-
-# SAAS-ONLY: present in private overlay / monorepo; optional in public Core image (D023).
-try:
-    from smeme.landing.models import TeamsWaitlistSignup  # noqa: F401
-except ModuleNotFoundError:
-    TeamsWaitlistSignup = None  # type: ignore[misc, assignment]
+from smeme.mcp.models import McpToolInvocation  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -52,19 +46,7 @@ target_metadata = BaseSQLModel.metadata
 
 
 def include_object(object, name, type_, reflected, compare_to):
-    """Exclude non-SQLModel tables from autogenerate.
-
-    Autogenerate compares DB schema to SQLModel metadata. Tables that exist
-    in the DB but are NOT defined as SQLModel models get flagged for removal.
-    Excluding them prevents Alembic from suggesting op.drop_table() for them.
-
-    Excluded:
-    - checkpoint_* : Managed by LangGraph's AsyncPostgresSaver.setup()
-    - stripe_events: Created in migration bb8be63 for webhook idempotency; not a SQLModel table
-    - teams_waitlist_signups: SAAS-ONLY model (smeme.landing); table remains in shared
-      migration history for overlay DBs. When landing is absent (public Core), ignore so
-      autogenerate does not propose drop_table.
-    """
+    """Exclude only runtime-managed LangGraph checkpoint objects."""
     # Ignore checkpoint tables (managed by LangGraph)
     if type_ == "table" and name in (
         "checkpoints",
@@ -74,29 +56,15 @@ def include_object(object, name, type_, reflected, compare_to):
     ):
         return False
 
-    # Ignore raw tables not in SQLModel metadata (see LESSONS_LEARNED: Autogenerate Drops Tables)
-    if type_ == "table" and name == "stripe_events":
-        return False
-
-    # SAAS-ONLY table: model lives in smeme.landing (optional import above).
-    if type_ == "table" and name == "teams_waitlist_signups":
-        return False
-
     # Ignore indexes on checkpoint tables
-    if (
+    return not (
         type_ == "index"
         and name
         and any(
             checkpoint_table in name
             for checkpoint_table in ["checkpoints", "checkpoint_writes", "checkpoint_blobs"]
         )
-    ):
-        return False
-
-    if type_ == "index" and name and "teams_waitlist_signups" in name:
-        return False
-
-    return True
+    )
 
 
 def render_item(type_, obj, autogen_context):
