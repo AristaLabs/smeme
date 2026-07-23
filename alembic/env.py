@@ -12,17 +12,23 @@ from smeme.core.config import settings
 
 # Import all models to ensure they're registered with SQLModel metadata
 from smeme.core.models import (  # noqa: F401
+    AccountDeletionFailure,
     BaseSQLModel,
+    DecisionTree,
+    DecisionTreeLexiconDraft,
+    DecisionTreeResearchCorpus,
+    DecisionTreeSession,
     Memo,
-    QNR,
-    QNRSession,
     ReasoningCompiledArtifact,
     ReasoningEvaluationRun,
     User,
     UserAuditLog,
 )
 from smeme.mcp.models import McpToolInvocation  # noqa: F401
-from smeme.qnr.models import InProgressQNRGeneration  # noqa: F401
+from smeme.decision_tree.models import (  # noqa: F401
+    InProgressDecisionTreeGeneration,
+    WizardGenerationEvent,
+)
 
 # SAAS-ONLY: present in private overlay / monorepo; optional in public Core image (D023).
 try:

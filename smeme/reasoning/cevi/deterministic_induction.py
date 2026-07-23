@@ -34,7 +34,7 @@ Warnings (machine-readable codes)
 
 from __future__ import annotations
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.cevi.corpus_attribution import (
     attributed_chunk_ids_conclusion,
     attributed_chunk_ids_question,

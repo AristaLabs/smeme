@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
-from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from smeme.reasoning.runtime.analyze import enumerate_conclusion_sat_queries
 from smeme.reasoning.runtime.conclusions_catalog import build_conclusions_catalog_wire
 
@@ -47,22 +47,22 @@ def _exclusive_two_outcome_graph() -> DTGraph:
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
         ],
-        metadata=QNRMetadata(title="v"),
+        metadata=DTGraphMetadata(title="v"),
     )
 
 
 def test_build_conclusions_catalog_wire_lists_titles_and_reachability() -> None:
     graph = _exclusive_two_outcome_graph()
-    ir = compile_qnr_to_ir(graph)
+    ir = compile_dt_graph_to_ir(graph)
     enumeration = enumerate_conclusion_sat_queries(ir, validate=False)
 
     wire = build_conclusions_catalog_wire(
-        qnr_id=_QNR_ID,
+        decision_tree_id=_QNR_ID,
         graph=graph,
         enumeration=enumeration,
     )
 
-    assert wire["qnr_id"] == str(_QNR_ID).lower()
+    assert wire["decision_tree_id"] == str(_QNR_ID).lower()
     assert wire["workflow_rules_consistent"] is True
     assert wire["count"] == 2
     assert wire["reachable_count"] == 2

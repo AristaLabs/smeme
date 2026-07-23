@@ -86,14 +86,14 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "SMEme Platform"
-    version: str = "2.0.0"
+    version: str = "1.0.0"
     environment: str = Field(default="development", alias="ENVIRONMENT")
     debug: bool = Field(default=False, alias="DEBUG")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
-    show_qnr_generation_region_selector: bool = Field(
+    show_decision_tree_generation_region_selector: bool = Field(
         default=True,
-        alias="SHOW_QNR_GENERATION_REGION_SELECTOR",
+        alias="SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR",
         description=(
             "When true, show the optional Region (Tavily country) control on the agentic "
             "generation brief form. When false, hide it and ignore submitted country "
@@ -271,8 +271,8 @@ class Settings(BaseSettings):
     """Clerk OAuth application client IDs allowed to call MCP tools (Bearer access tokens).
 
     Comma-separated in env. **Empty (default)** = do not enforce client_id/azp binding.
-    With DCR on, leave blank because DCR mints per-connector client ids.
-    With DCR off, set this to your static Clerk OAuth app client id(s).
+    **SaaS prod (DCR on):** leave blank — DCR mints per-connector client ids.
+    **Self-hosted DCR-off:** set to your static Clerk OAuth app client id(s).
     """
 
     mcp_oauth_access_token_audience: str | None = Field(

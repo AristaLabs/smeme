@@ -1,4 +1,4 @@
-"""Unit tests for DTGraph operations.
+"""Unit tests for DecisionTree graph operations.
 
 These are pure unit tests - no database, no async, no network.
 All operations are pure functions that take a graph and return a modified graph.
@@ -13,7 +13,7 @@ Tests cover:
 
 import pytest
 
-from smeme.qnr.editor.operations import (
+from smeme.decision_tree.editor.operations import (
     apply_operation,
     create_conclusion_node,
     create_edge,
@@ -24,12 +24,12 @@ from smeme.qnr.editor.operations import (
     update_edge,
     update_node,
 )
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
-    DTGraph,
     GraphEdge,
     GraphNode,
-    QNRMetadata,
+    DTGraph,
+    DTGraphMetadata,
     QuestionData,
 )
 
@@ -44,7 +44,7 @@ def empty_graph() -> DTGraph:
     return DTGraph(
         nodes=[],
         edges=[],
-        metadata=QNRMetadata(title="Test Graph"),
+        metadata=DTGraphMetadata(title="Test Graph"),
     )
 
 
@@ -77,7 +77,7 @@ def simple_graph() -> DTGraph:
         edges=[
             GraphEdge(source="q1", target="conclusion_1", condition=None),
         ],
-        metadata=QNRMetadata(title="Simple Test Graph"),
+        metadata=DTGraphMetadata(title="Simple Test Graph"),
     )
 
 
@@ -128,7 +128,7 @@ def multi_edge_graph() -> DTGraph:
             GraphEdge(source="q1", target="conclusion_b", condition="B"),
             GraphEdge(source="q2", target="conclusion_a", condition="Y"),
         ],
-        metadata=QNRMetadata(title="Multi-Edge Test Graph"),
+        metadata=DTGraphMetadata(title="Multi-Edge Test Graph"),
     )
 
 

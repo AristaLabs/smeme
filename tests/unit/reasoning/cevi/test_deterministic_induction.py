@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.cevi.corpus_normalize import build_research_corpus_snapshot
@@ -40,7 +40,7 @@ def test_deterministic_glosses_identity_options_and_lexical_without_corpus() -> 
         edges=[
             GraphEdge(source="q1", target="c1", condition="Yes"),
         ],
-        metadata=QNRMetadata(title="x"),
+        metadata=DTGraphMetadata(title="x"),
     )
     snap = build_research_corpus_snapshot(None)
     c = build_deterministic_corpus_partial_contract(
@@ -79,7 +79,7 @@ def test_skips_empty_question_gloss_but_keeps_options() -> None:
             ),
         ],
         edges=[],
-        metadata=QNRMetadata(title="y"),
+        metadata=DTGraphMetadata(title="y"),
     )
     snap = build_research_corpus_snapshot(None)
     c = build_deterministic_corpus_partial_contract(
@@ -110,7 +110,7 @@ def test_attributed_chunk_ids_only_when_corpus_overlaps_question_cues() -> None:
             ),
         ],
         edges=[],
-        metadata=QNRMetadata(title="z"),
+        metadata=DTGraphMetadata(title="z"),
     )
     snap = build_research_corpus_snapshot("Hi friend\n\nunrelated block without overlap token")
     assert snap.sha256_hex is not None
@@ -144,7 +144,7 @@ def test_corpus_attribution_miss_when_manifest_nonempty_but_no_overlap() -> None
             ),
         ],
         edges=[],
-        metadata=QNRMetadata(title="z"),
+        metadata=DTGraphMetadata(title="z"),
     )
     snap = build_research_corpus_snapshot("alpha\n\nbravo")
     assert snap.sha256_hex is not None
@@ -171,7 +171,7 @@ def test_conclusion_attribution_matches_title_blob_in_corpus() -> None:
             ),
         ],
         edges=[],
-        metadata=QNRMetadata(title="c"),
+        metadata=DTGraphMetadata(title="c"),
     )
     snap = build_research_corpus_snapshot("Intro\n\nOutcome Delta extra words")
     c = build_deterministic_corpus_partial_contract(

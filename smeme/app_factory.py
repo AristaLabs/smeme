@@ -46,9 +46,9 @@ from smeme.core.rate_limiting import limiter
 from smeme.docs.routes import router as docs_router
 from smeme.mcp.discovery_routes import register_mcp_oauth_discovery_routes
 from smeme.mcp.reasoning_fastmcp import McpMountPathNormalizeMiddleware, mount_mcp_on_app
-from smeme.qnr.editor.routes import router as qnr_editor_router
-from smeme.qnr.routes import router as qnr_router
-from smeme.qnr.viewer.routes import router as qnr_viewer_router
+from smeme.decision_tree.editor.routes import router as decision_tree_editor_router
+from smeme.decision_tree.routes import router as decision_tree_router
+from smeme.decision_tree.viewer.routes import router as decision_tree_viewer_router
 
 logger = get_logger(__name__)
 
@@ -117,8 +117,8 @@ def _make_lifespan(mcp_runtime_settings: Settings):
 
             if settings.smeme_ai_generation_enabled:
                 try:
-                    from smeme.qnr.generation.agentic.checkpointer import checkpointer_manager
-                    from smeme.qnr.generation.agentic.maintenance import (
+                    from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+                    from smeme.decision_tree.generation.agentic.maintenance import (
                         periodic_maintenance_loop,
                         run_startup_cleanup,
                     )
@@ -145,7 +145,7 @@ def _make_lifespan(mcp_runtime_settings: Settings):
                         await maintenance_task
                 if settings.smeme_ai_generation_enabled:
                     try:
-                        from smeme.qnr.generation.agentic.checkpointer import checkpointer_manager
+                        from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
 
                         await checkpointer_manager.shutdown()
                     except Exception:
@@ -220,12 +220,12 @@ def create_core_app(
     app.include_router(auth_router, prefix="/auth")
     app.include_router(clerk_webhook_router)
     app.include_router(profile_router)
-    app.include_router(qnr_router)
-    app.include_router(qnr_viewer_router)
-    app.include_router(qnr_editor_router)
+    app.include_router(decision_tree_router)
+    app.include_router(decision_tree_viewer_router)
+    app.include_router(decision_tree_editor_router)
 
     if settings.smeme_ai_generation_enabled:
-        from smeme.qnr.generation.agentic.routes import router as agentic_router
+        from smeme.decision_tree.generation.agentic.routes import router as agentic_router
 
         app.include_router(agentic_router)
 
@@ -243,7 +243,7 @@ def create_core_app(
         @app.get("/", include_in_schema=False)
         async def core_root():
             """Core has no marketing landing — send browsers to the product dashboard entry."""
-            return RedirectResponse(url="/qnr/dashboard", status_code=302)
+            return RedirectResponse(url="/decision-trees/dashboard", status_code=302)
 
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():

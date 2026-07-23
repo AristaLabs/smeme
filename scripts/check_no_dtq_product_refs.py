@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PATTERN = re.compile(
-    r"smeme\.qnr\.dtq|DTQCompiledTheory|compile_dtq|evaluate_dtq|/dtq/|"
+    r"smeme\.decision_tree\.dtq|DTQCompiledTheory|compile_dtq|evaluate_dtq|/dtq/|"
     r"DTQ_TOOL_ERROR_CODES|SMEME_DTQ_|dtq_fastmcp|dtq_evaluate\.py|dtq_structural\.py|"
     r"dtq_compiled_theories|dtq_evaluation_runs|\bdtq_status\b"
 )

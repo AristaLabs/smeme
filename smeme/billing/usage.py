@@ -13,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import User
 from smeme.mcp.models import McpToolInvocation
-from smeme.qnr.generation.agentic.telemetry import WIZARD_SUCCESS_STATUSES
-from smeme.qnr.models import WizardGenerationEvent
+from smeme.decision_tree.generation.agentic.telemetry import WIZARD_SUCCESS_STATUSES
+from smeme.decision_tree.models import WizardGenerationEvent
 
 from .access_policy import count_active_root_workflows, count_live_root_workflows
 from .tiers import limits_for_user, tier_display_name, tier_for_user
@@ -226,7 +226,7 @@ async def sum_mcp_weighted_month(
     return float(result.scalar() or 0)
 
 
-async def mcp_weighted_by_qnr_month(
+async def mcp_weighted_by_decision_tree_month(
     db: AsyncSession,
     user: User,
     *,
@@ -235,21 +235,21 @@ async def mcp_weighted_by_qnr_month(
     period_start, period_end, _ = usage_period_window(user, at=at)
     result = await db.execute(
         select(
-            McpToolInvocation.qnr_id,
+            McpToolInvocation.decision_tree_id,
             func.coalesce(func.sum(McpToolInvocation.quota_weight), 0),
         )
         .where(
             McpToolInvocation.user_id == user.id,
-            McpToolInvocation.qnr_id.is_not(None),
+            McpToolInvocation.decision_tree_id.is_not(None),
             McpToolInvocation.created_at >= period_start,
             McpToolInvocation.created_at < period_end,
         )
-        .group_by(McpToolInvocation.qnr_id)
+        .group_by(McpToolInvocation.decision_tree_id)
     )
     out: dict[UUID, float] = {}
-    for qnr_id, total in result.all():
-        if qnr_id is not None:
-            out[qnr_id] = float(total or 0)
+    for decision_tree_id, total in result.all():
+        if decision_tree_id is not None:
+            out[decision_tree_id] = float(total or 0)
     return out
 
 
@@ -331,7 +331,7 @@ __all__ = [
     "count_active_root_workflows",
     "count_live_root_workflows_for_user",
     "count_wizard_completions_month",
-    "mcp_weighted_by_qnr_month",
+    "mcp_weighted_by_decision_tree_month",
     "resets_at_iso",
     "resets_at_label",
     "resets_on_stripe_period",

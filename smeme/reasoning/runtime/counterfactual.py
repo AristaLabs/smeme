@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from z3 import And, Bool, BoolRef, Implies, Not, is_true, sat, unknown, unsat
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.cevi.fact_projection import apply_canonical_facts_to_solver
 from smeme.reasoning.ir.types import IR, IRNodeKind
 from smeme.reasoning.runtime.assumptions import (

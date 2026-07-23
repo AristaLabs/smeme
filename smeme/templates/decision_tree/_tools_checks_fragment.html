@@ -1,0 +1,13 @@
+{# HTMX: innerHTML for #tools-checks-root; OOB refreshes #tools-deploy-row #}
+<div id="tools-checks-indicator"
+     class="htmx-indicator mb-2 text-xs text-ui-ink-muted"
+     aria-live="polite">
+  Running checks…
+</div>
+{% include 'decision_tree/_tools_checks_section.html' %}
+
+{% if not is_read_only %}
+<div id="tools-deploy-row" hx-swap-oob="innerHTML" class="flex shrink-0 justify-end">
+  {% include 'decision_tree/_tools_deploy_actions.html' %}
+</div>
+{% endif %}

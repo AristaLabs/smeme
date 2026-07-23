@@ -1,0 +1,11 @@
+{% if graph and graph.nodes and graph.nodes|length > 0 %}
+  <div id="graph-legend-overlay" class="graph-legend-sticky">
+    {% include 'decision_tree/_graph_legend.html' %}
+    {% include 'decision_tree/_graph_zoom_controls.html' %}
+  </div>
+  <div id="graph-scroll-body">
+    {% include 'decision_tree/_graph_svg.html' %}
+  </div>
+{% else %}
+  {% include 'decision_tree/_graph_empty.html' %}
+{% endif %}

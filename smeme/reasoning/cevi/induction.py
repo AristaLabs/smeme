@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from smeme.qnr.models import DTGraph
+from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.cevi.atom_catalog import canonical_ir_atom_catalog
 from smeme.reasoning.cevi.corpus_normalize import (
     ResearchCorpusSnapshot,

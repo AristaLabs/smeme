@@ -12,19 +12,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.database import get_db
 from smeme.core.models import (
-    QNR,
-    QnrResearchCorpus,
+    DecisionTree,
+    DecisionTreeResearchCorpus,
     ReasoningCompiledArtifact,
     User,
 )
 from smeme.app_factory import create_core_app as create_app
-from smeme.qnr.helpers.db_queries import parse_graph_data
-from smeme.qnr.models import (
+from smeme.decision_tree.helpers.db_queries import parse_graph_data
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.cevi.induction import induce_published_evidence_contract_at_publish
@@ -73,7 +73,7 @@ def _publishable_graph() -> dict:
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
         ],
-        metadata=QNRMetadata(title="reasoning publish integration"),
+        metadata=DTGraphMetadata(title="reasoning publish integration"),
     )
     return g.model_dump(mode="json")
 
@@ -98,7 +98,7 @@ def _one_conclusion_graph() -> dict:
             ),
         ],
         edges=[GraphEdge(source="q1", target="c1", condition="A")],
-        metadata=QNRMetadata(title="invalid conclusions count"),
+        metadata=DTGraphMetadata(title="invalid conclusions count"),
     )
     return g.model_dump(mode="json")
 
@@ -120,7 +120,7 @@ async def app_for_publish(test_session_factory):
 
 
 @pytest_asyncio.fixture
-async def premium_owner_publishable_qnr(test_session_factory):
+async def premium_owner_publishable_decision_tree(test_session_factory):
     from uuid import uuid4
 
     suffix = uuid4().hex[:10]
@@ -140,32 +140,32 @@ async def premium_owner_publishable_qnr(test_session_factory):
         await session.commit()
         await session.refresh(user)
 
-        qnr = QNR(
+        decision_tree = DecisionTree(
             author_id=user.id,
             title="Reasoning publish integration",
             graph_data=_publishable_graph(),
             is_public=False,
             reasoning_status=None,
         )
-        session.add(qnr)
+        session.add(decision_tree)
         await session.commit()
-        await session.refresh(qnr)
-        qnr_id = qnr.id
+        await session.refresh(decision_tree)
+        decision_tree_id = decision_tree.id
 
-    yield {"email": email, "qnr_id": qnr_id, "user_id": user.id, "user": user}
+    yield {"email": email, "decision_tree_id": decision_tree_id, "user_id": user.id, "user": user}
 
     async with test_session_factory() as session:
         await session.execute(
-            delete(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.qnr_id == qnr_id)
+            delete(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_id)
         )
-        await session.execute(delete(QnrResearchCorpus).where(QnrResearchCorpus.qnr_id == qnr_id))
-        await session.execute(delete(QNR).where(QNR.id == qnr_id))
+        await session.execute(delete(DecisionTreeResearchCorpus).where(DecisionTreeResearchCorpus.decision_tree_id == decision_tree_id))
+        await session.execute(delete(DecisionTree).where(DecisionTree.id == decision_tree_id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
 
 
 @pytest_asyncio.fixture
-async def premium_owner_invalid_qnr(test_session_factory):
+async def premium_owner_invalid_decision_tree(test_session_factory):
     from uuid import uuid4
 
     suffix = uuid4().hex[:10]
@@ -185,80 +185,80 @@ async def premium_owner_invalid_qnr(test_session_factory):
         await session.commit()
         await session.refresh(user)
 
-        qnr = QNR(
+        decision_tree = DecisionTree(
             author_id=user.id,
             title="Invalid graph",
             graph_data=_one_conclusion_graph(),
             is_public=False,
             reasoning_status=None,
         )
-        session.add(qnr)
+        session.add(decision_tree)
         await session.commit()
-        await session.refresh(qnr)
-        qnr_id = qnr.id
+        await session.refresh(decision_tree)
+        decision_tree_id = decision_tree.id
 
-    yield {"email": email, "qnr_id": qnr_id, "user": user}
+    yield {"email": email, "decision_tree_id": decision_tree_id, "user": user}
 
     async with test_session_factory() as session:
-        await session.execute(delete(QNR).where(QNR.id == qnr_id))
+        await session.execute(delete(DecisionTree).where(DecisionTree.id == decision_tree_id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
 
 
-async def _count_artifacts(session, qnr_id) -> int:
+async def _count_artifacts(session, decision_tree_id) -> int:
     r = await session.execute(
         select(func.count())
         .select_from(ReasoningCompiledArtifact)
-        .where(ReasoningCompiledArtifact.qnr_id == qnr_id)
+        .where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_id)
     )
     return int(r.scalar_one())
 
 
 @pytest.mark.golden_matrix
 async def test_publish_gate_failure_rolls_back(
-    app_for_publish, premium_owner_invalid_qnr, test_session_factory
+    app_for_publish, premium_owner_invalid_decision_tree, test_session_factory
 ):
     """GM-PUBLISH-ROLLBACK: publish gate failure must not commit partial artifact state."""
-    data = premium_owner_invalid_qnr
+    data = premium_owner_invalid_decision_tree
     transport = ASGITransport(app=app_for_publish)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with auth_as(app_for_publish, data["user"]):
             resp = await client.post(
-                f"/qnr/editor/{data['qnr_id']}/publish",
+                f"/decision-trees/editor/{data['decision_tree_id']}/publish",
                 follow_redirects=False,
             )
     assert resp.status_code == 400
 
     async with test_session_factory() as session:
-        qnr = (await session.execute(select(QNR).where(QNR.id == data["qnr_id"]))).scalar_one()
-        assert qnr.is_public is False
-        assert await _count_artifacts(session, data["qnr_id"]) == 0
+        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        assert decision_tree.is_public is False
+        assert await _count_artifacts(session, data["decision_tree_id"]) == 0
 
 
 @pytest.mark.golden_matrix
 async def test_publish_happy_path_persists_contract_and_hash(
-    app_for_publish, premium_owner_publishable_qnr, test_session_factory
+    app_for_publish, premium_owner_publishable_decision_tree, test_session_factory
 ):
     """GM-PUBLISH-HAPPY: successful publish persists contract row + matching hash."""
-    data = premium_owner_publishable_qnr
+    data = premium_owner_publishable_decision_tree
     transport = ASGITransport(app=app_for_publish)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with auth_as(app_for_publish, data["user"]):
             resp = await client.post(
-                f"/qnr/editor/{data['qnr_id']}/publish",
+                f"/decision-trees/editor/{data['decision_tree_id']}/publish",
                 follow_redirects=False,
             )
     assert resp.status_code == 303
 
     async with test_session_factory() as session:
-        qnr = (await session.execute(select(QNR).where(QNR.id == data["qnr_id"]))).scalar_one()
-        assert qnr.is_public is False
-        assert qnr.reasoning_status == "compiled"
-        assert await _count_artifacts(session, data["qnr_id"]) == 1
+        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        assert decision_tree.is_public is False
+        assert decision_tree.reasoning_status == "compiled"
+        assert await _count_artifacts(session, data["decision_tree_id"]) == 1
         art = (
             await session.execute(
                 select(ReasoningCompiledArtifact).where(
-                    ReasoningCompiledArtifact.qnr_id == data["qnr_id"]
+                    ReasoningCompiledArtifact.decision_tree_id == data["decision_tree_id"]
                 )
             )
         ).scalar_one()
@@ -273,7 +273,7 @@ async def test_publish_happy_path_persists_contract_and_hash(
         assert cevi_fingerprint(c) == art.cevi_contract_hash
         expected, corpus_snap = induce_published_evidence_contract_at_publish(
             ir_json=art.ir_json,
-            graph=parse_graph_data(qnr),
+            graph=parse_graph_data(decision_tree),
             graph_hash=art.graph_hash,
             ir_format_version=IR_FORMAT_VERSION,
             corpus_body=None,
@@ -285,12 +285,12 @@ async def test_publish_happy_path_persists_contract_and_hash(
 
 @pytest.mark.golden_matrix
 async def test_publish_contract_validates_and_round_trips(
-    app_for_publish, premium_owner_publishable_qnr, test_session_factory
+    app_for_publish, premium_owner_publishable_decision_tree, test_session_factory
 ):
     """Non-empty CEVI contract persists only after IR-aware validation."""
     from smeme.reasoning.cevi.corpus_normalize import build_research_corpus_snapshot
 
-    data = premium_owner_publishable_qnr
+    data = premium_owner_publishable_decision_tree
 
     def fake_induce(
         *,
@@ -329,11 +329,11 @@ async def test_publish_contract_validates_and_round_trips(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with auth_as(app_for_publish, data["user"]):
             with patch(
-                "smeme.qnr.editor.routes.induce_published_evidence_contract_at_publish",
+                "smeme.decision_tree.editor.routes.induce_published_evidence_contract_at_publish",
                 side_effect=fake_induce,
             ):
                 resp = await client.post(
-                    f"/qnr/editor/{data['qnr_id']}/publish",
+                    f"/decision-trees/editor/{data['decision_tree_id']}/publish",
                     follow_redirects=False,
                 )
     assert resp.status_code == 303
@@ -342,7 +342,7 @@ async def test_publish_contract_validates_and_round_trips(
         art = (
             await session.execute(
                 select(ReasoningCompiledArtifact).where(
-                    ReasoningCompiledArtifact.qnr_id == data["qnr_id"]
+                    ReasoningCompiledArtifact.decision_tree_id == data["decision_tree_id"]
                 )
             )
         ).scalar_one()
@@ -356,19 +356,19 @@ async def test_publish_contract_validates_and_round_trips(
 
 @pytest.mark.golden_matrix
 async def test_publish_persists_research_corpus_hash_when_corpus_saved(
-    app_for_publish, premium_owner_publishable_qnr, test_session_factory
+    app_for_publish, premium_owner_publishable_decision_tree, test_session_factory
 ):
     """Corpus bytes at publish time freeze into artifact + contract provenance."""
     from smeme.reasoning.cevi.corpus_normalize import normalized_corpus_sha256_or_none
 
-    data = premium_owner_publishable_qnr
-    qnr_id = data["qnr_id"]
+    data = premium_owner_publishable_decision_tree
+    decision_tree_id = data["decision_tree_id"]
     body = (
         "SME research corpus for Pick Yes No. Branch Alpha versus Branch Beta "
         "first outcome detail second outcome detail.\n"
     )
     async with test_session_factory() as session:
-        session.add(QnrResearchCorpus(qnr_id=qnr_id, body_text=body))
+        session.add(DecisionTreeResearchCorpus(decision_tree_id=decision_tree_id, body_text=body))
         await session.commit()
 
     expected_hash = normalized_corpus_sha256_or_none(body)
@@ -378,7 +378,7 @@ async def test_publish_persists_research_corpus_hash_when_corpus_saved(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with auth_as(app_for_publish, data["user"]):
             resp = await client.post(
-                f"/qnr/editor/{qnr_id}/publish",
+                f"/decision-trees/editor/{decision_tree_id}/publish",
                 follow_redirects=False,
             )
     assert resp.status_code == 303
@@ -386,7 +386,7 @@ async def test_publish_persists_research_corpus_hash_when_corpus_saved(
     async with test_session_factory() as session:
         art = (
             await session.execute(
-                select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.qnr_id == qnr_id)
+                select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_id)
             )
         ).scalar_one()
         assert art.research_corpus_hash == expected_hash
@@ -397,9 +397,9 @@ async def test_publish_persists_research_corpus_hash_when_corpus_saved(
 
 
 async def test_publish_commit_failure_no_durable_publish(
-    app_for_publish, premium_owner_publishable_qnr, test_session_factory
+    app_for_publish, premium_owner_publishable_decision_tree, test_session_factory
 ):
-    data = premium_owner_publishable_qnr
+    data = premium_owner_publishable_decision_tree
 
     async def boom_commit(self) -> None:
         raise RuntimeError("simulated commit failure")
@@ -410,11 +410,11 @@ async def test_publish_commit_failure_no_durable_publish(
             with patch.object(AsyncSession, "commit", boom_commit):
                 with pytest.raises(RuntimeError, match="simulated commit failure"):
                     await client.post(
-                        f"/qnr/editor/{data['qnr_id']}/publish",
+                        f"/decision-trees/editor/{data['decision_tree_id']}/publish",
                         follow_redirects=False,
                     )
 
     async with test_session_factory() as session:
-        qnr = (await session.execute(select(QNR).where(QNR.id == data["qnr_id"]))).scalar_one()
-        assert qnr.is_public is False
-        assert await _count_artifacts(session, data["qnr_id"]) == 0
+        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        assert decision_tree.is_public is False
+        assert await _count_artifacts(session, data["decision_tree_id"]) == 0

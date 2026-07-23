@@ -1,0 +1,250 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import alert, badge, btn, callout, wizard_create_cta %}
+{% block title %}Dashboard - SMEme{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+  {% include "components/_mcp_connect_dashboard_strip.html" %}
+
+  {% if success_message %}
+  {{ alert(success_message, "success") }}
+  {% endif %}
+
+  {% if show_upgraded %}
+  {{ alert("Welcome to Pro! Your higher limits are active now.", "success") }}
+  {% endif %}
+
+  {% if wizard_start_block %}
+  {% call callout("warning", title=wizard_start_block.title, variant="prominent") %}
+    <p>{{ wizard_start_block.message }}</p>
+    <button type="button"
+            class="mt-2 text-sm font-semibold text-brand-700 underline hover:text-brand-900 dark:text-brand-300"
+            hx-get="/decision-trees/agentic/wizard-start-blocked-modal"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">
+      What you can do next
+    </button>
+  {% endcall %}
+  {% endif %}
+
+  {% if usage_summary is defined and quota_enforcement_enabled %}
+  {% set usage_at_cap = usage_summary.wizard_completions.at_cap or usage_summary.workflows.at_cap %}
+  {% set usage_at_warning = usage_summary.workflows.at_warning or usage_summary.mcp_weighted.at_warning or usage_summary.wizard_completions.at_warning %}
+  {% if usage_at_cap %}
+  {% call callout("error", variant="prominent", role="status", extra_class="mb-0") %}
+    {% include "decision_tree/_dashboard_usage_meter_inner.html" %}
+  {% endcall %}
+  {% elif usage_at_warning %}
+  {% call callout("warning", variant="prominent", role="status", extra_class="mb-0") %}
+    {% include "decision_tree/_dashboard_usage_meter_inner.html" %}
+  {% endcall %}
+  {% else %}
+  <div class="rounded-xl border border-ui-line bg-ui-surface px-4 py-3 text-sm">
+    {% include "decision_tree/_dashboard_usage_meter_inner.html" %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if show_deploy_success %}
+  {% call callout("success", role="status") %}
+    <p><strong class="font-medium">Deploy finished.</strong> Tools are up to date. See <a href="/docs/mcp" class="font-medium underline decoration-success-700/40 hover:decoration-success-800 dark:decoration-success-400">AI tools (MCP)</a> for connecting clients. Use the <strong class="font-medium">Listed</strong> column below when you want a workflow available to your MCP-connected AI tools.</p>
+  {% endcall %}
+  {% endif %}
+
+  <div id="dashboard-flash-messages">
+    {% if show_generation_deleted %}
+    {{ alert("In-progress workflow removed.", "success") }}
+    {% endif %}
+  </div>
+
+  {% with show_generation_deleted=false %}
+  {% include "decision_tree/_dashboard_in_progress.html" %}
+  {% endwith %}
+
+  {% with id='dashboard-delete-indicator', message='Removing in-progress workflow…' %}
+  {% include 'components/overlay.html' %}
+  {% endwith %}
+
+  {# Single primary table: all current (non-archived) QNRs #}
+  <section aria-labelledby="decision_tree-list-heading">
+    <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 id="decision_tree-list-heading" class="text-xl font-semibold text-ui-ink">Workflows</h2>
+        {% if quota_enforcement_enabled and usage_summary is defined and usage_summary.workflows.at_cap and not user.is_premium %}
+        <p class="text-sm text-amber-800 mt-1">Live workflow limit reached — permanently delete a dormant workflow, or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
+        {% elif quota_enforcement_enabled and usage_summary is defined and usage_summary.workflows.at_cap %}
+        <p class="text-sm text-amber-800 mt-1">Workflow limit reached — delete a workflow or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if decision_trees %}
+    <div class="overflow-hidden rounded-lg border border-ui-line bg-ui-surface">
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-left text-sm text-ui-ink" aria-labelledby="decision_tree-list-heading">
+          <thead>
+            <tr class="border-b border-ui-line bg-ui-surface-muted text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">
+              <th scope="col" class="px-4 py-3 font-medium">Name</th>
+              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap">Tools</th>
+              <th scope="col"
+                  id="mcp-listed"
+                  class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap cursor-help"
+                  title="Listed workflows can be used by your AI through MCP-connected tools. Hidden workflows stay off your MCP tool list.">Listed</th>
+              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden lg:table-cell" title="MCP tool calls (weighted) this UTC month for this workflow">MCP (mo)</th>
+              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden sm:table-cell">Version</th>
+              <th scope="col" class="border-l border-ui-line px-4 py-3 font-medium whitespace-nowrap hidden md:table-cell">Updated</th>
+              <th scope="col" class="border-l border-ui-line px-3 py-3 font-medium text-right whitespace-nowrap w-[1%]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for decision_tree in decision_trees %}
+            {% set grayed = decision_tree_grayed.get(decision_tree.id, false) if decision_tree_grayed is defined else false %}
+            {% set tr = tools_row.get(decision_tree.id, "not_built") %}
+            <tr class="border-b border-ui-surface-hover last:border-b-0 {% if grayed %}bg-ui-surface-muted/50 opacity-75{% else %}hover:bg-ui-surface-muted/90{% endif %} transition-colors">
+              <td class="px-4 py-3 align-middle">
+                {% if grayed %}
+                <span class="font-medium text-ui-ink-muted">{{ decision_tree.title }}</span>
+                {% if not user.workflow_pick_required %}
+                <p class="mt-1 text-xs text-ui-ink-muted">Dormant on Free — download only. <button type="button" class="font-medium text-brand-700 underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">Upgrade to Pro</button></p>
+                {% else %}
+                <p class="mt-1 text-xs text-ui-ink-muted">Choose which workflow to keep live.</p>
+                {% endif %}
+                {% else %}
+                <a href="/decision-trees/{{ decision_tree.id }}/editor" class="font-medium text-ui-ink hover:text-brand-700">{{ decision_tree.title }}</a>
+                {% endif %}
+                {% if decision_tree.was_ever_public and not decision_tree.is_archived %}
+                <p class="mt-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5 max-w-md">
+                  This version is locked for editing — create a new version to change the graph.
+                </p>
+                {% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-4 py-3 align-middle whitespace-nowrap">
+                {% if grayed %}
+                <span class="text-ui-ink-subtle text-xs">—</span>
+                {% elif tr == "live" %}
+                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-600/15" title="Your workflow is deployed and up to date.">Live</span>
+                {% elif tr == "stale" %}
+                <div class="flex flex-row flex-nowrap items-center gap-2">
+                  <span class="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-600/20" title="Graph changed since last deploy.">Stale</span>
+                  {% set deploy_decision_tree_id = decision_tree.id|string %}
+                  {% set deploy_label = 'Redeploy' %}
+                  {% set deploy_extra_class = 'inline-flex shrink-0 px-2.5 py-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-md shadow-sm' %}
+                  {% set return_next = 'dashboard' %}
+                  {% include 'decision_tree/_deploy_tools_trigger.html' %}
+                </div>
+                {% else %}
+                <div class="flex flex-row flex-nowrap items-center gap-2">
+                  {% set deploy_decision_tree_id = decision_tree.id|string %}
+                  {% set deploy_label = 'Deploy' %}
+                  {% set deploy_extra_class = 'inline-flex shrink-0 px-2.5 py-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-md shadow-sm' %}
+                  {% set return_next = 'dashboard' %}
+                  {% include 'decision_tree/_deploy_tools_trigger.html' %}
+                </div>
+                {% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-4 py-3 align-middle whitespace-nowrap">
+                {% if grayed %}
+                <span class="text-ui-ink-subtle text-xs">—</span>
+                {% elif decision_tree.reasoning_status == "compiled" %}
+                {% with decision_tree_id=decision_tree.id|string, mcp_discoverable=decision_tree.mcp_discoverable, select_id='disc-dash-' ~ decision_tree.id|string %}
+                {% include 'decision_tree/_mcp_discoverable_select.html' %}
+                {% endwith %}
+                {% else %}
+                <span class="text-ui-ink-subtle text-xs" title="Deploy first, then choose Listed or Hidden here.">—</span>
+                {% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-4 py-3 align-middle whitespace-nowrap hidden lg:table-cell text-ui-ink-muted tabular-nums text-xs">
+                {% set mcp_n = mcp_calls_by_decision_tree.get(decision_tree.id, 0) if mcp_calls_by_decision_tree is defined else 0 %}
+                {% if mcp_n %}{{ "%.1f"|format(mcp_n) }}{% else %}—{% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-4 py-3 align-middle whitespace-nowrap hidden sm:table-cell text-ui-ink-muted tabular-nums">
+                {% if decision_tree.version_number %}v{{ decision_tree.version_number }}{% else %}—{% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-4 py-3 align-middle whitespace-nowrap hidden md:table-cell text-ui-ink-muted tabular-nums">
+                {% if decision_tree.updated_at %}{{ decision_tree.updated_at.strftime('%Y-%m-%d') }}{% else %}—{% endif %}
+              </td>
+              <td class="border-l border-ui-surface-hover px-2 py-2 align-middle text-right">
+                <div class="flex flex-row flex-nowrap items-center justify-end gap-1.5" role="group" aria-label="Workflow actions">
+                  <a href="/decision-trees/{{ decision_tree.id }}/download"
+                     class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-ink-muted hover:bg-ui-surface-hover hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                     title="Download workflow"
+                     aria-label="Download workflow"
+                     download>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                  </a>
+                  {% if not grayed %}
+                  <a href="/decision-trees/{{ decision_tree.id }}/editor"
+                     class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-ink-muted hover:bg-ui-surface-hover hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                     title="Edit"
+                     aria-label="Edit">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </a>
+                  {% if decision_tree.was_ever_public and not decision_tree.is_archived %}
+                  <form method="post" action="/decision-trees/editor/{{ decision_tree.id }}/create_version" class="inline-flex">
+                    <button type="submit"
+                            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-ink-muted hover:bg-ui-surface-hover hover:text-ui-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                            title="New version"
+                            aria-label="New version">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                    </button>
+                  </form>
+                  {% endif %}
+                  {% endif %}
+                  <button type="button"
+                          hx-get="/decision-trees/{{ decision_tree.id }}/delete-confirm"
+                          hx-target="#delete-modal"
+                          hx-swap="innerHTML"
+                          class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-ink-muted hover:bg-danger-50 hover:text-danger-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:ring-offset-2"
+                          title="Delete workflow permanently"
+                          aria-label="Delete workflow permanently">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="rounded-xl border-2 border-dashed border-ui-line bg-ui-surface-muted/50 px-8 py-14 text-center">
+      <p class="text-ui-ink-secondary font-medium">No workflows yet</p>
+      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Start from research and design with the AI-assisted workflow—then refine structure in the editor and deploy verified MCP tools.</p>
+      <div class="mt-8 max-w-md mx-auto">
+        {{ wizard_create_cta(full_width=true, wizard_start_block=wizard_start_block) }}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div id="delete-modal"></div>
+
+<style>
+#dashboard-delete-indicator.htmx-indicator.subgraph-overlay {
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+}
+.htmx-request#dashboard-delete-indicator.htmx-indicator.subgraph-overlay {
+  opacity: 1;
+  pointer-events: all;
+}
+</style>
+{% if show_cancellation_explainer is defined and show_cancellation_explainer %}
+<div hx-get="/billing/cancellation-explainer"
+     hx-trigger="load"
+     hx-target="#modal-container"
+     hx-swap="innerHTML"></div>
+{% endif %}
+{% endblock %}

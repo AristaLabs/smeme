@@ -41,7 +41,7 @@ async def login_page(request: Request, db: AsyncSessionDep, user_manager: UserMa
 
         user = await clerk_authenticated_user(request, db, user_manager)
         if user is not None:
-            return RedirectResponse(url="/qnr/dashboard", status_code=302)
+            return RedirectResponse(url="/decision-trees/dashboard", status_code=302)
 
     return templates.TemplateResponse(
         "auth/login.html",
@@ -83,7 +83,7 @@ async def clerk_callback(
     user = await clerk_authenticated_user(request, db, user_manager)
     if user is not None:
         logger.info("Clerk callback: authenticated user %s (%s)", user.id, user.email)
-        return RedirectResponse(url="/qnr/dashboard", status_code=302)
+        return RedirectResponse(url="/decision-trees/dashboard", status_code=302)
 
     # Client may have Clerk.session before __session is visible to the server (modal
     # sign-in + custom FAPI domain). Serve HTML so clerk-js can sync cookies here,
@@ -115,7 +115,7 @@ async def register_page(request: Request, db: AsyncSessionDep, user_manager: Use
 
     user = await clerk_authenticated_user(request, db, user_manager)
     if user is not None:
-        return RedirectResponse(url="/qnr/dashboard", status_code=302)
+        return RedirectResponse(url="/decision-trees/dashboard", status_code=302)
 
     return templates.TemplateResponse(
         "auth/register.html",

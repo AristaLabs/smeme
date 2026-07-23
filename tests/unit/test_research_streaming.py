@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from smeme.qnr.generation.agentic.streaming import (
+from smeme.decision_tree.generation.agentic.streaming import (
     REPLAY_MAX_DELTA_BYTES,
     REPLAY_MAX_EVENTS,
     get_bus,
@@ -18,7 +18,7 @@ from smeme.qnr.generation.agentic.streaming import (
     reset_streaming_state,
     sse_event_stream,
 )
-from smeme.qnr.generation.agentic.subgraphs.research import (
+from smeme.decision_tree.generation.agentic.subgraphs.research import (
     _cancelled_return,
     _content_delta_text,
     _is_cancelled,
@@ -159,7 +159,7 @@ class TestCancelCheckpoints:
 
     @pytest.mark.asyncio
     async def test_checkpoint_2_before_tavily(self):
-        from smeme.qnr.generation.agentic.subgraphs.models import ResearchSubgraphState
+        from smeme.decision_tree.generation.agentic.subgraphs.models import ResearchSubgraphState
 
         thread_id = str(uuid4())
         cancel = get_cancel_event(thread_id)
@@ -186,7 +186,7 @@ class TestCancelCheckpoints:
 
     @pytest.mark.asyncio
     async def test_checkpoint_3_after_tavily_before_llm(self):
-        from smeme.qnr.generation.agentic.subgraphs.models import ResearchSubgraphState
+        from smeme.decision_tree.generation.agentic.subgraphs.models import ResearchSubgraphState
 
         thread_id = str(uuid4())
         cancel = get_cancel_event(thread_id)
@@ -257,7 +257,7 @@ class TestCancelCheckpoints:
         }
 
         with patch(
-            "smeme.qnr.generation.agentic.subgraphs.research._research_openai_client",
+            "smeme.decision_tree.generation.agentic.subgraphs.research._research_openai_client",
             return_value=mock_client,
         ):
             partial = await _stream_research_completion(
@@ -273,17 +273,17 @@ class TestCancelCheckpoints:
 class TestBackgroundCancelCheckpoint1:
     @pytest.mark.asyncio
     async def test_cancel_before_ainvoke_emits_error_not_complete(self):
-        from smeme.qnr.generation.agentic.background import _run_generation_workflow
+        from smeme.decision_tree.generation.agentic.background import _run_generation_workflow
 
         thread_id = str(uuid4())
         get_cancel_event(thread_id).set()
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.background.get_compiled_workflow",
+                "smeme.decision_tree.generation.agentic.background.get_compiled_workflow",
                 new_callable=AsyncMock,
             ) as mock_wf,
-            patch("smeme.qnr.generation.agentic.background.AsyncSessionLocal") as mock_session,
+            patch("smeme.decision_tree.generation.agentic.background.AsyncSessionLocal") as mock_session,
         ):
             mock_session.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
             mock_session.return_value.__aexit__ = AsyncMock(return_value=None)
@@ -308,7 +308,7 @@ class TestBackgroundCancelCheckpoint1:
 
     @pytest.mark.asyncio
     async def test_unexpected_completion_emits_error_and_terminal_state(self):
-        from smeme.qnr.generation.agentic.background import _run_generation_workflow
+        from smeme.decision_tree.generation.agentic.background import _run_generation_workflow
 
         thread_id = str(uuid4())
         mock_workflow = AsyncMock()
@@ -316,11 +316,11 @@ class TestBackgroundCancelCheckpoint1:
 
         with (
             patch(
-                "smeme.qnr.generation.agentic.background.get_compiled_workflow",
+                "smeme.decision_tree.generation.agentic.background.get_compiled_workflow",
                 new_callable=AsyncMock,
                 return_value=mock_workflow,
             ),
-            patch("smeme.qnr.generation.agentic.background.AsyncSessionLocal") as mock_session,
+            patch("smeme.decision_tree.generation.agentic.background.AsyncSessionLocal") as mock_session,
         ):
             mock_session.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
             mock_session.return_value.__aexit__ = AsyncMock(return_value=None)

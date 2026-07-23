@@ -21,7 +21,7 @@ def _explanation_payload(result: EvaluationResult) -> dict[str, Any]:
 async def persist_reasoning_evaluation_run(
     db: AsyncSession,
     *,
-    qnr_id: UUID,
+    decision_tree_id: UUID,
     result: EvaluationResult,
     audit: BlobAuditRecord,
     session_id: UUID | None = None,
@@ -32,7 +32,7 @@ async def persist_reasoning_evaluation_run(
 ) -> ReasoningEvaluationRun:
     """Insert one evaluation run row and commit."""
     row = ReasoningEvaluationRun(
-        qnr_id=qnr_id,
+        decision_tree_id=decision_tree_id,
         session_id=session_id,
         caller_user_id=caller_user_id,
         outcome=result.status,

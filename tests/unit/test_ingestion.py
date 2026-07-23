@@ -1,6 +1,6 @@
 """Unit tests for Phase B file ingestion.
 
-Per docs/planning/qnr-generation-ux-refinement.md §4.10.
+Per docs/planning/decision_tree-generation-ux-refinement.md §4.10.
 Tests: magic bytes, size limits, prepare_research_corpus, parse (with temp files).
 """
 
@@ -10,12 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from smeme.qnr.generation.agentic import ingestion
-from smeme.qnr.generation.agentic.file_limits import (
+from smeme.decision_tree.generation.agentic import ingestion
+from smeme.decision_tree.generation.agentic.file_limits import (
     MAX_EXTRACTED_TEXT_CHARS,
     MAX_FILE_SIZE_BYTES,
 )
-from smeme.qnr.generation.agentic.ingestion import (
+from smeme.decision_tree.generation.agentic.ingestion import (
     parse_file,
     parse_uploaded_file,
     prepare_research_corpus,

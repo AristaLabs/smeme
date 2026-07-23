@@ -3,7 +3,7 @@
 MCP tool handlers return **strings** (JSON). Clients should parse the payload and
 branch on ``error.code`` when present.
 
-**Success** — tool-specific shape (e.g. ``outcome`` for evaluate, ``reasoning_qnrs`` for list).
+**Success** — tool-specific shape (e.g. ``outcome`` for evaluate, ``decision_trees`` for list).
 
 **Expected failure** (caller can recover)::
 
@@ -35,7 +35,7 @@ REASONING_TOOL_ERROR_CODES: frozenset[str] = frozenset(
         "auth_error",
         "invalid_answers_json",
         "invalid_evidence_blob_json",
-        "invalid_qnr_id",
+        "invalid_decision_tree_id",
         "not_found",
         "no_reasoning_artifact",
         "no_compiled_theory",

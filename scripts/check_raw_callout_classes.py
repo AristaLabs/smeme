@@ -20,19 +20,19 @@ ALLOWLIST = {
 }
 
 SKIP_PARTS = {
-    "qnr/_validation_issue_row.html",
-    "qnr/_validation_badge.html",
-    "qnr/_editor_tools_chip.html",
-    "qnr/_mcp_discoverable_select.html",
-    "qnr/_graph_checklist.html",
-    "qnr/generation/_main_research_edit.html",  # action cards + augment panel (not callouts)
-    "qnr/_publish_readiness_results.html",  # nested issue lists use border-l accents
-    "qnr/_publish_blocked_standalone.html",
-    "qnr/dashboard.html",  # inline workflow-limit hints (not full callouts)
+    "decision_tree/_validation_issue_row.html",
+    "decision_tree/_validation_badge.html",
+    "decision_tree/_editor_tools_chip.html",
+    "decision_tree/_mcp_discoverable_select.html",
+    "decision_tree/_graph_checklist.html",
+    "decision_tree/generation/_main_research_edit.html",  # action cards + augment panel (not callouts)
+    "decision_tree/_publish_readiness_results.html",  # nested issue lists use border-l accents
+    "decision_tree/_publish_blocked_standalone.html",
+    "decision_tree/dashboard.html",  # inline workflow-limit hints (not full callouts)
     "auth/_delete_account_step1.html",  # modal icon avatar
     "auth/profile.html",  # usage meter tiles + danger-zone card chrome
-    "qnr/_delete_confirm_step1.html",  # modal icon avatar
-    "qnr/_conclusion.html",  # outcome status chips
+    "decision_tree/_delete_confirm_step1.html",  # modal icon avatar
+    "decision_tree/_conclusion.html",  # outcome status chips
 }
 
 

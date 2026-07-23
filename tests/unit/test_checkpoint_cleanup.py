@@ -1,14 +1,14 @@
 """Unit tests for checkpoint cleanup (§4.8).
 
-Per docs/planning/qnr-generation-ux-refinement.md §9.3.
+Per docs/planning/decision_tree-generation-ux-refinement.md §9.3.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from smeme.qnr.generation.agentic.checkpointer import checkpointer_manager
-from smeme.qnr.generation.agentic.services import checkpoint_manager
+from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+from smeme.decision_tree.generation.agentic.services import checkpoint_manager
 
 
 class TestDeleteCheckpointsForThread:
@@ -72,11 +72,11 @@ class TestAbandonGeneration:
                 checkpoint_manager, "get_generation", new_callable=AsyncMock, return_value=gen
             ),
             patch(
-                "smeme.qnr.generation.agentic.services.checkpointer_manager.delete_checkpoints_for_thread",
+                "smeme.decision_tree.generation.agentic.services.checkpointer_manager.delete_checkpoints_for_thread",
                 new_callable=AsyncMock,
             ) as mock_del,
             patch(
-                "smeme.qnr.generation.agentic.services.track_wizard_abandon",
+                "smeme.decision_tree.generation.agentic.services.track_wizard_abandon",
                 new_callable=AsyncMock,
             ) as mock_abandon,
         ):
@@ -103,19 +103,19 @@ class TestAbandonGeneration:
                 checkpoint_manager, "get_generation", new_callable=AsyncMock, return_value=gen
             ),
             patch(
-                "smeme.qnr.generation.agentic.services._finish_abandon_cleanup",
+                "smeme.decision_tree.generation.agentic.services._finish_abandon_cleanup",
                 new_callable=AsyncMock,
             ),
             patch(
-                "smeme.qnr.generation.agentic.services.asyncio.create_task",
+                "smeme.decision_tree.generation.agentic.services.asyncio.create_task",
                 return_value=None,
             ) as mock_task,
             patch(
-                "smeme.qnr.generation.agentic.services.track_wizard_abandon",
+                "smeme.decision_tree.generation.agentic.services.track_wizard_abandon",
                 new_callable=AsyncMock,
             ) as mock_abandon,
             patch(
-                "smeme.qnr.generation.agentic.services.checkpointer_manager.delete_checkpoints_for_thread",
+                "smeme.decision_tree.generation.agentic.services.checkpointer_manager.delete_checkpoints_for_thread",
                 new_callable=AsyncMock,
             ) as mock_del,
         ):
@@ -148,7 +148,7 @@ class TestCompleteGenerationCallsCheckpointCleanup:
 
             # Patch at the point of use so our mock gets called
             with patch(
-                "smeme.qnr.generation.agentic.services.checkpointer_manager",
+                "smeme.decision_tree.generation.agentic.services.checkpointer_manager",
                 checkpointer_manager,
             ):
                 await checkpoint_manager.complete_generation(mock_db, thread_id)
@@ -194,7 +194,7 @@ class TestCleanupExpiredCallsCheckpointCleanup:
         with patch.object(
             checkpointer_manager, "delete_checkpoints_for_thread", new_callable=AsyncMock
         ) as mock_del, patch(
-            "smeme.qnr.generation.agentic.services.track_wizard_abandon",
+            "smeme.decision_tree.generation.agentic.services.track_wizard_abandon",
             new_callable=AsyncMock,
         ):
             mock_del.return_value = 0

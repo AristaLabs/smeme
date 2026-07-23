@@ -1,0 +1,300 @@
+<!-- Main Panel: Initial Generation Form -->
+<!-- Section 1: Guided brief + Expert Context -->
+
+{% from "components/macros.html" import callout, modal %}
+
+{% include "decision_tree/generation/_phase_stepper.html" %}
+
+{% if open_wizard_block_modal and wizard_start_block %}
+<div hx-swap-oob="innerHTML:#modal-container">
+{% include "decision_tree/generation/_wizard_start_blocked_modal.html" %}
+</div>
+{% endif %}
+
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-ui-ink mb-4">AI-Assisted Topic Research</h1>
+    {% if wizard_start_blocked and wizard_start_block %}
+    {% call callout("warning", title=wizard_start_block.title, variant="prominent", extra_class="mb-0") %}
+        <p class="mb-3">{{ wizard_start_block.message }}</p>
+        <button type="button"
+                class="text-sm font-semibold text-brand-700 underline hover:text-brand-900 dark:text-brand-300"
+                hx-get="/decision-trees/agentic/wizard-start-blocked-modal"
+                hx-target="#modal-container"
+                hx-swap="innerHTML">
+            View options (dashboard{% if wizard_start_block.show_upgrade and stripe_configured %} · upgrade{% endif %})
+        </button>
+    {% endcall %}
+    {% elif in_progress_generation_count and in_progress_generation_count > 0 %}
+    <p class="text-sm text-ui-ink-muted">
+        You have {{ in_progress_generation_count }} in-progress workflow{% if in_progress_generation_count != 1 %}s{% endif %} on your
+        <a href="/decision-trees/dashboard#in-progress" class="text-brand-600 font-medium underline hover:text-brand-800">dashboard</a>.
+        Resume there instead of starting over.
+    </p>
+    {% endif %}
+</div>
+
+{% if validation_errors or parse_failure_errors %}
+<div hx-swap-oob="innerHTML:#modal-container">
+{% call modal("validation-error-modal", "Please fix the following") %}
+    {% if validation_errors %}
+    <div class="text-sm text-red-700 whitespace-pre-line mb-2">{{ validation_errors | join('\n\n') }}</div>
+    {% endif %}
+    {% if parse_failure_errors %}
+    <p class="text-sm text-red-700 font-medium mb-2">Could not parse the following file(s). Remove them and try again:</p>
+    <ul class="text-sm text-red-700 list-disc list-inside mb-2">
+        {% for err in parse_failure_errors %}
+        <li>{{ err.filename }}: {{ err.reason }}</li>
+        {% endfor %}
+    </ul>
+    <p class="text-sm text-ui-ink-muted">All other form inputs have been preserved.</p>
+    {% endif %}
+{% endcall %}
+</div>
+{% endif %}
+
+{% if show_research_source_confirm %}
+<div hx-swap-oob="innerHTML:#modal-container">
+{% include "decision_tree/generation/_research_source_confirm_modal.html" %}
+</div>
+{% endif %}
+
+{% call callout("info", title="Recommended: add at least one research source", role="note", id="research-source-tip", extra_class="mb-6") %}
+    <p>Best results when you enable <strong class="font-medium">your materials</strong> (paste or upload expert-approved text),
+        <strong class="font-medium">AI-assisted web search</strong>, or <strong class="font-medium">both</strong>.
+        Goal-only research works for narrow topics but may miss domain-specific factors.</p>
+{% endcall %}
+
+<form
+    id="generate-form"
+    hx-post="/decision-trees/agentic/generate"
+    hx-target="closest .main-panel-content"
+    hx-swap="innerHTML"
+    hx-indicator="#loading"
+    enctype="multipart/form-data"
+    class="space-y-6"
+>
+    <!-- 1. Title (required) -->
+    <div>
+        <label for="title" class="block text-base font-medium text-ui-ink mb-2 flex items-center justify-between">
+            <span>Title <span class="text-red-500">*</span></span>
+            <span id="title-counter" class="text-sm text-ui-ink-muted font-normal">
+                <span id="title-char-count">0</span> / 200 characters
+            </span>
+        </label>
+        <input
+            type="text"
+            id="title"
+            name="title"
+            required
+            minlength="3"
+            maxlength="200"
+            placeholder="e.g. Determination of Radiologist Lung Nodule Management Malpractice"
+            value="{{ form_title | default('') }}"
+            class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            {% if wizard_start_blocked %}disabled{% endif %}
+        />
+    </div>
+
+    <!-- 2. Goal (required) -->
+    <div>
+        <label for="goal" class="block text-base font-medium text-ui-ink mb-2 flex items-center justify-between">
+            <span>Goal <span class="text-red-500">*</span></span>
+            <span id="goal-counter" class="text-sm text-ui-ink-muted font-normal">
+                <span id="goal-char-count">0</span> / 400 characters
+            </span>
+        </label>
+        <textarea
+            id="goal"
+            name="user_prompt"
+            required
+            minlength="20"
+            maxlength="400"
+            placeholder="You are a Subject Matter Expert (SME). Provide a detailed description of the matter or case this workflow will reason about. Be specific about scope and context using domain-specific terminology. This drives the AI research step."
+            class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm resize-vertical"
+            {% if wizard_start_blocked %}disabled{% endif %}
+        >{{ form_goal | default('') }}</textarea>
+    </div>
+
+    <div id="research-sources" class="space-y-6">
+    <!-- 3. Your materials (opt-in: paste and/or files) -->
+    <div
+        id="expert-context-section"
+        class="border border-ui-line rounded-lg p-4 bg-ui-surface-muted/50{% if wizard_start_blocked %} opacity-60{% endif %}"
+    >
+        <label class="flex items-start gap-3 {% if not wizard_start_blocked %}cursor-pointer{% endif %}">
+            <input
+                type="checkbox"
+                id="enable_user_materials"
+                name="enable_user_materials"
+                value="on"
+                {% if form_enable_user_materials %}checked{% endif %}
+                {% if wizard_start_blocked %}disabled{% endif %}
+                class="mt-1 rounded border-ui-line-strong text-brand-600 focus:ring-brand-500"
+            />
+            <span class="block text-base font-medium text-ui-ink pt-0.5">
+                Paste text or upload files to include in research context
+            </span>
+        </label>
+
+        <div
+            id="user-materials-options"
+            class="mt-4 pt-4 border-t border-ui-line {% if not form_enable_user_materials %}hidden{% endif %}"
+        >
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+                <div class="flex gap-1 border-b border-ui-line-strong">
+                    <button type="button" class="expert-tab px-3 py-1.5 text-sm font-medium text-brand-600 border-b-2 border-brand-600 -mb-px" data-tab="pasted">Pasted text</button>
+                    <button type="button" class="expert-tab px-3 py-1.5 text-sm font-medium text-ui-ink-muted hover:text-ui-ink-secondary -mb-px" data-tab="files">Files</button>
+                </div>
+            </div>
+
+            <div id="expert-context-content">
+                <div id="content-pasted" class="expert-panel">
+                    <textarea
+                        id="pasted_text"
+                        name="pasted_text"
+                        rows="6"
+                        placeholder="Paste text that explains procedural reasoning — not entire laws or textbooks. Make sure these are reviewed and approved."
+                        class="w-full px-3 py-2 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 font-mono text-sm resize-y"
+                        {% if wizard_start_blocked %}disabled{% endif %}
+                    >{{ form_pasted_text | default('') }}</textarea>
+                </div>
+                <div id="content-files" class="expert-panel hidden">
+                    <p class="text-sm text-ui-ink-muted mb-3">Upload .txt, .pdf, or .docx files. Content is extracted and used as context for research. Files are processed then discarded. Max 5 MB per file, 10 files total.</p>
+                    <div id="file-rows-container" class="space-y-2"></div>
+                    <button type="button" id="add-file-btn" class="mt-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200" {% if wizard_start_blocked %}disabled{% endif %}>
+                        + Add file
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. AI-assisted web search (opt-in) -->
+    <div
+        id="web-search-section"
+        class="border border-ui-line rounded-lg p-4 bg-ui-surface-muted/50{% if wizard_start_blocked %} opacity-60{% endif %}"
+    >
+        <label class="flex items-start gap-3 {% if not wizard_start_blocked %}cursor-pointer{% endif %}">
+            <input
+                type="checkbox"
+                id="enable_web_search"
+                name="enable_web_search"
+                value="on"
+                {% if form_enable_web_search %}checked{% endif %}
+                {% if wizard_start_blocked %}disabled{% endif %}
+                class="mt-1 rounded border-ui-line-strong text-brand-600 focus:ring-brand-500"
+            />
+            <span class="block text-base font-medium text-ui-ink pt-0.5">
+                Include AI-assisted web search results in research context
+            </span>
+        </label>
+
+        <div
+            id="web-search-options"
+            class="mt-4 pt-4 border-t border-ui-line space-y-4 {% if not form_enable_web_search %}hidden{% endif %}"
+        >
+            {% if creator_ui.show_decision_tree_generation_region_selector %}
+            <div>
+                <label for="country" class="block text-sm font-medium text-ui-ink-secondary mb-2">
+                    Search region (optional)
+                </label>
+                <select
+                    id="country"
+                    name="country"
+                    class="w-full sm:w-auto px-3 py-2 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 text-sm bg-ui-surface"
+                    {% if wizard_start_blocked %}disabled{% endif %}
+                >
+                    <option value="" {% if not form_country %}selected{% endif %}>Auto-detect</option>
+                    <option value="us" {% if form_country == 'us' %}selected{% endif %}>United States</option>
+                    <option value="gb" {% if form_country == 'gb' %}selected{% endif %}>United Kingdom</option>
+                    <option value="ca" {% if form_country == 'ca' %}selected{% endif %}>Canada</option>
+                    <option value="au" {% if form_country == 'au' %}selected{% endif %}>Australia</option>
+                    <option value="de" {% if form_country == 'de' %}selected{% endif %}>Germany</option>
+                    <option value="fr" {% if form_country == 'fr' %}selected{% endif %}>France</option>
+                    <option value="jp" {% if form_country == 'jp' %}selected{% endif %}>Japan</option>
+                    <option value="in" {% if form_country == 'in' %}selected{% endif %}>India</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <div>
+                <label for="include_domains" class="block text-sm font-medium text-ui-ink-secondary mb-2">
+                    URLs to read (optional)
+                </label>
+                <textarea
+                    id="include_domains"
+                    name="include_domains"
+                    rows="3"
+                    placeholder="One URL per line. When provided, SMEme reads these pages instead of running a broad search."
+                    class="w-full px-3 py-2 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 font-mono text-sm resize-y"
+                    {% if wizard_start_blocked %}disabled{% endif %}
+                >{{ form_include_domains | default('') }}</textarea>
+            </div>
+
+            <div>
+                <label for="exclude_domains" class="block text-sm font-medium text-ui-ink-secondary mb-2">
+                    Domains to exclude
+                </label>
+                <textarea
+                    id="exclude_domains"
+                    name="exclude_domains"
+                    rows="4"
+                    placeholder="One domain per line (e.g. reddit.com, quora.com). Leave as-is to use the default blocklist."
+                    class="w-full px-3 py-2 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 font-mono text-sm resize-y"
+                    {% if wizard_start_blocked %}disabled{% endif %}
+                >{{ form_exclude_domains | default(default_exclude_domains, true) }}</textarea>
+                <p class="text-xs text-ui-ink-muted mt-1">
+                    Default list excludes social media, forums, and low-quality aggregators. Edit to add or remove domains.
+                </p>
+            </div>
+        </div>
+    </div>
+    </div>{# /#research-sources #}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons flex flex-wrap gap-4">
+        <a href="/decision-trees/dashboard" class="btn-secondary">Cancel</a>
+        {% if wizard_start_blocked %}
+        <button type="button"
+                class="btn-primary"
+                hx-get="/decision-trees/agentic/wizard-start-blocked-modal"
+                hx-target="#modal-container"
+                hx-swap="innerHTML">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+            </svg>
+            Start AI Research
+        </button>
+        {% else %}
+        <button type="submit" class="btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+            </svg>
+            Start AI Research
+        </button>
+        {% endif %}
+    </div>
+
+    {% with id='loading', message='Starting AI Research...' %}
+    {% include 'components/overlay.html' %}
+    {% endwith %}
+</form>
+
+<style>
+.expert-tab { transition: color 0.15s; }
+.expert-tab:not([disabled]):hover { color: var(--ui-ink); }
+html.dark .expert-tab:not([disabled]):hover { color: #b3caea; }
+.expert-panel.hidden { display: none; }
+#goal {
+    field-sizing: fixed;
+    min-height: 250px;
+    height: 250px;
+}
+#pasted_text,
+#include_domains,
+#exclude_domains {
+    min-height: 0;
+    height: auto;
+    field-sizing: fixed;
+}
+</style>

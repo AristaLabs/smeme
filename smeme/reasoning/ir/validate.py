@@ -100,7 +100,7 @@ def validate_ir(ir: IR) -> ValidationReport:
     ``options`` tuple. Non-default ``expr`` must be non-empty when stripped, and must equal one of
     that question's option strings (exact match).
 
-    Enforces **exactly one entry node** (no incoming edges), matching single-start QNR/session
+    Enforces **exactly one entry node** (no incoming edges), matching single-start decision tree/session
     semantics; multi-root IR would make pure reachability theory looser than interactive execution.
 
     Enforces a **DAG**: no self-loops and no directed cycles on edges whose endpoints resolve to
@@ -115,7 +115,7 @@ def validate_ir(ir: IR) -> ValidationReport:
             + repr(ir.format_version)
             + ", expected "
             + repr(IR_FORMAT_VERSION)
-            + " (recompile from QNR or upgrade consumer)"
+            + " (recompile from DecisionTree or upgrade consumer)"
         )
         errors.append(msg)
 

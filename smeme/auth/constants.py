@@ -8,7 +8,7 @@ RESERVED_USERNAMES = frozenset(
         "admin",
         "api",
         "creator",
-        "qnr",
+        "decision_tree",
         "memo",
         "settings",
         "billing",

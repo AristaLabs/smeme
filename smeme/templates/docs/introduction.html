@@ -1,9 +1,9 @@
 {% extends "layouts/base.html" %}
-{% block title %}Building Decision Trees — Docs{% endblock %}
+{% block title %}Building Workflows — Docs{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
-  {% set docs_breadcrumb_current = "Building decision trees" %}
+  {% set docs_breadcrumb_current = "Building workflows" %}
   {% include "docs/_docs_breadcrumb.html" %}
 
   <div class="mt-6 lg:flex lg:gap-12">
@@ -25,9 +25,9 @@
 
       <header class="mb-10">
         <p class="text-xs font-semibold uppercase tracking-wider text-ui-ink-muted mb-1.5">Start here</p>
-        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Building decision trees</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Building workflows</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          A decision tree encodes your expert reasoning — the questions to ask,
+          A workflow is a branching decision tree that encodes your expert reasoning — the questions to ask,
           the conditions to check, and the conclusions to reach. Once deployed, it becomes an AI tool your agent can call.
         </p>
         <div class="mt-4">
@@ -37,9 +37,9 @@
 
       <div class="space-y-10">
 
-        {# What a decision tree contains #}
+        {# What a workflow contains #}
         <section aria-labelledby="what-heading">
-          <h2 id="what-heading" class="text-base font-semibold text-ui-ink mb-4">What a decision tree contains</h2>
+          <h2 id="what-heading" class="text-base font-semibold text-ui-ink mb-4">What a workflow contains</h2>
           <dl class="space-y-3">
             <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
               <dt class="text-sm font-semibold text-ui-ink">Question node</dt>
@@ -47,7 +47,7 @@
             </div>
             <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
               <dt class="text-sm font-semibold text-ui-ink">Conclusion node</dt>
-              <dd class="mt-1 text-sm text-ui-ink-secondary leading-relaxed">An outcome or determination — the leaf of a branch. A decision tree can have multiple conclusions.</dd>
+              <dd class="mt-1 text-sm text-ui-ink-secondary leading-relaxed">An outcome or determination — the leaf of a branch. A workflow can have multiple conclusions.</dd>
             </div>
             <div class="rounded-xl border border-ui-line bg-ui-surface p-4">
               <dt class="text-sm font-semibold text-ui-ink">Edge</dt>
@@ -60,12 +60,12 @@
 
         {# Creating #}
         <section aria-labelledby="create-heading">
-          <h2 id="create-heading" class="text-base font-semibold text-ui-ink mb-3">Creating a decision tree</h2>
+          <h2 id="create-heading" class="text-base font-semibold text-ui-ink mb-3">Creating a workflow</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed">
-            From your <a href="/qnr/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 font-medium">dashboard</a>,
-            click <strong class="font-medium text-ui-ink">Create new decision tree</strong> (web wizard) or author via MCP chat when your operator enables it.
+            From your <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 font-medium">dashboard</a>,
+            click <strong class="font-medium text-ui-ink">Create New Workflow</strong>. This opens the AI-assisted wizard.
             Describe your domain and paste in source material — procedure documents, reference guides, notes, or links.
-            The wizard researches and drafts a full decision tree for you to edit.
+            The wizard researches and drafts a full workflow for you to edit.
           </p>
           <p class="mt-2 text-sm text-ui-ink-muted">
             The draft is a starting point. Always review and tune it in the editor before deploying.
@@ -92,11 +92,11 @@
               <tbody class="bg-ui-surface divide-y divide-ui-line">
                 <tr>
                   <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Graph</th>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Visual diagram of your graph. Nodes appear as cards connected by arrows. Click a node to select and edit it in the sidebar.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Visual diagram of your workflow. Nodes appear as cards connected by arrows. Click a node to select and edit it in the sidebar.</td>
                 </tr>
                 <tr>
                   <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Checklist</th>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">A flat list of all nodes. Useful for reviewing question text and answer options across the whole tree without navigating the graph.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">A flat list of all nodes. Useful for reviewing question text and answer options across the whole workflow without navigating the graph.</td>
                 </tr>
                 <tr>
                   <th scope="row" class="align-top px-4 py-3 text-sm font-medium text-ui-ink whitespace-nowrap">Tools</th>
@@ -139,8 +139,8 @@
             <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.
           </p>
           <p class="mt-3 text-sm text-ui-ink-muted">
-            To remove a decision tree entirely, use the dashboard trash icon — see
-            <a href="/docs/creator-dashboard#delete-heading" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deleting a decision tree</a>.
+            To remove a workflow entirely, use the dashboard trash icon — see
+            <a href="/docs/creator-dashboard#delete-heading" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deleting a workflow</a>.
           </p>
         </section>
 
@@ -208,8 +208,8 @@
         <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
           <p class="font-medium text-ui-ink">See also</p>
           <ul class="space-y-1">
-            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile, list, and remove decision trees</li>
-            <li><a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — add the MCP connector and invoke your decision trees</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile, list, and remove workflows</li>
+            <li><a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — add the MCP connector and invoke your workflows</li>
           </ul>
         </div>
 

@@ -2,13 +2,13 @@
 
 from openai import APITimeoutError
 
-from smeme.qnr.generation.agentic.routes._helpers import research_edit_template_context
-from smeme.qnr.generation.agentic.subgraphs.research import (
+from smeme.decision_tree.generation.agentic.routes._helpers import research_edit_template_context
+from smeme.decision_tree.generation.agentic.subgraphs.research import (
     _openai_failure_return,
     openai_failure_kind,
     openai_research_error_message,
 )
-from smeme.qnr.generation.agentic.user_messages import build_research_context_when_llm_fails
+from smeme.decision_tree.generation.agentic.user_messages import build_research_context_when_llm_fails
 
 
 def test_openai_quota_message_user_friendly():

@@ -7,11 +7,11 @@ from sqlalchemy.orm import sessionmaker
 
 from smeme.core.config import settings
 from smeme.core.models import (  # noqa: F401
-    QNR,
+    DecisionTree,
     Memo,
-    QnrLexiconDraft,
-    QnrResearchCorpus,
-    QNRSession,
+    DecisionTreeLexiconDraft,
+    DecisionTreeResearchCorpus,
+    DecisionTreeSession,
     ReasoningCompiledArtifact,
     ReasoningEvaluationRun,
     User,

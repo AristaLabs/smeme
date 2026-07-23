@@ -40,7 +40,7 @@ PHASE 2: Interpretation & Explanation (future)
 ## 2.1 Pipeline
 
 ```text
-QNR (author input)
+DecisionTree (author input)
    ↓
 IR Compilation
    ↓
@@ -55,7 +55,7 @@ ReachabilityWitness
 
 ---
 
-## 2.2 Step A — QNR Authoring
+## 2.2 Step A — DecisionTree Authoring
 
 ### Input
 
@@ -74,7 +74,7 @@ ReachabilityWitness
 ### Function
 
 ```text
-⟦·⟧ : QNR → IR
+⟦·⟧ : DecisionTree → IR
 ```
 
 ### Output
@@ -216,7 +216,7 @@ One compile, then scoped `push`/`pop` checks:
 * **`SAT(T(IR) ∧ reach(C))`** per conclusion `C`
 * **`SAT(T(IR) ∧ reach(Ci) ∧ reach(Cj))`** per unordered conclusion pair
 
-Pairwise work is **`O(|C|²)`** SAT calls in the number of conclusions; for typical QNR sizes this is usually acceptable as a **publish preflight** or CI check. Use this when you need real answers to “is each ending reachable in isolation?” / “can two endings co-occur?”
+Pairwise work is **`O(|C|²)`** SAT calls in the number of conclusions; for typical DecisionTree sizes this is usually acceptable as a **publish preflight** or CI check. Use this when you need real answers to “is each ending reachable in isolation?” / “can two endings co-occur?”
 
 ### F2 — `solve_reachability_witness` (single model)
 
@@ -256,11 +256,11 @@ Any single model is:
 
 ---
 
-## 2.9 Author journey — QNR validation vs IR (product)
+## 2.9 Author journey — DecisionTree validation vs IR (product)
 
-**Editing:** [`validate_graph_for_editing`](../qnr/helpers/validation.py) in `smeme/qnr/helpers/validation.py` — errors + warnings for drafts; sidebar issues may include programmatic fix hints.
+**Editing:** [`validate_graph_for_editing`](../../decision-trees/helpers/validation.py) in `smeme/decision-trees/helpers/validation.py` — errors + warnings for drafts; sidebar issues may include programmatic fix hints ([`docs/architecture/decision-trees/validation.md`](../../docs/architecture/decision-trees/validation.md#fix-hints)).
 
-**Publish (app gate):** [`assess_publish_readiness`](publish_readiness.py) — **`validate_graph_for_publication`**, **`compile_qnr_to_ir`**, **`validate_ir`**, **`enumerate_conclusion_sat_queries`**. Editor routes: **`GET …/publish-preflight`**, **`POST …/publish`**.
+**Publish (app gate):** [`assess_publish_readiness`](publish_readiness.py) — **`validate_graph_for_publication`**, **`compile_dt_graph_to_ir`**, **`validate_ir`**, **`enumerate_conclusion_sat_queries`**. Editor routes: **`GET …/publish-preflight`**, **`POST …/publish`**.
 
 **IR spine:** Same pipeline as the gate; runtime loads persisted IR from **`reasoning_compiled_artifacts`** (`evaluate_reasoning`).
 

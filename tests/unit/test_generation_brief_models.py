@@ -1,6 +1,6 @@
 """Generation brief form model tests."""
 
-from smeme.qnr.generation.agentic.brief_models import GenerationBriefInput
+from smeme.decision_tree.generation.agentic.brief_models import GenerationBriefInput
 
 
 def _minimal_brief(**overrides):

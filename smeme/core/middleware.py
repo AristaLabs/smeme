@@ -36,9 +36,9 @@ _CLERK_COOKIE_NAMES = frozenset({"__session", "__client_uat", "clerk_active_cont
 def _safe_clerk_after_path(path: str) -> str:
     """Allow only same-origin relative paths (open-redirect guard)."""
     if not path or not path.startswith("/") or path.startswith("//"):
-        return "/qnr/dashboard"
+        return "/decision-trees/dashboard"
     if len(path) > _CLERK_AFTER_MAX_LEN:
-        return "/qnr/dashboard"
+        return "/decision-trees/dashboard"
     return path
 
 

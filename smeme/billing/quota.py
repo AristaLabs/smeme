@@ -201,7 +201,7 @@ async def check_wizard_start_block(
                 "Your Free plan includes one workflow at a time. "
                 "Resume or abandon the in-progress build on your dashboard before starting another."
             ),
-            dashboard_href="/qnr/dashboard#in-progress",
+            dashboard_href="/decision-trees/dashboard#in-progress",
             show_upgrade=show_upgrade,
         )
 
@@ -211,7 +211,7 @@ async def check_wizard_start_block(
             reason="workflow_cap",
             title="Workflow limit reached",
             message=workflow_quota.message,
-            dashboard_href="/qnr/dashboard",
+            dashboard_href="/decision-trees/dashboard",
             show_upgrade=show_upgrade,
         )
 
@@ -223,7 +223,7 @@ async def check_wizard_start_block(
             reason="wizard_monthly",
             title="Monthly AI build limit reached",
             message=f"{wizard_quota.message} {resets_at_label(user=user)}.",
-            dashboard_href="/qnr/dashboard",
+            dashboard_href="/decision-trees/dashboard",
             show_upgrade=show_upgrade,
         )
 

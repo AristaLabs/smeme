@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.ir.types import (
@@ -88,7 +88,7 @@ def _chain_graph() -> DTGraph:
             GraphEdge(source="Q2", target="C_yes", condition="Yes"),
             GraphEdge(source="Q2", target="C_no", condition="No"),
         ],
-        metadata=QNRMetadata(title="Chain"),
+        metadata=DTGraphMetadata(title="Chain"),
     )
 
 

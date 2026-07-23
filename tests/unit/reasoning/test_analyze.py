@@ -4,12 +4,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.ir.types import (
@@ -23,7 +23,7 @@ from smeme.reasoning.ir.types import (
     IRQuestionShape,
 )
 from smeme.reasoning.ir.validate import IRValidationError, validate_ir
-from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from smeme.reasoning.runtime.analyze import (
     ConclusionSatQueryEnumeration,
     enumerate_conclusion_sat_queries,
@@ -162,9 +162,9 @@ def test_enumerate_conclusion_sat_queries_from_compiled_dt_graph():
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
         ],
-        metadata=QNRMetadata(title="v"),
+        metadata=DTGraphMetadata(title="v"),
     )
-    ir = compile_qnr_to_ir(g)
+    ir = compile_dt_graph_to_ir(g)
     assert validate_ir(ir).valid
 
     r = enumerate_conclusion_sat_queries(ir)

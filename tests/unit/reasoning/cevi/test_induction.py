@@ -1,17 +1,17 @@
 """Publish-time induction wiring."""
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.cevi.induction import induce_published_evidence_contract_at_publish
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION
-from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 
 
 def _minimal_publish_graph() -> DTGraph:
@@ -34,13 +34,13 @@ def _minimal_publish_graph() -> DTGraph:
             ),
         ],
         edges=[GraphEdge(source="q1", target="c1", condition="A")],
-        metadata=QNRMetadata(title="minimal induction"),
+        metadata=DTGraphMetadata(title="minimal induction"),
     )
 
 
 def test_induce_at_publish_no_corpus_snapshot_is_empty() -> None:
     graph = _minimal_publish_graph()
-    ir_json = ir_to_json(compile_qnr_to_ir(graph))
+    ir_json = ir_to_json(compile_dt_graph_to_ir(graph))
     contract, snap = induce_published_evidence_contract_at_publish(
         ir_json=ir_json,
         graph=graph,

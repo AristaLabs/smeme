@@ -8,7 +8,7 @@ This validates:
 
 References:
 - docs/DEPENDENCY_GOTCHAS.md (LangGraph State Serialization)
-- smeme/qnr/generation/agentic/models.py (AgenticQNRGenerationState)
+- smeme/decision-trees/generation/agentic/models.py (AgenticDecisionTreeGenerationState)
 """
 
 import json
@@ -250,7 +250,7 @@ async def test_workflow_state_after_invoke_is_serializable():
 def test_config_vs_state_separation():
     """Demonstrate correct pattern for UUIDs in config vs state.
 
-    Following project pattern from AgenticQNRGenerationState:
+    Following project pattern from AgenticDecisionTreeGenerationState:
     - State: UUIDs as strings (serializable)
     - Config: Actual UUID objects (not serialized)
     """
@@ -347,7 +347,7 @@ def test_print_serialization_guide():
     🔍 References:
     - docs/DEPENDENCY_GOTCHAS.md
     - docs/LANGGRAPH_INTEGRATION_GUIDE.md
-    - smeme/qnr/generation/agentic/models.py
+    - smeme/decision-trees/generation/agentic/models.py
     """
     print(guide)
     assert True  # Pass if printed

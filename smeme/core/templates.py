@@ -55,10 +55,10 @@ class CreatorUiTemplateFlags:
     """Jinja namespace: reads current ``settings`` so tests can monkeypatch flags."""
 
     @property
-    def show_qnr_generation_region_selector(self) -> bool:
+    def show_decision_tree_generation_region_selector(self) -> bool:
         from smeme.core.config import settings
 
-        return settings.show_qnr_generation_region_selector
+        return settings.show_decision_tree_generation_region_selector
 
 
 class BrandTemplateAssets:

@@ -1,11 +1,11 @@
 """IR structural validation (B0.5-lite)."""
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
 from smeme.reasoning.ir.types import (
@@ -19,7 +19,7 @@ from smeme.reasoning.ir.types import (
     IRQuestionShape,
 )
 from smeme.reasoning.ir.validate import validate_ir
-from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 
 _Q_RADIO = IRQuestionShape(qtype="radio", options=("A", "B"))
 
@@ -52,9 +52,9 @@ def test_validate_ir_accepts_compiled_graph():
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
         ],
-        metadata=QNRMetadata(title="v"),
+        metadata=DTGraphMetadata(title="v"),
     )
-    ir = compile_qnr_to_ir(g)
+    ir = compile_dt_graph_to_ir(g)
     report = validate_ir(ir)
     assert report.valid
     assert report.errors == ()
@@ -81,9 +81,9 @@ def test_validate_ir_accepts_compiled_graph():
             GraphEdge(source="q1", target="c1", condition="A"),
             GraphEdge(source="q1", target="c2", condition=None),
         ],
-        metadata=QNRMetadata(title="default"),
+        metadata=DTGraphMetadata(title="default"),
     )
-    ir2 = compile_qnr_to_ir(g2)
+    ir2 = compile_dt_graph_to_ir(g2)
     assert ir2.guards[1].expr == DEFAULT_GUARD_EXPR
     assert validate_ir(ir2).valid
 
@@ -366,7 +366,7 @@ def test_validate_ir_accepts_dag_multiple_conclusions():
 
 
 def test_validate_ir_rejects_multiple_entry_nodes():
-    """Two disconnected roots → not valid for single-start QNR/session semantics."""
+    """Two disconnected roots → not valid for single-start decision tree/session semantics."""
     ir = IR(
         format_version=IR_FORMAT_VERSION,
         nodes=(

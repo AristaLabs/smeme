@@ -1,4 +1,4 @@
-"""Core data models - User, QNR, and QNRSession only."""
+"""Core data models - User, DecisionTree, and DecisionTreeSession only."""
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from smeme.qnr.models import InProgressQNRGeneration
+    from smeme.decision_tree.models import InProgressDecisionTreeGeneration
 
 # SQLAlchemy naming conventions for predictable constraint names
 # This ensures Alembic can reliably generate migrations over time
@@ -153,7 +153,7 @@ class User(BaseSQLModel, SQLModelBaseUserDB, table=True):
     live_workflow_root_id: UUID | None = Field(
         default=None,
         sa_column=Column(
-            ForeignKey("qnrs.id", ondelete="SET NULL"),
+            ForeignKey("decision_trees.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )
@@ -164,7 +164,7 @@ class User(BaseSQLModel, SQLModelBaseUserDB, table=True):
     )
 
     # Relationships
-    in_progress_generations: list["InProgressQNRGeneration"] = Relationship(
+    in_progress_generations: list["InProgressDecisionTreeGeneration"] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={
             "cascade": "all, delete-orphan",
@@ -173,12 +173,12 @@ class User(BaseSQLModel, SQLModelBaseUserDB, table=True):
     )
 
 
-class QNR(BaseSQLModel, table=True):
-    """QNR table - stores graph structure and metadata."""
+class DecisionTree(BaseSQLModel, table=True):
+    """DecisionTree table - stores graph structure and metadata."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    __tablename__ = "qnrs"
+    __tablename__ = "decision_trees"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     author_id: UUID | None = Field(default=None, foreign_key="users.id")
@@ -209,7 +209,7 @@ class QNR(BaseSQLModel, table=True):
             server_default=sa.false(),
             index=True,
         ),
-        description="True if this QNR version was ever made public (never reset, even on archive/restore)",
+        description="True if this DecisionTree version was ever made public (never reset, even on archive/restore)",
     )
 
     # Versioning fields
@@ -219,11 +219,11 @@ class QNR(BaseSQLModel, table=True):
         sa_column_kwargs={"nullable": False},
         description="Incremental version number (v1, v2, v3, etc.)",
     )
-    parent_qnr_id: UUID | None = Field(
+    parent_decision_tree_id: UUID | None = Field(
         default=None,
-        foreign_key="qnrs.id",
+        foreign_key="decision_trees.id",
         sa_column_kwargs={"nullable": True},
-        description="Parent version QNR ID (NULL for root versions)",
+        description="Parent version DecisionTree ID (NULL for root versions)",
     )
     is_current: bool = Field(
         default=True,
@@ -250,7 +250,7 @@ class QNR(BaseSQLModel, table=True):
     archived_at: Mapped[datetime] | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
-        description="When this QNR was archived (soft deleted)",
+        description="When this DecisionTree was archived (soft deleted)",
     )
 
     # Economics-aware metadata — top-level columns for MCP API queryability (Sprint 6)
@@ -270,7 +270,7 @@ class QNR(BaseSQLModel, table=True):
         description="null | pending | compiled | failed (CHECK in DB)",
     )
 
-    # MCP tools: opt-in list + evaluate by qnr_id (default off)
+    # MCP tools: opt-in list + evaluate by decision_tree_id (default off)
     mcp_discoverable: bool = Field(
         default=False,
         sa_column=Column(
@@ -279,7 +279,7 @@ class QNR(BaseSQLModel, table=True):
             server_default=sa.false(),
             index=True,
         ),
-        description="When true, QNR may appear in MCP tool list and be evaluated by id.",
+        description="When true, DecisionTree may appear in MCP tool list and be evaluated by id.",
     )
     billing_dormant: bool = Field(
         default=False,
@@ -317,49 +317,49 @@ class QNR(BaseSQLModel, table=True):
     )
 
     # Relationships (SQLModel - makes schema explicit)
-    # Note: No cascade - sessions are user data and survive QNR deletion
+    # Note: No cascade - sessions are user data and survive DecisionTree deletion
     # Note: lazy="raise" prevents accidental loading. Explicitly use selectinload() when needed.
-    sessions: list["QNRSession"] = Relationship(
-        back_populates="qnr",
+    sessions: list["DecisionTreeSession"] = Relationship(
+        back_populates="decision_tree",
         sa_relationship_kwargs={
             "lazy": "raise",  # Prevents accidental loads and timestamp updates
         },
     )
 
     # Self-referential relationship for versioning
-    # Parent (many-to-one): this QNR's parent version
-    parent: Optional["QNR"] = Relationship(
+    # Parent (many-to-one): this decision tree's parent version
+    parent: Optional["DecisionTree"] = Relationship(
         sa_relationship_kwargs={
-            "remote_side": "QNR.id",  # Points to parent's ID
-            "foreign_keys": "QNR.parent_qnr_id",  # This QNR's FK column
+            "remote_side": "DecisionTree.id",  # Points to parent's ID
+            "foreign_keys": "DecisionTree.parent_decision_tree_id",  # This decision tree's FK column
             "lazy": "selectin",
             "back_populates": "children",
         }
     )
 
-    # Children (one-to-many): newer versions that have this QNR as parent
-    children: list["QNR"] = Relationship(
+    # Children (one-to-many): newer versions that have this DecisionTree as parent
+    children: list["DecisionTree"] = Relationship(
         sa_relationship_kwargs={
-            "foreign_keys": "QNR.parent_qnr_id",  # Children's FK points to this QNR
+            "foreign_keys": "DecisionTree.parent_decision_tree_id",  # Children's FK points to this decision tree
             "lazy": "selectin",
             "back_populates": "parent",
         }
     )
 
-    research_corpus_row: Optional["QnrResearchCorpus"] = Relationship(
-        back_populates="qnr",
+    research_corpus_row: Optional["DecisionTreeResearchCorpus"] = Relationship(
+        back_populates="decision_tree",
         sa_relationship_kwargs={"lazy": "raise", "uselist": False},
     )
 
-    lexicon_draft_row: Optional["QnrLexiconDraft"] = Relationship(
-        back_populates="qnr",
+    lexicon_draft_row: Optional["DecisionTreeLexiconDraft"] = Relationship(
+        back_populates="decision_tree",
         sa_relationship_kwargs={"lazy": "raise", "uselist": False},
     )
 
     # Helper methods for version management
-    def get_version_family(self) -> list["QNR"]:
+    def get_version_family(self) -> list["DecisionTree"]:
         """
-        Get all versions in this QNR's family.
+        Get all versions in this decision tree's family.
 
         Returns list ordered by version_number.
 
@@ -389,11 +389,11 @@ class QNR(BaseSQLModel, table=True):
         # Convert to list and sort by version number
         return sorted(family.values(), key=lambda q: q.version_number)
 
-    def get_current_version(self) -> "QNR":
+    def get_current_version(self) -> "DecisionTree":
         """
-        Get the current version in this QNR's family.
+        Get the current version in this decision tree's family.
 
-        Returns the QNR marked with is_current=True, or self if none found.
+        Returns the DecisionTree marked with is_current=True, or self if none found.
         """
         family = self.get_version_family()
         current = [q for q in family if q.is_current]
@@ -404,16 +404,16 @@ class QNR(BaseSQLModel, table=True):
 
         return current[0]
 
-    def get_root_version(self) -> "QNR":
-        """Get the root (v1) version in this QNR's family."""
+    def get_root_version(self) -> "DecisionTree":
+        """Get the root (v1) version in this decision tree's family."""
         root = self
-        while root.parent_qnr_id and root.parent:
+        while root.parent_decision_tree_id and root.parent:
             root = root.parent
         return root
 
     @property
     def is_outdated(self) -> bool:
-        """Check if this QNR is not the current version."""
+        """Check if this DecisionTree is not the current version."""
         return not self.is_current
 
     @property
@@ -541,21 +541,21 @@ class AccountDeletionFailure(BaseSQLModel, table=True):
 
 
 class ReasoningCompiledArtifact(BaseSQLModel, table=True):
-    """Persisted validated IR artifact for one QNR row (one published version)."""
+    """Persisted validated IR artifact for one DecisionTree row (one published version)."""
 
     model_config = {"arbitrary_types_allowed": True}
 
     __tablename__ = "reasoning_compiled_artifacts"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    qnr_id: UUID = Field(
+    decision_tree_id: UUID = Field(
         sa_column=Column(
-            ForeignKey("qnrs.id", ondelete="CASCADE"),
+            ForeignKey("decision_trees.id", ondelete="CASCADE"),
             nullable=False,
             unique=True,
             index=True,
         ),
-        description="One active compiled artifact per QNR primary key",
+        description="One active compiled artifact per DecisionTree primary key",
     )
     ir_json: dict[str, Any] = Field(sa_column=Column(JSONB, nullable=False))
     graph_hash: str = Field(sa_column=Column(String(64), nullable=False))
@@ -598,16 +598,16 @@ class ReasoningCompiledArtifact(BaseSQLModel, table=True):
     )
 
 
-class QnrResearchCorpus(BaseSQLModel, table=True):
+class DecisionTreeResearchCorpus(BaseSQLModel, table=True):
     """SME research text persisted for CEVI induction (publish-time only; not read on evaluate hot path)."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    __tablename__ = "qnr_research_corpora"
+    __tablename__ = "decision_tree_research_corpora"
 
-    qnr_id: UUID = Field(
+    decision_tree_id: UUID = Field(
         sa_column=Column(
-            ForeignKey("qnrs.id", ondelete="CASCADE"),
+            ForeignKey("decision_trees.id", ondelete="CASCADE"),
             primary_key=True,
             nullable=False,
         ),
@@ -627,22 +627,22 @@ class QnrResearchCorpus(BaseSQLModel, table=True):
         ),
     )
 
-    qnr: Optional["QNR"] = Relationship(
+    decision_tree: Optional["DecisionTree"] = Relationship(
         back_populates="research_corpus_row",
         sa_relationship_kwargs={"lazy": "raise"},
     )
 
 
-class QnrLexiconDraft(BaseSQLModel, table=True):
+class DecisionTreeLexiconDraft(BaseSQLModel, table=True):
     """Author Lexicon draft: NL glosses keyed by atom_id in ``body_json`` (validated at save/publish)."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    __tablename__ = "qnr_lexicon_drafts"
+    __tablename__ = "decision_tree_lexicon_drafts"
 
-    qnr_id: UUID = Field(
+    decision_tree_id: UUID = Field(
         sa_column=Column(
-            ForeignKey("qnrs.id", ondelete="CASCADE"),
+            ForeignKey("decision_trees.id", ondelete="CASCADE"),
             primary_key=True,
             nullable=False,
         ),
@@ -672,7 +672,7 @@ class QnrLexiconDraft(BaseSQLModel, table=True):
         ),
     )
 
-    qnr: Optional["QNR"] = Relationship(
+    decision_tree: Optional["DecisionTree"] = Relationship(
         back_populates="lexicon_draft_row",
         sa_relationship_kwargs={"lazy": "raise", "uselist": False},
     )
@@ -684,12 +684,12 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
     model_config = {"arbitrary_types_allowed": True}
 
     __tablename__ = "reasoning_evaluation_runs"
-    __table_args__ = (Index("ix_reasoning_evaluation_runs_qnr_created", "qnr_id", "created_at"),)
+    __table_args__ = (Index("ix_reasoning_evaluation_runs_decision_tree_created", "decision_tree_id", "created_at"),)
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    qnr_id: UUID = Field(
+    decision_tree_id: UUID = Field(
         sa_column=Column(
-            ForeignKey("qnrs.id", ondelete="CASCADE"),
+            ForeignKey("decision_trees.id", ondelete="CASCADE"),
             nullable=False,
             index=True,
         ),
@@ -697,7 +697,7 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
     session_id: UUID | None = Field(
         default=None,
         sa_column=Column(
-            ForeignKey("qnr_sessions.id", ondelete="SET NULL"),
+            ForeignKey("decision_tree_sessions.id", ondelete="SET NULL"),
             nullable=True,
             index=True,
         ),
@@ -761,16 +761,16 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
     )
 
 
-class QNRSession(BaseSQLModel, table=True):
-    """User session for completing a QNR."""
+class DecisionTreeSession(BaseSQLModel, table=True):
+    """User session for completing a DecisionTree."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    __tablename__ = "qnr_sessions"
+    __tablename__ = "decision_tree_sessions"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    qnr_id: UUID = Field(foreign_key="qnrs.id", index=True)
+    decision_tree_id: UUID = Field(foreign_key="decision_trees.id", index=True)
 
     # Navigation state
     current_node_id: str | None = Field(default=None, description="Current question being shown")
@@ -793,12 +793,12 @@ class QNRSession(BaseSQLModel, table=True):
     started_at: Mapped[datetime] | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True)),
-        description="When user started the QNR (first answer)",
+        description="When user started the DecisionTree (first answer)",
     )
     completed_at: Mapped[datetime] | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True)),
-        description="When QNR was completed",
+        description="When DecisionTree was completed",
     )
 
     # Timestamps (timezone-aware)
@@ -819,7 +819,7 @@ class QNRSession(BaseSQLModel, table=True):
     )
 
     # Relationships (SQLModel - makes schema explicit)
-    qnr: "QNR" = Relationship(back_populates="sessions")
+    decision_tree: "DecisionTree" = Relationship(back_populates="sessions")
     memos: list["Memo"] = Relationship(
         back_populates="session",
         sa_relationship_kwargs={
@@ -830,7 +830,7 @@ class QNRSession(BaseSQLModel, table=True):
 
 
 class Memo(BaseSQLModel, table=True):
-    """Generated memo from QNR session."""
+    """Generated memo from DecisionTree session."""
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -840,7 +840,7 @@ class Memo(BaseSQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
 
     # Foreign keys
-    session_id: UUID = Field(foreign_key="qnr_sessions.id", index=True)
+    session_id: UUID = Field(foreign_key="decision_tree_sessions.id", index=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
 
     # Memo content
@@ -863,4 +863,4 @@ class Memo(BaseSQLModel, table=True):
     )
 
     # Relationships (SQLModel - makes schema explicit)
-    session: "QNRSession" = Relationship(back_populates="memos")
+    session: "DecisionTreeSession" = Relationship(back_populates="memos")

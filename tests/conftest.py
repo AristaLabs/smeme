@@ -9,7 +9,6 @@ Provides:
 - auth_as: Context manager that injects a User into auth dependency overrides
 """
 
-import asyncio
 from contextlib import contextmanager
 
 import pytest
@@ -24,24 +23,6 @@ from smeme.core.config import settings
 # Default test app is Core (public product surface). SaaS-only suites import
 # ``create_saas_app`` / ``create_app`` from ``smeme.main`` explicitly.
 create_app = create_core_app
-
-# =============================================================================
-# Event Loop Configuration
-# =============================================================================
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a session-scoped event loop.
-
-    This is necessary because asyncpg connections are bound to event loops.
-    Using a session-scoped loop ensures all tests share the same loop and
-    can reuse database connections without "attached to different loop" errors.
-    """
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
 
 # =============================================================================
 # Database Engine (Session Scoped)
@@ -206,7 +187,7 @@ def auth_as(app, user):
 
 @pytest.fixture
 def test_graph_data():
-    """Sample decision-tree graph data for testing.
+    """Sample DecisionTree graph data for testing.
 
     Returns a minimal valid graph with:
     - 2 question nodes
@@ -252,7 +233,7 @@ def test_graph_data():
         ],
         "metadata": {
             "title": "Test Questionnaire",
-            "description": "A test QNR for unit tests",
+            "description": "A test DecisionTree for unit tests",
             "category": "testing",
             "estimated_time": 5,
             "tags": ["test"],

@@ -1,0 +1,530 @@
+{% extends "layouts/base.html" %}
+
+{% block main_class %}w-full max-w-none px-0 py-0{% endblock %}
+
+{% block head %}
+<style>
+/* Generation Layout Styles */
+.generation-container {
+    width: 100%;
+}
+
+/* Main Panel - Full-Page Word Processor Design */
+.main-panel {
+    position: relative;
+}
+
+.main-panel-content {
+    max-width: 900px; /* Optimal reading width */
+    margin: 0 auto;
+    padding: 2rem 3rem; /* Generous padding */
+    min-height: 100vh;
+}
+
+/* Content Display Area */
+.main-panel .content-display {
+    margin-bottom: 2rem;
+}
+
+.main-panel .content-display h1,
+.main-panel .content-display h2 {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin-bottom: 1rem;
+}
+
+.main-panel .content-display h3 {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 600;
+    color: var(--ui-ink);
+    margin-bottom: 0.75rem;
+}
+
+/* Prose styling for formatted content */
+.main-panel .prose {
+    max-width: none;
+    font-size: 1rem; /* 16px */
+    line-height: 1.75; /* Readable line spacing */
+    color: var(--ui-ink-secondary);
+}
+
+.main-panel .prose p {
+    margin-bottom: 1rem;
+}
+
+.main-panel .prose ul,
+.main-panel .prose ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.main-panel .prose li {
+    margin-bottom: 0.5rem;
+}
+
+.main-panel .prose strong {
+    font-weight: 600;
+    color: var(--ui-ink);
+}
+
+/* Text selection — visible on light and dark surfaces */
+.generation-container ::selection {
+    background-color: rgba(45, 90, 148, 0.4);
+    color: var(--ui-ink);
+}
+html.dark .generation-container ::selection {
+    background-color: rgba(125, 159, 212, 0.65);
+    color: var(--ui-canvas);
+}
+
+/* Form fields */
+.main-panel input[type="text"],
+.main-panel input[type="search"],
+.main-panel input[type="url"],
+.main-panel input[type="email"],
+.main-panel select,
+.main-panel textarea {
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+}
+
+/* Textarea Styling */
+.main-panel textarea {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem; /* 16px */
+    line-height: 1.6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    border: 1px solid var(--ui-line-strong);
+    border-radius: 0.5rem; /* rounded-lg */
+    resize: vertical;
+    transition: border-color 0.2s;
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+}
+
+.main-panel textarea:focus,
+.main-panel input[type="text"]:focus,
+.main-panel input[type="search"]:focus,
+.main-panel input[type="url"]:focus,
+.main-panel input[type="email"]:focus,
+.main-panel select:focus {
+    outline: none;
+    border-color: #002868; /* brand-600 */
+    ring: 2px;
+    ring-color: rgba(0, 40, 104, 0.2);
+}
+html.dark .main-panel textarea:focus,
+html.dark .main-panel input[type="text"]:focus,
+html.dark .main-panel input[type="search"]:focus,
+html.dark .main-panel input[type="url"]:focus,
+html.dark .main-panel input[type="email"]:focus,
+html.dark .main-panel select:focus {
+    border-color: #7d9fd4; /* brand-300 */
+    ring-color: rgba(125, 159, 212, 0.25);
+}
+
+/* Brand accent text — dark navy is invisible on dark surfaces */
+html.dark .generation-container .text-brand-600 {
+    color: #7d9fd4;
+}
+html.dark .generation-container .text-brand-700 {
+    color: #b3caea;
+}
+html.dark .generation-container .border-brand-600 {
+    border-color: #7d9fd4;
+}
+html.dark .generation-container a.text-brand-600:hover,
+html.dark .generation-container .hover\:text-brand-700:hover {
+    color: #d9e4f5;
+}
+
+/* Action Buttons - Always Visible */
+.main-panel .action-buttons {
+    position: sticky;
+    bottom: 0;
+    background: var(--ui-surface);
+    padding: 1.5rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid var(--ui-line);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 10;
+}
+
+.main-panel .action-buttons button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.main-panel .action-buttons .btn-primary {
+    background-color: #002868; /* brand-600 */
+    color: white;
+    border: none;
+}
+
+.main-panel .action-buttons .btn-primary:hover {
+    background-color: #001f50; /* brand-700 */
+}
+
+.main-panel .action-buttons .btn-secondary {
+    background-color: var(--ui-surface);
+    color: var(--ui-ink-muted);
+    border: 1px solid var(--ui-line-strong);
+}
+
+.main-panel .action-buttons .btn-secondary:hover {
+    background-color: var(--ui-surface-muted);
+    border-color: var(--ui-ink-subtle);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1023px) {
+    .main-panel-content {
+        padding: 1.5rem 1rem; /* Tighter padding on mobile */
+    }
+    
+    .main-panel .action-buttons {
+        position: fixed; /* Fixed at bottom on mobile */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 1rem;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Loading Indicators — hidden until HTMX marks the overlay as active */
+.htmx-indicator.subgraph-overlay {
+    display: none;
+}
+
+.htmx-request.htmx-indicator.subgraph-overlay {
+    display: flex;
+    opacity: 1;
+    pointer-events: all;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+/* Smooth transitions for HTMX swaps (main panel only) */
+.main-panel-content.htmx-swapping {
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+}
+
+.main-panel-content.htmx-settling {
+    opacity: 1;
+    transition: opacity 200ms ease-in;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="generation-container min-h-screen bg-ui-surface-muted">
+    <!-- Main Content - Full Width -->
+    <main class="main-panel bg-ui-surface">
+        <div class="main-panel-content">
+            <!-- Dynamic content will be inserted here -->
+            {% if main_content_template %}
+                {% include main_content_template with context %}
+            {% elif main_content_html %}
+                {{ main_content_html | safe }}
+            {% else %}
+                <div class="p-8">
+                    <p class="text-ui-ink-muted">No content to display</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Character counter helper (used by initial form and research edit augment section)
+function updateCharCounter(inputId, counterId, wrapperId, maxLen) {
+    var el = document.getElementById(inputId);
+    var counter = document.getElementById(counterId);
+    var wrapper = document.getElementById(wrapperId);
+    if (!el || !counter || !wrapper) return;
+    var len = el.value.length;
+    counter.textContent = len;
+    wrapper.classList.remove('text-ui-ink-muted', 'text-yellow-600', 'text-red-600', 'font-semibold');
+    if (len > maxLen) wrapper.classList.add('text-red-600', 'font-semibold');
+    else if (len > maxLen * 0.9) wrapper.classList.add('text-yellow-600', 'font-semibold');
+    else wrapper.classList.add('text-ui-ink-muted');
+}
+
+// --- Initial form (file upload, tabs, char counters) - runs on load and after HTMX swap ---
+var INITIAL_FORM_MAX_FILES = 10;
+
+function userMaterialsEnabled() {
+    var cb = document.getElementById('enable_user_materials');
+    return cb && cb.checked;
+}
+
+function setUserMaterialsInputsDisabled(disabled) {
+    var panel = document.getElementById('user-materials-options');
+    if (!panel) return;
+    panel.querySelectorAll('input, textarea, button').forEach(function(el) {
+        el.disabled = disabled;
+    });
+}
+
+function updateUserMaterialsOptionsVisibility() {
+    var checkbox = document.getElementById('enable_user_materials');
+    var panel = document.getElementById('user-materials-options');
+    if (!checkbox || !panel) return;
+    if (checkbox.checked) {
+        panel.classList.remove('hidden');
+        setUserMaterialsInputsDisabled(false);
+    } else {
+        panel.classList.add('hidden');
+        setUserMaterialsInputsDisabled(true);
+    }
+}
+
+function updateWebSearchOptionsVisibility() {
+    var checkbox = document.getElementById('enable_web_search');
+    var panel = document.getElementById('web-search-options');
+    if (!checkbox || !panel) return;
+    if (checkbox.checked) panel.classList.remove('hidden');
+    else panel.classList.add('hidden');
+}
+
+function updateAddFileButtonState() {
+    var addBtn = document.getElementById('add-file-btn');
+    var container = document.getElementById('file-rows-container');
+    if (!addBtn || !container) return;
+    var rows = container.querySelectorAll('.file-row');
+    var atMax = rows.length >= INITIAL_FORM_MAX_FILES;
+    var lastRow = rows[rows.length - 1];
+    var lastInput = lastRow ? lastRow.querySelector('input[type="file"]') : null;
+    var lastRowEmpty = lastRow && (!lastInput || !lastInput.files || lastInput.files.length === 0);
+    addBtn.disabled = atMax || (rows.length > 0 && lastRowEmpty);
+}
+
+function addFileRow() {
+    var container = document.getElementById('file-rows-container');
+    if (!container) return;
+    var rows = container.querySelectorAll('.file-row');
+    if (rows.length >= INITIAL_FORM_MAX_FILES) return;
+    var lastRow = rows[rows.length - 1];
+    if (lastRow) {
+        var lastInput = lastRow.querySelector('input[type="file"]');
+        if (!lastInput || !lastInput.files || lastInput.files.length === 0) return;
+    }
+    var row = document.createElement('div');
+    row.className = 'file-row flex items-center gap-2';
+    row.innerHTML = '<input type="file" name="source_files" accept=".txt,.pdf,.docx" class="flex-1 text-sm text-ui-ink-muted file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" /><button type="button" class="remove-file-btn text-red-600 hover:text-red-700 text-sm font-medium px-2 py-1">Remove</button>';
+    container.appendChild(row);
+    updateAddFileButtonState();
+}
+
+function initInitialForm() {
+    var form = document.getElementById('generate-form');
+    if (!form) return;
+    var container = document.getElementById('file-rows-container');
+    if (userMaterialsEnabled() && container && container.querySelectorAll('.file-row').length === 0) {
+        addFileRow();
+    }
+    updateCharCounter('goal', 'goal-char-count', 'goal-counter', 400);
+    updateCharCounter('title', 'title-char-count', 'title-counter', 200);
+    updateUserMaterialsOptionsVisibility();
+    updateWebSearchOptionsVisibility();
+    updateAddFileButtonState();
+}
+
+// Event delegation for initial form (persists across HTMX swaps)
+document.body.addEventListener('click', function(e) {
+    var tabBtn = e.target.closest('.expert-tab');
+    if (tabBtn && !tabBtn.disabled) {
+        var tab = tabBtn.dataset.tab;
+        document.querySelectorAll('.expert-tab').forEach(function(b) {
+            b.classList.remove('text-brand-600', 'border-b-2', 'border-brand-600', '-mb-px');
+            b.classList.add('text-ui-ink-muted');
+        });
+        tabBtn.classList.add('text-brand-600', 'border-b-2', 'border-brand-600', '-mb-px');
+        tabBtn.classList.remove('text-ui-ink-muted');
+        document.querySelectorAll('.expert-panel').forEach(function(panel) { panel.classList.add('hidden'); });
+        var content = document.getElementById('content-' + tab);
+        if (content) content.classList.remove('hidden');
+        return;
+    }
+    if (e.target.closest('#add-file-btn')) {
+        addFileRow();
+        return;
+    }
+    var removeBtn = e.target.closest('.remove-file-btn');
+    if (removeBtn) {
+        var row = removeBtn.closest('.file-row');
+        if (row) { row.remove(); updateAddFileButtonState(); }
+    }
+});
+
+document.body.addEventListener('change', function(e) {
+    if (e.target.id === 'enable_web_search') {
+        updateWebSearchOptionsVisibility();
+        return;
+    }
+    if (e.target.id === 'enable_user_materials') {
+        updateUserMaterialsOptionsVisibility();
+        if (userMaterialsEnabled()) {
+            var container = document.getElementById('file-rows-container');
+            if (container && container.querySelectorAll('.file-row').length === 0) {
+                addFileRow();
+            }
+        }
+    }
+});
+
+document.body.addEventListener('input', function(e) {
+    if (e.target.id === 'goal') { updateCharCounter('goal', 'goal-char-count', 'goal-counter', 400); return; }
+    if (e.target.id === 'title') { updateCharCounter('title', 'title-char-count', 'title-counter', 200); return; }
+    if (e.target.name === 'source_files') { updateAddFileButtonState(); }
+});
+
+// Research SSE preview (Release 1) — minimal EventSource listener
+var researchStreamSource = null;
+
+function closeResearchStream() {
+    if (researchStreamSource) {
+        researchStreamSource.close();
+        researchStreamSource = null;
+    }
+}
+
+function initResearchStream() {
+    var cfg = document.getElementById('research-stream-config');
+    if (!cfg) return;
+    closeResearchStream();
+    var streamUrl = cfg.dataset.streamUrl;
+    var editUrl = cfg.dataset.editUrl;
+    var preview = document.getElementById('research-stream-preview');
+    var statusEl = document.getElementById('research-stream-status');
+    var errorEl = document.getElementById('research-stream-error');
+    var cancelBtn = document.getElementById('research-stream-cancel-btn');
+    if (!streamUrl || !preview) return;
+
+    var sawComplete = false;
+    var pendingError = null;
+
+    function loadEditForm() {
+        if (typeof htmx !== 'undefined') {
+            htmx.ajax('GET', editUrl, { target: '.main-panel-content', swap: 'innerHTML' });
+        } else {
+            window.location.href = editUrl;
+        }
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            var threadId = cfg.dataset.threadId;
+            if (!threadId) return;
+            cancelBtn.disabled = true;
+            fetch('/decision-trees/agentic/generate/' + threadId + '/cancel', { method: 'POST', credentials: 'same-origin' });
+        });
+    }
+
+    researchStreamSource = new EventSource(streamUrl);
+    researchStreamSource.onmessage = function(ev) {
+        var data;
+        try { data = JSON.parse(ev.data); } catch (e) { return; }
+        if (data.type === 'generation_started') return;
+        if (data.type === 'heartbeat') return;
+        if (data.type === 'status' && data.payload && data.payload.phase) {
+            var phase = data.payload.phase;
+            if (phase === 'tavily' && statusEl) statusEl.textContent = 'Searching the web…';
+            else if (phase === 'llm' && statusEl) statusEl.textContent = 'Analyzing factors…';
+            else if (phase === 'truncated_replay' && statusEl) statusEl.textContent = 'Reconnecting — older preview text omitted';
+            return;
+        }
+        if (data.type === 'research_delta' && data.payload && data.payload.text) {
+            preview.textContent += data.payload.text;
+            return;
+        }
+        if (data.type === 'error' && data.payload) {
+            pendingError = data.payload.message || 'Research failed';
+            if (errorEl) {
+                errorEl.textContent = pendingError;
+                errorEl.classList.remove('hidden');
+            }
+            return;
+        }
+        if (data.type === 'research_complete') {
+            sawComplete = true;
+            closeResearchStream();
+            loadEditForm();
+        }
+    };
+    researchStreamSource.onerror = function() {
+        if (!sawComplete && statusEl) statusEl.textContent = 'Connection lost — check in-progress wizard drafts on your dashboard to resume.';
+    };
+}
+
+// Initialize augment counter on swap (scripts in HTMX response don't run)
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    var augmentPrompt = document.getElementById('augment_prompt');
+    if (augmentPrompt && !augmentPrompt.dataset.counterAttached) {
+        augmentPrompt.dataset.counterAttached = 'true';
+        augmentPrompt.addEventListener('input', function() {
+            updateCharCounter('augment_prompt', 'augment-char-count', 'augment-counter', 400);
+        });
+        updateCharCounter('augment_prompt', 'augment-char-count', 'augment-counter', 400);
+    }
+    initInitialForm();
+    initResearchStream();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    initInitialForm();
+    initResearchStream();
+    // Init augment counter on full-page load (e.g. direct navigation to research edit)
+    var augmentPrompt = document.getElementById('augment_prompt');
+    if (augmentPrompt && !augmentPrompt.dataset.counterAttached) {
+        augmentPrompt.dataset.counterAttached = 'true';
+        augmentPrompt.addEventListener('input', function() {
+            updateCharCounter('augment_prompt', 'augment-char-count', 'augment-counter', 400);
+        });
+        updateCharCounter('augment_prompt', 'augment-char-count', 'augment-counter', 400);
+    }
+
+    // Add loading states to buttons during HTMX requests
+    document.body.addEventListener('htmx:beforeRequest', function(event) {
+        const button = event.detail.elt;
+        if (button.tagName === 'BUTTON') {
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.setAttribute('data-original-text', originalText);
+            button.innerHTML = '<span class="animate-spin">⏳</span> Processing...';
+        }
+    });
+    
+    document.body.addEventListener('htmx:afterRequest', function(event) {
+        const button = event.detail.elt;
+        if (button.tagName === 'BUTTON' && button.hasAttribute('data-original-text')) {
+            button.disabled = false;
+            button.innerHTML = button.getAttribute('data-original-text');
+            button.removeAttribute('data-original-text');
+        }
+    });
+});
+</script>
+{% endblock %}

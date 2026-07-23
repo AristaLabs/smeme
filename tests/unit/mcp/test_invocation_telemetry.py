@@ -53,7 +53,7 @@ def test_effective_quota_weight_hybrid_policy() -> None:
     assert (
         effective_quota_weight_for_outcome(
             tool_name="smeme_reasoning_evaluate",
-            outcome="invalid_qnr_id",
+            outcome="invalid_decision_tree_id",
         )
         == 0.0
     )
@@ -391,7 +391,7 @@ async def test_no_invocation_id_uses_insert_flush(monkeypatch: pytest.MonkeyPatc
         async with mcp_invocation_scope("smeme_reasoning_list", ctx) as rec:
             rec.bind_user(SimpleNamespace(id=uuid4()))
             # No bind_invocation_id call
-            rec.note_json_response(json.dumps({"reasoning_qnrs": []}))
+            rec.note_json_response(json.dumps({"decision_trees": []}))
 
     mock_insert.assert_awaited_once()
     mock_update.assert_not_awaited()
@@ -417,9 +417,9 @@ async def test_flush_zeroes_quota_weight_for_client_error(monkeypatch: pytest.Mo
             rec.bind_user(SimpleNamespace(id=uuid4()))
             bind_invocation_id(uuid4())
             rec.note_json_response(
-                json.dumps({"error": {"code": "invalid_qnr_id", "message": "bad"}})
+                json.dumps({"error": {"code": "invalid_decision_tree_id", "message": "bad"}})
             )
 
     kwargs = mock_update.await_args.kwargs
-    assert kwargs["outcome"] == "invalid_qnr_id"
+    assert kwargs["outcome"] == "invalid_decision_tree_id"
     assert kwargs["quota_weight"] == 0.0

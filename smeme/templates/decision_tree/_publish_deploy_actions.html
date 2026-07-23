@@ -1,0 +1,40 @@
+{# Inner deploy control for publish modal (wrapper #publish-deploy-actions lives in parent). #}
+{% from "components/macros.html" import btn, deploy_button_title %}
+
+{% set tr = tools_row_state|default('not_built') %}
+{% set deploy_action_label = 'Redeploy' if tr == 'stale' else 'Deploy' %}
+{% set deploy_hover_title = deploy_button_title() %}
+
+{% if readiness is defined and readiness.ready %}
+<form method="post"
+      action="/decision-trees/editor/{{ decision_tree_id }}/publish"
+      class="inline-flex"
+      hx-post="/decision-trees/editor/{{ decision_tree_id }}/publish"
+      hx-target="#modal-container"
+      hx-swap="innerHTML"
+      hx-indicator="find .deploy-submit-spinner">
+  {% if return_next %}
+  <input type="hidden" name="return_next" value="{{ return_next }}" />
+  {% endif %}
+  <div class="relative inline-flex">
+    <span class="deploy-submit-spinner htmx-indicator pointer-events-none absolute inset-0 z-[1] flex items-center justify-center rounded-lg bg-brand-600/90" aria-hidden="true">
+      <svg class="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </span>
+    {{ btn(deploy_action_label, variant="primary", type="submit", attrs='title="' ~ deploy_hover_title|e ~ '"') }}
+  </div>
+</form>
+{% elif readiness is defined %}
+<span class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg px-4 py-2.5 text-sm bg-ui-surface-muted text-ui-ink-subtle border border-ui-line cursor-not-allowed"
+      aria-disabled="true"
+      title="Resolve all check failures before deploying">
+  {{ deploy_action_label }}
+</span>
+{% else %}
+<span class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg px-4 py-2.5 text-sm bg-ui-surface-muted text-ui-ink-subtle border border-ui-line cursor-wait"
+      aria-disabled="true">
+  Deploy
+</span>
+{% endif %}

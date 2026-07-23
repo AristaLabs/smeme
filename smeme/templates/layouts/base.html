@@ -69,11 +69,11 @@
       <nav class="bg-ui-surface shadow-sm border-b border-ui-line" role="navigation" aria-label="Main navigation">
         <div class="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div class="flex min-w-0 justify-start">
-            {{ smeme_logo_link(href='/qnr/dashboard' if user is defined and user else '/') }}
+            {{ smeme_logo_link(href='/decision-trees/dashboard' if user is defined and user else '/') }}
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-8 lg:gap-x-10">
             {% if user is defined and user %}
-            <a href="/qnr/dashboard"
+            <a href="/decision-trees/dashboard"
                class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 {% if active == 'dashboard' %}bg-brand-50 text-brand-800{% else %}text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink{% endif %}">
               Dashboard
             </a>
@@ -135,7 +135,7 @@
       </footer>
       {% endif %}
 
-      <!-- HTMX swap target (QNR workflow, payment modal, etc.) -->
+      <!-- HTMX swap target (DecisionTree workflow, payment modal, etc.) -->
       <div id="root"></div>
       <!-- Global modal overlay: fixed to viewport, centered content -->
       <div id="modal-container" class="fixed inset-0 z-[100] flex items-center justify-center p-4" aria-live="polite"></div>
@@ -149,7 +149,7 @@
       document.body.addEventListener("refreshWizardBrief", function () {
         var panel = document.querySelector(".main-panel-content");
         if (!panel || typeof htmx === "undefined") return;
-        htmx.ajax("GET", "/qnr/agentic/brief-partial", {
+        htmx.ajax("GET", "/decision-trees/agentic/brief-partial", {
           target: ".main-panel-content",
           swap: "innerHTML",
         });

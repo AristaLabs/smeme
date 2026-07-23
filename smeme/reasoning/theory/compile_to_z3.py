@@ -25,7 +25,7 @@ Each IR node maps to a **reach** boolean ``ir_reach_<id>``. Non-entry nodes sati
 ``reach[n] == Or_i ( reach[parent_i] ∧ G_guard_i )``
 
 Entry nodes (no incoming edges) are asserted TRUE. **``validate_ir``** requires exactly **one**
-entry, so theory matches **single-start** QNR/session execution; multi-root IR is rejected before
+entry, so theory matches **single-start** decision tree/session execution; multi-root IR is rejected before
 this layer. Default guards (``DEFAULT_GUARD_EXPR``) are asserted TRUE.
 
 **Radio:** :mod:`~smeme.reasoning.theory.guards_radio` (option label guards).

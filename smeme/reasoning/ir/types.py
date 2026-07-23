@@ -27,7 +27,7 @@ class IRQuestionShape:
 
 
 class IRNodeKind(str, Enum):
-    """IR node role. Maps QNR `question` / `conclusion`; no separate STATE until QNR models it."""
+    """IR node role. Maps DecisionTree `question` / `conclusion`; no separate STATE until DecisionTree models it."""
 
     QUESTION = "question"
     CONCLUSION = "conclusion"
@@ -37,7 +37,7 @@ class IRNodeKind(str, Enum):
 class IRNode:
     """One navigable or terminal vertex in the IR.
 
-    ``question`` is set for :attr:`IRNodeKind.QUESTION` (lossless carry-over from QNR
+    ``question`` is set for :attr:`IRNodeKind.QUESTION` (lossless carry-over from decision tree
     ``QuestionData``); conclusions use ``None``.
     """
 
@@ -74,7 +74,7 @@ class IREdge:
 
 @dataclass(frozen=True, slots=True)
 class IR:
-    """Compiled intermediate representation of a DTGraph."""
+    """Compiled intermediate representation of a DecisionTree graph."""
 
     format_version: int
     nodes: tuple[IRNode, ...]

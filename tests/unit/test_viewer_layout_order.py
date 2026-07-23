@@ -1,14 +1,14 @@
 """BFS layout linear order (checklist / canvas alignment)."""
 
-from smeme.qnr.models import (
+from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
     DTGraph,
-    QNRMetadata,
+    DTGraphMetadata,
     QuestionData,
 )
-from smeme.qnr.viewer.layout import linear_node_ids_for_layout, ordered_nodes_for_checklist
+from smeme.decision_tree.viewer.layout import linear_node_ids_for_layout, ordered_nodes_for_checklist
 
 
 def _branching_graph() -> DTGraph:
@@ -57,12 +57,12 @@ def _branching_graph() -> DTGraph:
             GraphEdge(source="q1", target="conclusion_b", condition="B"),
             GraphEdge(source="q2", target="conclusion_a", condition="Y"),
         ],
-        metadata=QNRMetadata(title="Multi-Edge Test Graph"),
+        metadata=DTGraphMetadata(title="Multi-Edge Test Graph"),
     )
 
 
 def test_linear_node_ids_empty_graph():
-    g = DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+    g = DTGraph(nodes=[], edges=[], metadata=DTGraphMetadata(title="Empty"))
     assert linear_node_ids_for_layout(g) == []
     assert ordered_nodes_for_checklist(g) == []
 
