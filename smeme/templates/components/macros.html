@@ -134,7 +134,7 @@ Verify decision tree structure and make it available to MCP-connected agents
     </span>
     {%- if layout == "compact" or layout == "nav" or (layout == "featured" and show_label) -%}
     <span class="min-w-0 {% if layout != "nav" %}flex-1{% endif %} text-left {% if show_subtitle %}leading-tight{% else %}leading-none{% endif %}">
-      <span class="block {{ title_cls }}">New Decision tree</span>
+      <span class="block {{ title_cls }}">New Decision Tree</span>
       {%- if show_subtitle -%}
       <span class="mt-1 block font-medium text-white/80 {{ sub_cls }}">Web research, structured design, then build</span>
       {%- endif -%}
@@ -153,7 +153,7 @@ Verify decision tree structure and make it available to MCP-connected agents
 
 
 {#- ── Wizard create CTA (dashboard empty state) ──────────────────────── -#}
-{% macro wizard_create_cta(text="Create New Decision tree", variant="gradient", size="lg", full_width=false, wizard_start_block=none) %}
+{% macro wizard_create_cta(text="Create New Decision Tree", variant="gradient", size="lg", full_width=false, wizard_start_block=none) %}
 {% if wizard_start_block %}
 {{ btn(text, variant=variant, size=size, full_width=full_width, attrs='hx-get="/decision-trees/agentic/wizard-start-blocked-modal" hx-target="#modal-container" hx-swap="innerHTML"') }}
 {% else %}
