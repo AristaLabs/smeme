@@ -24,7 +24,7 @@ from smeme.decision_tree.helpers.validation import (
 )
 from smeme.decision_tree.viewer.layout import calculate_layout, ordered_nodes_for_checklist
 from smeme.decision_tree.viewer.models import DecisionTreeViewerState
-from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_qnr
+from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_decision_tree
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-async def load_decision_tree_node(state: DecisionTreeViewerState, config: RunnableConfig) -> dict[str, Any]:
+async def load_decision_tree_node(
+    state: DecisionTreeViewerState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 1: Load DecisionTree graph from cache or database.
 
@@ -46,14 +48,19 @@ async def load_decision_tree_node(state: DecisionTreeViewerState, config: Runnab
     db: AsyncSession = config["configurable"]["db"]
     editor_view: str = config["configurable"].get("editor_view", "graph")
 
-    logger.info("Loading DecisionTree for viewer", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        "Loading DecisionTree for viewer", extra={"decision_tree_id": str(decision_tree_id)}
+    )
 
     # Try cache first
     cached_graph = await get_cached_graph(decision_tree_id)
     if cached_graph:
         logger.info(
             "DecisionTree graph loaded from cache",
-            extra={"decision_tree_id": str(decision_tree_id), "node_count": len(cached_graph.nodes)},
+            extra={
+                "decision_tree_id": str(decision_tree_id),
+                "node_count": len(cached_graph.nodes),
+            },
         )
 
         # Still need to get status and title from DB (not cached)
@@ -64,7 +71,7 @@ async def load_decision_tree_node(state: DecisionTreeViewerState, config: Runnab
         corp = await get_decision_tree_research_corpus_row(db, decision_tree_id)
         corp_bytes = len(corp.body_text.encode("utf-8")) if corp and corp.body_text.strip() else 0
         corpus_body = corp.body_text if corp else ""
-        tools_row_state = await reasoning_tools_row_state_for_qnr(db, decision_tree)
+        tools_row_state = await reasoning_tools_row_state_for_decision_tree(db, decision_tree)
         is_owner = decision_tree.author_id == user_id
         if editor_view == "tools" and not is_owner:
             editor_view = "graph"
@@ -76,7 +83,7 @@ async def load_decision_tree_node(state: DecisionTreeViewerState, config: Runnab
             "is_read_only": decision_tree.is_public or decision_tree.was_ever_public,
             "is_owner": is_owner,
             "version_number": decision_tree.version_number,
-            "parent_qnr": decision_tree.parent if decision_tree.parent else None,
+            "parent_decision_tree": decision_tree.parent if decision_tree.parent else None,
             "intended_audience": decision_tree.intended_audience,
             "use_case": decision_tree.use_case,
             "reasoning_status": decision_tree.reasoning_status,
@@ -112,7 +119,7 @@ async def load_decision_tree_node(state: DecisionTreeViewerState, config: Runnab
     corp = await get_decision_tree_research_corpus_row(db, decision_tree_id)
     corp_bytes = len(corp.body_text.encode("utf-8")) if corp and corp.body_text.strip() else 0
     corpus_body = corp.body_text if corp else ""
-    tools_row_state = await reasoning_tools_row_state_for_qnr(db, decision_tree)
+    tools_row_state = await reasoning_tools_row_state_for_decision_tree(db, decision_tree)
     is_owner = decision_tree.author_id == user_id
     if editor_view == "tools" and not is_owner:
         editor_view = "graph"
@@ -124,7 +131,7 @@ async def load_decision_tree_node(state: DecisionTreeViewerState, config: Runnab
         "is_read_only": decision_tree.is_public or decision_tree.was_ever_public,
         "is_owner": is_owner,
         "version_number": decision_tree.version_number,
-        "parent_qnr": decision_tree.parent if decision_tree.parent else None,
+        "parent_decision_tree": decision_tree.parent if decision_tree.parent else None,
         "intended_audience": decision_tree.intended_audience,
         "use_case": decision_tree.use_case,
         "reasoning_status": decision_tree.reasoning_status,
@@ -219,7 +226,9 @@ async def generate_visualization_node(
     }
 
 
-async def render_viewer_node(state: DecisionTreeViewerState, config: RunnableConfig) -> dict[str, Any]:
+async def render_viewer_node(
+    state: DecisionTreeViewerState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 3: Render final HTML output using Jinja2 templates.
 
@@ -295,7 +304,7 @@ async def render_viewer_node(state: DecisionTreeViewerState, config: RunnableCon
         "node_validation_status": state.get("node_validation_status", {}),  # Node-specific issues
         "selected_node_id": selected_node_id,
         "version_number": state.get("version_number", 1),
-        "parent_qnr": state.get("parent_qnr"),
+        "parent_decision_tree": state.get("parent_decision_tree"),
         "intended_audience": state.get("intended_audience"),
         "use_case": state.get("use_case"),
         "reasoning_status": state.get("reasoning_status"),

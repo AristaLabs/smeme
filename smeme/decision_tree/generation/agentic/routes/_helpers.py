@@ -181,7 +181,9 @@ def _render_initial_form(
         "form_pasted_text": form.get("pasted_text", ""),
         "form_exclude_domains": form.get("exclude_domains") or default_exclude_domains,
         "form_country": (
-            form.get("country", "") if settings.show_decision_tree_generation_region_selector else ""
+            form.get("country", "")
+            if settings.show_decision_tree_generation_region_selector
+            else ""
         ),
         "form_enable_web_search": form.get("enable_web_search", "") in ("on", "true", "1", "yes"),
         "form_enable_user_materials": (

@@ -12,9 +12,9 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import User
-from smeme.mcp.models import McpToolInvocation
 from smeme.decision_tree.generation.agentic.telemetry import WIZARD_SUCCESS_STATUSES
 from smeme.decision_tree.models import WizardGenerationEvent
+from smeme.mcp.models import McpToolInvocation
 
 from .access_policy import count_active_root_workflows, count_live_root_workflows
 from .tiers import limits_for_user, tier_display_name, tier_for_user
@@ -320,7 +320,7 @@ async def build_usage_summary(db: AsyncSession, user: User) -> dict[str, Any]:
         "resets_at": resets_at_iso(user=user),
         "resets_label": resets_at_label(user=user),
         "resets_on_stripe_period": resets_on_stripe_period(user),
-        "workflows": _dim(float(workflows_used), float(limits.max_workflows)),
+        "decision_trees": _dim(float(workflows_used), float(limits.max_workflows)),
         "mcp_weighted": _dim(mcp_used, limits.max_mcp_weighted),
         "wizard_completions": _dim(float(wizard_used), float(limits.max_wizard_completions)),
     }

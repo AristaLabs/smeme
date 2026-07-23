@@ -92,7 +92,7 @@
 
         {% if usage_summary is defined %}
         <div class="grid gap-3 sm:grid-cols-3 mb-5">
-          {% for key, label in [('decision trees', 'Decision trees'), ('mcp_weighted', 'MCP calls (mo)'), ('wizard_completions', 'AI builds (mo)')] %}
+          {% for key, label in [('decision_trees', 'Decision trees'), ('mcp_weighted', 'MCP calls (mo)'), ('wizard_completions', 'AI builds (mo)')] %}
           {% set dim = usage_summary[key] %}
           <div class="rounded-lg border px-3 py-2.5 {% if dim.at_warning %}border-amber-300 bg-amber-50/50{% else %}border-ui-line bg-ui-surface-muted/40{% endif %}">
             <p class="text-xs font-medium text-ui-ink-muted uppercase tracking-wide">{{ label }}</p>

@@ -47,7 +47,7 @@ Use the candidate **title** (not `result_kind`) when speaking to the user. Never
 1. Update the ingest (answers and/or evidence).
 2. **`smeme_reasoning_validate_answers`**
 3. **`smeme_reasoning_evaluate`**
-4. Note **`qnr_id`** and **`evaluation_run_id`** on retries.
+4. Note **`decision_tree_id`** and **`evaluation_run_id`** on retries.
 
 ## If the user wants to explore "what would change the outcome"
 

@@ -116,11 +116,11 @@ async def submit_conclusions(
             state_snapshot = await workflow.aget_state(config)
             state = state_snapshot.values
 
-            questionnaire_design = ""
+            decision_tree_design = ""
             if isinstance(interrupt_obj.value, dict):
                 try:
                     payload = InterruptPayload(**interrupt_obj.value)
-                    questionnaire_design = payload.data_to_edit.get("questionnaire_design", "")
+                    decision_tree_design = payload.data_to_edit.get("decision_tree_design", "")
                     logger.info(
                         "Using Sprint 6 InterruptPayload format",
                         extra={"phase": payload.phase, "user_id": payload.user_id},
@@ -130,19 +130,19 @@ async def submit_conclusions(
                         "InterruptPayload validation failed, using legacy format",
                         extra={"error": str(e)},
                     )
-                    questionnaire_design = ""
+                    decision_tree_design = ""
             elif isinstance(interrupt_obj.value, str):
-                questionnaire_design = interrupt_obj.value
+                decision_tree_design = interrupt_obj.value
 
-            if not questionnaire_design:
-                questionnaire_design = state.get("questionnaire_design", "")
+            if not decision_tree_design:
+                decision_tree_design = state.get("decision_tree_design", "")
 
             logger.info(
                 "Workflow interrupted for design edit",
                 extra={
                     "user_id": str(user.id),
                     "thread_id": thread_id,
-                    "design_length": len(questionnaire_design),
+                    "design_length": len(decision_tree_design),
                     "design_source": state.get("design_source", "unknown"),
                 },
             )
@@ -178,7 +178,7 @@ async def submit_conclusions(
                 context={
                     "thread_id": thread_id,
                     "generation_id": str(gen.id) if gen else None,
-                    "questionnaire_design": questionnaire_design,
+                    "decision_tree_design": decision_tree_design,
                     "design_source": state.get("design_source", "unknown"),
                     "design_token_usage": state.get("design_token_usage"),
                     "current_phase": "design",

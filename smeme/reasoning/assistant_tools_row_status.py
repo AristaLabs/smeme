@@ -31,10 +31,14 @@ def reasoning_tools_row_state(
     return "live"
 
 
-async def reasoning_tools_row_state_for_qnr(db: AsyncSession, decision_tree: DecisionTree) -> ToolsRowState:
+async def reasoning_tools_row_state_for_decision_tree(
+    db: AsyncSession, decision_tree: DecisionTree
+) -> ToolsRowState:
     """Load artifact (if any) and return Live / Stale / Not built for one DecisionTree."""
     result = await db.execute(
-        select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree.id)
+        select(ReasoningCompiledArtifact).where(
+            ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
+        )
     )
     artifact = result.scalar_one_or_none()
     return reasoning_tools_row_state(decision_tree, artifact)

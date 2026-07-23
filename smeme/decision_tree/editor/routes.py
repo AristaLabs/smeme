@@ -53,7 +53,7 @@ from smeme.decision_tree.models import DTGraph
 from smeme.decision_tree.viewer.layout import ordered_nodes_for_checklist
 from smeme.decision_tree.viewer.workflow import build_viewer_workflow
 from smeme.decision_tree.viewer.workflow_config import build_viewer_workflow_config
-from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_qnr
+from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_decision_tree
 from smeme.reasoning.cevi.contract_diagnostics import (
     diagnose_published_evidence_contract,
     diagnostics_log_payload,
@@ -179,7 +179,9 @@ def render_editor_oob_swaps(
     # Render validation badge (compact header badge)
     validation_data = viewer_result.get("validation_data", {})
     is_public = viewer_result.get("is_public", False)
-    validation_badge_html = templates.env.get_template("decision_tree/_validation_badge.html").render(
+    validation_badge_html = templates.env.get_template(
+        "decision_tree/_validation_badge.html"
+    ).render(
         {
             "validation_data": validation_data,
             "is_public": is_public,
@@ -213,9 +215,9 @@ def render_editor_oob_swaps(
     warnings = viewer_result.get("warnings", [])
     warning_banner_html = ""
     if warnings:
-        warning_banner_html = templates.env.get_template("decision_tree/_warning_banner.html").render(
-            {"warnings": warnings}
-        )
+        warning_banner_html = templates.env.get_template(
+            "decision_tree/_warning_banner.html"
+        ).render({"warnings": warnings})
 
     # Combine all OOB swaps
     return f"""
@@ -397,7 +399,7 @@ async def enforce_versioning_for_public_edits(
     Raises:
         HTTPException: If DecisionTree is archived or public/was_ever_public (cannot edit directly)
     """
-    # Block editing archived QNRs (must restore first)
+    # Block editing archived decision trees (must restore first)
     if decision_tree.is_archived:
         raise HTTPException(
             status_code=400,
@@ -455,7 +457,7 @@ async def create_node(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -645,7 +647,7 @@ async def update_node(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -729,7 +731,7 @@ async def delete_node(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -847,7 +849,10 @@ async def create_edge(
     Returns updated editor view via HTMX swap.
     """
     decision_tree_id = req.decision_tree_id
-    logger.info(f"Creating edge: {req.source} -> {req.target}", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        f"Creating edge: {req.source} -> {req.target}",
+        extra={"decision_tree_id": str(decision_tree_id)},
+    )
 
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
@@ -856,7 +861,7 @@ async def create_edge(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -887,7 +892,11 @@ async def create_edge(
         # Log the error for debugging
         logger.error(
             f"Edge creation failed: {error_message}",
-            extra={"decision_tree_id": str(decision_tree_id), "source": req.source, "target": req.target},
+            extra={
+                "decision_tree_id": str(decision_tree_id),
+                "source": req.source,
+                "target": req.target,
+            },
         )
 
         # Re-render the side panel with error message at the top
@@ -951,7 +960,10 @@ async def update_edge(
     Returns updated editor view via HTMX swap.
     """
     decision_tree_id = req.decision_tree_id
-    logger.info(f"Updating edge: {req.source} -> {req.old_target}", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        f"Updating edge: {req.source} -> {req.old_target}",
+        extra={"decision_tree_id": str(decision_tree_id)},
+    )
 
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
@@ -960,7 +972,7 @@ async def update_edge(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -991,7 +1003,11 @@ async def update_edge(
         # Log the error for debugging
         logger.error(
             f"Edge update failed: {error_message}",
-            extra={"decision_tree_id": str(decision_tree_id), "source": req.source, "old_target": req.old_target},
+            extra={
+                "decision_tree_id": str(decision_tree_id),
+                "source": req.source,
+                "old_target": req.old_target,
+            },
         )
 
         # Re-render the side panel with error message at the top
@@ -1055,7 +1071,10 @@ async def delete_edge(
     Returns updated editor view via HTMX swap.
     """
     decision_tree_id = req.decision_tree_id
-    logger.info(f"Deleting edge: {req.source} -> {req.target}", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        f"Deleting edge: {req.source} -> {req.target}",
+        extra={"decision_tree_id": str(decision_tree_id)},
+    )
 
     # Authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
@@ -1064,7 +1083,7 @@ async def delete_edge(
     if decision_tree.author_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -1244,7 +1263,11 @@ async def delete_research_corpus(
             return render_edit_blocked_error(decision_tree_id, e.detail)
         raise
 
-    await db.execute(delete(DecisionTreeResearchCorpus).where(DecisionTreeResearchCorpus.decision_tree_id == decision_tree_id))
+    await db.execute(
+        delete(DecisionTreeResearchCorpus).where(
+            DecisionTreeResearchCorpus.decision_tree_id == decision_tree_id
+        )
+    )
     await db.commit()
     return HTMLResponse(
         content=_research_corpus_save_htmx_html(
@@ -1333,7 +1356,7 @@ async def update_title(
             content='<div class="text-red-600">Not authorized</div>', status_code=403
         )
 
-    # Enforce versioning for public QNRs (blocks edits for public/was_ever_public QNRs)
+    # Enforce versioning for public decision trees (blocks edits for public/was_ever_public decision trees)
     try:
         decision_tree = await authorize_workflow_edit(db, decision_tree, user)
     except HTTPException as e:
@@ -1438,7 +1461,7 @@ async def publish_preflight_panel(
         return HTMLResponse(content="", status_code=404)
     graph = parse_graph_data(decision_tree)
     readiness = await assess_publish_readiness(graph)
-    tools_row_state = await reasoning_tools_row_state_for_qnr(db, decision_tree)
+    tools_row_state = await reasoning_tools_row_state_for_decision_tree(db, decision_tree)
     return templates.TemplateResponse(
         "decision_tree/_publish_preflight_panel.html",
         {
@@ -1461,7 +1484,7 @@ def _publish_success_redirect_url(decision_tree_id: UUID, return_next: str | Non
 
 
 @router.post("/{decision_tree_id}/publish", response_class=HTMLResponse, response_model=None)
-async def publish_qnr(
+async def publish_decision_tree(
     request: Request,
     decision_tree_id: UUID,
     user: CurrentUser,
@@ -1472,7 +1495,10 @@ async def publish_qnr(
 
     Does NOT change gallery visibility. MCP deploy is available on all tiers.
     """
-    logger.info(f"Publishing reasoning artifact for Decision tree: {decision_tree_id}", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        f"Publishing reasoning artifact for Decision tree: {decision_tree_id}",
+        extra={"decision_tree_id": str(decision_tree_id)},
+    )
 
     form = await request.form()
     return_next_raw = form.get("return_next")
@@ -1533,7 +1559,9 @@ async def publish_qnr(
     research_corpus_hash = corpus_snapshot.sha256_hex
 
     await db.execute(
-        delete(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree.id)
+        delete(ReasoningCompiledArtifact).where(
+            ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
+        )
     )
 
     decision_tree.reasoning_status = "compiled"
@@ -1865,7 +1893,7 @@ async def create_new_version(
 
     raise_if_workflow_edit_denied(user, original)
 
-    # Can't version archived QNRs
+    # Can't version archived decision trees
     if original.is_archived:
         raise HTTPException(
             status_code=400,
@@ -1883,11 +1911,11 @@ async def create_new_version(
     # Get base title from root version (v1) to avoid "Title v2 v3" problem
     # Use database query to avoid MissingGreenlet error
     root_decision_tree_id = await _get_root_decision_tree_id(db, original)
-    root_qnr = await get_decision_tree_by_id(db, root_decision_tree_id)
-    if not root_qnr:
+    root_decision_tree = await get_decision_tree_by_id(db, root_decision_tree_id)
+    if not root_decision_tree:
         raise HTTPException(status_code=404, detail="Root workflow not found")
     # Strip any existing version suffix (e.g., "My DecisionTree v1" → "My decision tree")
-    base_title = re.sub(r"\s+v\d+$", "", root_qnr.title)
+    base_title = re.sub(r"\s+v\d+$", "", root_decision_tree.title)
     new_version_number = original.version_number + 1
 
     # Create new version

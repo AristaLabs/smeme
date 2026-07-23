@@ -245,7 +245,7 @@ class DecisionTree(BaseSQLModel, table=True):
             server_default=sa.false(),
             index=True,
         ),
-        description="Archived QNRs are hidden but preserved for session access",
+        description="Archived decision trees are hidden but preserved for session access",
     )
     archived_at: Mapped[datetime] | None = Field(
         default=None,
@@ -684,7 +684,11 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
     model_config = {"arbitrary_types_allowed": True}
 
     __tablename__ = "reasoning_evaluation_runs"
-    __table_args__ = (Index("ix_reasoning_evaluation_runs_decision_tree_created", "decision_tree_id", "created_at"),)
+    __table_args__ = (
+        Index(
+            "ix_reasoning_evaluation_runs_decision_tree_created", "decision_tree_id", "created_at"
+        ),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     decision_tree_id: UUID = Field(

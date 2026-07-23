@@ -6,8 +6,13 @@ This module is VIEWER-ONLY. The Editor never calculates positions.
 import logging
 from collections import deque
 
-from smeme.decision_tree.models import GraphNode, DTGraph
-from smeme.decision_tree.viewer.models import GraphVisualization, NodePosition, VisualEdge, VisualNode
+from smeme.decision_tree.models import DTGraph, GraphNode
+from smeme.decision_tree.viewer.models import (
+    GraphVisualization,
+    NodePosition,
+    VisualEdge,
+    VisualNode,
+)
 
 logger = logging.getLogger(__name__)
 

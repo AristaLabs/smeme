@@ -19,7 +19,9 @@ from openai import AsyncOpenAI
 
 from smeme.core.logging import get_logger
 from smeme.core.openai_models import OPENAI_MAX_COMPLETION_CONCLUSIONS, OPENAI_MODEL_HEAVY
-from smeme.decision_tree.generation.agentic.conclusions_sanitize import sanitize_extracted_conclusions
+from smeme.decision_tree.generation.agentic.conclusions_sanitize import (
+    sanitize_extracted_conclusions,
+)
 from smeme.decision_tree.generation.agentic.prompts import EXTRACT_CONCLUSIONS_PROMPT
 from smeme.decision_tree.generation.agentic.subgraphs.models import (
     ConclusionsSubgraphInput,

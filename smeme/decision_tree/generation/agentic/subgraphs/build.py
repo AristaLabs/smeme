@@ -52,7 +52,7 @@ MAX_FIX_ITERATIONS = 3
 # ============================================================================
 
 
-def optimize_design_for_build(questionnaire_design: str) -> tuple[str, bool]:
+def optimize_design_for_build(decision_tree_design: str) -> tuple[str, bool]:
     """Optimize questionnaire design to reduce token usage.
 
     Strategy:
@@ -60,17 +60,17 @@ def optimize_design_for_build(questionnaire_design: str) -> tuple[str, bool]:
     2. Preserve question structure
 
     Args:
-        questionnaire_design: Full design markdown
+        decision_tree_design: Full design markdown
 
     Returns:
         (optimized_design, was_optimized)
     """
     optimized = False
-    optimized_design = questionnaire_design
+    optimized_design = decision_tree_design
 
-    if len(questionnaire_design) > MAX_DESIGN_CHARS:
+    if len(decision_tree_design) > MAX_DESIGN_CHARS:
         # Split by questions (assumes "#### Q" format)
-        questions = questionnaire_design.split("#### Q")
+        questions = decision_tree_design.split("#### Q")
 
         # Keep first 15 questions + header
         if len(questions) > 16:  # [0] is header, [1-15] are questions
@@ -80,22 +80,22 @@ def optimize_design_for_build(questionnaire_design: str) -> tuple[str, bool]:
             optimized = True
         else:
             # Just truncate at character limit
-            optimized_design = questionnaire_design[:MAX_DESIGN_CHARS]
+            optimized_design = decision_tree_design[:MAX_DESIGN_CHARS]
             optimized_design += "\n[...truncated...]"
             optimized = True
 
-        token_reduction_estimate = (len(questionnaire_design) - len(optimized_design)) // 4
+        token_reduction_estimate = (len(decision_tree_design) - len(optimized_design)) // 4
 
         logger.info(
             "Optimized build input design",
             extra={
-                "original_chars": len(questionnaire_design),
+                "original_chars": len(decision_tree_design),
                 "optimized_chars": len(optimized_design),
                 "token_reduction_estimate": token_reduction_estimate,
                 "reduction_percentage": round(
                     (
-                        (len(questionnaire_design) - len(optimized_design))
-                        / len(questionnaire_design)
+                        (len(decision_tree_design) - len(optimized_design))
+                        / len(decision_tree_design)
                     )
                     * 100,
                     1,
@@ -128,15 +128,15 @@ async def build_graph_node(
         "Building graph from design",
         extra={
             "user_id": str(state.user_id),
-            "design_length": len(state.questionnaire_design_edited),
+            "design_length": len(state.decision_tree_design_edited),
         },
     )
 
     # Step 1: Optimize input design for token efficiency
-    optimized_design, was_optimized = optimize_design_for_build(state.questionnaire_design_edited)
+    optimized_design, was_optimized = optimize_design_for_build(state.decision_tree_design_edited)
 
     try:
-        system_prompt = BUILD_GRAPH_PROMPT.format(questionnaire_design_edited=optimized_design)
+        system_prompt = BUILD_GRAPH_PROMPT.format(decision_tree_design_edited=optimized_design)
 
         input_tokens_estimate = len(system_prompt) // 4
 
@@ -286,7 +286,7 @@ async def validate_graph_node(
         dt_graph = DTGraph(**state.generated_graph)
 
         # Validate: structural tier-2 + generation branching quality gates
-        collect_only_ids = parse_collect_only_question_ids(state.questionnaire_design_edited)
+        collect_only_ids = parse_collect_only_question_ids(state.decision_tree_design_edited)
 
         allowed_ids = state.allowed_conclusion_ids
         parse_ok = state.allowed_conclusions_parse_ok
@@ -556,8 +556,8 @@ def extract_build_input(parent_state: dict) -> BuildSubgraphInput:
     return BuildSubgraphInput(
         user_prompt=parent_state["user_prompt"],
         user_id=parent_state["user_id"],
-        questionnaire_design_edited=parent_state.get("questionnaire_design_edited")
-        or parent_state.get("questionnaire_design", ""),
+        decision_tree_design_edited=parent_state.get("decision_tree_design_edited")
+        or parent_state.get("decision_tree_design", ""),
         possible_conclusions_edited=conclusions_text,
         allowed_conclusion_ids=allowed_ids,
         allowed_conclusions_parse_ok=parse_ok,

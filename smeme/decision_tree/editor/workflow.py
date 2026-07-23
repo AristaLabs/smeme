@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-async def load_decision_tree_node(state: DecisionTreeEditorState, config: RunnableConfig) -> dict[str, Any]:
+async def load_decision_tree_node(
+    state: DecisionTreeEditorState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 1: Load DecisionTree graph from database (no cache).
 
@@ -35,7 +37,10 @@ async def load_decision_tree_node(state: DecisionTreeEditorState, config: Runnab
     decision_tree_id = state["decision_tree_id"]
     db: AsyncSession = config["configurable"]["db"]
 
-    logger.info("Loading DecisionTree for editor (no cache)", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        "Loading DecisionTree for editor (no cache)",
+        extra={"decision_tree_id": str(decision_tree_id)},
+    )
 
     # Load from database (skip cache for editor)
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
@@ -66,7 +71,9 @@ async def load_decision_tree_node(state: DecisionTreeEditorState, config: Runnab
     }
 
 
-async def apply_operation_node(state: DecisionTreeEditorState, config: RunnableConfig) -> dict[str, Any]:
+async def apply_operation_node(
+    state: DecisionTreeEditorState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 2: Apply the requested operation to the graph.
 
@@ -130,7 +137,9 @@ async def apply_operation_node(state: DecisionTreeEditorState, config: RunnableC
         }
 
 
-async def validate_graph_node(state: DecisionTreeEditorState, config: RunnableConfig) -> dict[str, Any]:
+async def validate_graph_node(
+    state: DecisionTreeEditorState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 3: Validate the modified graph using lenient validation.
 
@@ -200,7 +209,9 @@ async def save_to_db_node(state: DecisionTreeEditorState, config: RunnableConfig
     decision_tree_id = state["decision_tree_id"]
     db: AsyncSession = config["configurable"]["db"]
 
-    logger.info("Saving modified graph to database", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        "Saving modified graph to database", extra={"decision_tree_id": str(decision_tree_id)}
+    )
 
     try:
         # Load DecisionTree record
@@ -244,7 +255,9 @@ async def save_to_db_node(state: DecisionTreeEditorState, config: RunnableConfig
         return {**state, "success": False, "error_message": f"Failed to save: {str(e)}"}
 
 
-async def invalidate_cache_node(state: DecisionTreeEditorState, config: RunnableConfig) -> dict[str, Any]:
+async def invalidate_cache_node(
+    state: DecisionTreeEditorState, config: RunnableConfig
+) -> dict[str, Any]:
     """
     Node 5: Invalidate the DecisionTree cache so viewer loads fresh data.
 
@@ -252,7 +265,9 @@ async def invalidate_cache_node(state: DecisionTreeEditorState, config: Runnable
     """
     decision_tree_id = state["decision_tree_id"]
 
-    logger.info("Invalidating DecisionTree cache", extra={"decision_tree_id": str(decision_tree_id)})
+    logger.info(
+        "Invalidating DecisionTree cache", extra={"decision_tree_id": str(decision_tree_id)}
+    )
 
     try:
         await invalidate_graph_cache(decision_tree_id)

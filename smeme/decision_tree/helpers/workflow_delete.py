@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from smeme.core.models import DecisionTree, Memo, DecisionTreeSession
+from smeme.core.models import DecisionTree, DecisionTreeSession, Memo
 from smeme.decision_tree.helpers.db_queries import get_version_family_from_db
 
 DELETE_CONFIRM_PHRASE = "delete workflow permanently"
@@ -43,10 +43,16 @@ async def delete_workflow_family(
     if session_ids:
         await db.execute(delete(Memo).where(Memo.session_id.in_(session_ids)))
 
-    await db.execute(delete(DecisionTreeSession).where(DecisionTreeSession.decision_tree_id.in_(family_ids)))
+    await db.execute(
+        delete(DecisionTreeSession).where(DecisionTreeSession.decision_tree_id.in_(family_ids))
+    )
 
     # Break parent links so all family rows can be removed in one statement.
-    await db.execute(update(DecisionTree).where(DecisionTree.id.in_(family_ids)).values(parent_decision_tree_id=None))
+    await db.execute(
+        update(DecisionTree)
+        .where(DecisionTree.id.in_(family_ids))
+        .values(parent_decision_tree_id=None)
+    )
     await db.execute(delete(DecisionTree).where(DecisionTree.id.in_(family_ids)))
 
     return family

@@ -43,12 +43,12 @@ from smeme.core.middleware import (
     SecurityHeadersMiddleware,
 )
 from smeme.core.rate_limiting import limiter
-from smeme.docs.routes import router as docs_router
-from smeme.mcp.discovery_routes import register_mcp_oauth_discovery_routes
-from smeme.mcp.reasoning_fastmcp import McpMountPathNormalizeMiddleware, mount_mcp_on_app
 from smeme.decision_tree.editor.routes import router as decision_tree_editor_router
 from smeme.decision_tree.routes import router as decision_tree_router
 from smeme.decision_tree.viewer.routes import router as decision_tree_viewer_router
+from smeme.docs.routes import router as docs_router
+from smeme.mcp.discovery_routes import register_mcp_oauth_discovery_routes
+from smeme.mcp.reasoning_fastmcp import McpMountPathNormalizeMiddleware, mount_mcp_on_app
 
 logger = get_logger(__name__)
 
@@ -117,7 +117,9 @@ def _make_lifespan(mcp_runtime_settings: Settings):
 
             if settings.smeme_ai_generation_enabled:
                 try:
-                    from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+                    from smeme.decision_tree.generation.agentic.checkpointer import (
+                        checkpointer_manager,
+                    )
                     from smeme.decision_tree.generation.agentic.maintenance import (
                         periodic_maintenance_loop,
                         run_startup_cleanup,
@@ -145,7 +147,9 @@ def _make_lifespan(mcp_runtime_settings: Settings):
                         await maintenance_task
                 if settings.smeme_ai_generation_enabled:
                     try:
-                        from smeme.decision_tree.generation.agentic.checkpointer import checkpointer_manager
+                        from smeme.decision_tree.generation.agentic.checkpointer import (
+                            checkpointer_manager,
+                        )
 
                         await checkpointer_manager.shutdown()
                     except Exception:

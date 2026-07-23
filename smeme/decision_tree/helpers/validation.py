@@ -15,7 +15,7 @@ from collections import deque
 from collections.abc import Callable
 from typing import NotRequired, TypedDict
 
-from smeme.decision_tree.models import GraphEdge, GraphNode, DTGraph
+from smeme.decision_tree.models import DTGraph, GraphEdge, GraphNode
 
 logger = logging.getLogger(__name__)
 
@@ -336,7 +336,7 @@ def validate_graph(graph: DTGraph) -> tuple[bool, str | None]:
         edges_out = get_outgoing(node.id)
         if not edges_out:
             # If graph has conclusions, question nodes without edges are invalid
-            # (grandfathered for legacy QNRs without conclusions)
+            # (grandfathered for legacy decision trees without conclusions)
             if conclusion_nodes:
                 return False, (
                     f"Question node '{node.id}' has no outgoing edges. "

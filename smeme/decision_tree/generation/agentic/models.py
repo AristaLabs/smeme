@@ -90,8 +90,8 @@ class AgenticDecisionTreeGenerationState(TypedDict, total=False):
     allowed_conclusions_parse_ok: NotRequired[bool]  # False when parser found no IDs
 
     # === Phase 2: Design ===
-    questionnaire_design: NotRequired[str]  # LLM-generated design (markdown)
-    questionnaire_design_edited: NotRequired[str]  # Author-edited markdown
+    decision_tree_design: NotRequired[str]  # LLM-generated design (markdown)
+    decision_tree_design_edited: NotRequired[str]  # Author-edited markdown
     design_source: NotRequired[str]  # Track source: "llm_generated" or "llm_failed"
     design_raw: NotRequired[dict]  # Raw LLM response for debugging
     design_token_usage: NotRequired[dict]  # Token usage stats (prompt/completion/total)
@@ -128,7 +128,9 @@ class AgenticDecisionTreeGenerationState(TypedDict, total=False):
     rendered_html: NotRequired[str]  # HTML fragment to return to HTMX
 
     # === Phase Tracking (Sprint 6) ===
-    current_phase: NotRequired[DecisionTreeGenerationPhase]  # Explicit current phase (no inference needed)
+    current_phase: NotRequired[
+        DecisionTreeGenerationPhase
+    ]  # Explicit current phase (no inference needed)
     phase_start_time: NotRequired[
         float
     ]  # Timestamp when current phase started (for duration tracking)

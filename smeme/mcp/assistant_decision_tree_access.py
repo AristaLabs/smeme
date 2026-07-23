@@ -25,7 +25,9 @@ def select_decision_trees_for_assistant_tools_list(author_id: UUID) -> Select:
     )
 
 
-def assistant_tools_discoverability_violation(decision_tree: DecisionTree) -> tuple[str, str] | None:
+def assistant_tools_discoverability_violation(
+    decision_tree: DecisionTree,
+) -> tuple[str, str] | None:
     """If *decision_tree* must not be used for MCP tool evaluation, return (code, message)."""
     if not decision_tree.mcp_discoverable:
         return (

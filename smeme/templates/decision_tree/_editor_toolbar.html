@@ -43,11 +43,11 @@
         </div>
       </div>
       <div class="mt-1.5 flex flex-wrap items-center gap-2">
-        {% if parent_qnr %}
+        {% if parent_decision_tree %}
         <span class="text-sm text-ui-ink-muted">
           Based on:
-          <a href="/decision-trees/{{ parent_qnr.id }}/editor" class="text-brand-600 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200 underline">
-            {{ parent_qnr.title }}
+          <a href="/decision-trees/{{ parent_decision_tree.id }}/editor" class="text-brand-600 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200 underline">
+            {{ parent_decision_tree.title }}
           </a>
         </span>
         {% endif %}

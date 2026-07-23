@@ -20,7 +20,9 @@ from smeme.decision_tree.generation.agentic.workflow import get_compiled_workflo
 router = APIRouter()
 
 
-def _redirect_to_editor_response(request: Request, decision_tree_id: str) -> HTMLResponse | RedirectResponse:
+def _redirect_to_editor_response(
+    request: Request, decision_tree_id: str
+) -> HTMLResponse | RedirectResponse:
     """Redirect from either HTMX flows or normal browser navigation."""
     editor_url = f"/decision-trees/{decision_tree_id}/editor"
     if request.headers.get("HX-Request", "").lower() == "true":
@@ -139,7 +141,7 @@ async def view_generation(
                     context=ctx,
                 )
 
-            if "possible_conclusions" in state and not state.get("questionnaire_design"):
+            if "possible_conclusions" in state and not state.get("decision_tree_design"):
                 await track_wizard_resume_enter(
                     db,
                     user_id=user.id,
@@ -165,7 +167,7 @@ async def view_generation(
                     },
                 )
 
-            if "questionnaire_design" in state and not state.get("decision_tree_id"):
+            if "decision_tree_design" in state and not state.get("decision_tree_id"):
                 await track_wizard_resume_enter(
                     db,
                     user_id=user.id,
@@ -181,7 +183,7 @@ async def view_generation(
                     main_content_template="decision_tree/generation/_main_design_edit.html",
                     context={
                         "thread_id": thread_id,
-                        "questionnaire_design": state.get("questionnaire_design", ""),
+                        "decision_tree_design": state.get("decision_tree_design", ""),
                         "design_source": state.get("design_source", "llm_generated"),
                         "design_token_usage": state.get("design_token_usage"),
                         "current_phase": "design",
@@ -375,7 +377,7 @@ async def resume_generation(
             logger.debug(
                 f"Checking phase conditions: research_context={'research_context' in state}, "
                 f"possible_conclusions={state.get('possible_conclusions') is not None}, "
-                f"questionnaire_design={state.get('questionnaire_design') is not None}, "
+                f"decision_tree_design={state.get('decision_tree_design') is not None}, "
                 f"decision_tree_id={state.get('decision_tree_id') is not None}"
             )
 
@@ -406,7 +408,7 @@ async def resume_generation(
                     main_content_template="decision_tree/generation/_main_research_edit.html",
                     context=ctx,
                 )
-            if "possible_conclusions" in state and not state.get("questionnaire_design"):
+            if "possible_conclusions" in state and not state.get("decision_tree_design"):
                 phase_history = state.get("phase_history", [])
                 completed_phases = []
                 for transition in phase_history:
@@ -438,7 +440,7 @@ async def resume_generation(
                         "workflow_version": "2.0.0",
                     },
                 )
-            if "questionnaire_design" in state and not state.get("decision_tree_id"):
+            if "decision_tree_design" in state and not state.get("decision_tree_id"):
                 phase_history = state.get("phase_history", [])
                 completed_phases = []
                 for transition in phase_history:
@@ -461,7 +463,7 @@ async def resume_generation(
                     main_content_template="decision_tree/generation/_main_design_edit.html",
                     context={
                         "thread_id": thread_id,
-                        "questionnaire_design": state.get("questionnaire_design", ""),
+                        "decision_tree_design": state.get("decision_tree_design", ""),
                         "design_source": state.get("design_source", "llm_generated"),
                         "design_token_usage": state.get("design_token_usage"),
                         "current_phase": "design",
@@ -476,7 +478,7 @@ async def resume_generation(
                 f"state_keys={list(state.keys())}, "
                 f"has_research={'research_context' in state}, "
                 f"has_conclusions={'possible_conclusions' in state}, "
-                f"has_design={'questionnaire_design' in state}, "
+                f"has_design={'decision_tree_design' in state}, "
                 f"has_decision_tree_id={'decision_tree_id' in state}"
             )
             return templates.TemplateResponse(
@@ -495,7 +497,7 @@ async def resume_generation(
             f"has_decision_tree_id={decision_tree_id is not None}, "
             f"has_research={state.get('research_context') is not None}, "
             f"has_conclusions={state.get('possible_conclusions') is not None}, "
-            f"has_design={state.get('questionnaire_design') is not None}, "
+            f"has_design={state.get('decision_tree_design') is not None}, "
             f"state_keys={list(state.keys())}"
         )
         if decision_tree_id:

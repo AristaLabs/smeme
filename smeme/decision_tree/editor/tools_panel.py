@@ -13,13 +13,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from smeme.core.models import DecisionTree, ReasoningCompiledArtifact, User
 from smeme.core.templates import templates
 from smeme.decision_tree.helpers.db_queries import parse_graph_data
-from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_qnr
+from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_decision_tree
 from smeme.reasoning.cevi.mcp_deployment_layers import build_mcp_deployment_layer_lines
 from smeme.reasoning.publish_readiness import PublishReadiness, assess_publish_readiness
 
 
-async def _load_owned_qnr(db: AsyncSession, decision_tree_id: UUID, user: User) -> DecisionTree:
-    row = (await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))).scalar_one_or_none()
+async def _load_owned_decision_tree(
+    db: AsyncSession, decision_tree_id: UUID, user: User
+) -> DecisionTree:
+    row = (
+        await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
     if row.author_id != user.id:
@@ -38,14 +42,16 @@ async def _tools_panel_context(
         readiness = await assess_publish_readiness(graph)
     artifact = (
         await db.execute(
-            select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree.id)
+            select(ReasoningCompiledArtifact).where(
+                ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
+            )
         )
     ).scalar_one_or_none()
     mcp_lines = build_mcp_deployment_layer_lines(
         readiness=readiness,
         artifact=artifact,
     )
-    tools_row_state = await reasoning_tools_row_state_for_qnr(db, decision_tree)
+    tools_row_state = await reasoning_tools_row_state_for_decision_tree(db, decision_tree)
     is_read_only = bool(decision_tree.is_public or decision_tree.was_ever_public)
     return {
         "decision_tree_id": str(decision_tree.id),
@@ -67,7 +73,7 @@ async def serve_tools_panel(
     db: AsyncSession,
 ) -> HTMLResponse:
     """Full Tools tab (lazy-loaded on ``?view=tools``). Runs strict checks on each load."""
-    decision_tree = await _load_owned_qnr(db, decision_tree_id, user)
+    decision_tree = await _load_owned_decision_tree(db, decision_tree_id, user)
     ctx = await _tools_panel_context(db=db, decision_tree=decision_tree)
     ctx["request"] = request
     return templates.TemplateResponse("decision_tree/_editor_tools_panel.html", ctx)
@@ -81,7 +87,7 @@ async def serve_tools_checks(
     db: AsyncSession,
 ) -> HTMLResponse:
     """HTMX fragment: re-run strict checks + OOB deploy row refresh."""
-    decision_tree = await _load_owned_qnr(db, decision_tree_id, user)
+    decision_tree = await _load_owned_decision_tree(db, decision_tree_id, user)
     ctx = await _tools_panel_context(db=db, decision_tree=decision_tree)
     ctx["request"] = request
     return templates.TemplateResponse("decision_tree/_tools_checks_fragment.html", ctx)

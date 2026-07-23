@@ -105,7 +105,7 @@ Preflight before structuring (also in the design guidance):
 }
 ```
 
-Also accepted: a SMEme `.smeme.json` export envelope (`qnr.graph`).
+Also accepted: a SMEme `.smeme.json` export envelope (`decision_tree.graph`).
 
 Rules agents miss most often:
 
@@ -129,7 +129,7 @@ Rules agents miss most often:
 ## Hard boundaries
 
 - **Never Deploy** or claim the draft is live for evaluate.
-- **Never invent** a `qnr_id` for evaluate tools — only use ids from create_draft
+- **Never invent** a `decision_tree_id` for evaluate tools — only use ids from create_draft
   or **`smeme_reasoning_list`** after Deploy + Listed.
 - **Never** send the user’s private files to SMEme except the graph JSON they
   asked you to push.

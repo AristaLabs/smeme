@@ -255,7 +255,9 @@ def _validate_conclusion_allowlist(
     graph: DTGraph,
     allowed_conclusion_ids: frozenset[str],
 ) -> list[BranchingDiagnostic]:
-    from smeme.decision_tree.generation.agentic.conclusions_parse import graph_conclusion_id_to_allowlist_id
+    from smeme.decision_tree.generation.agentic.conclusions_parse import (
+        graph_conclusion_id_to_allowlist_id,
+    )
 
     diagnostics: list[BranchingDiagnostic] = []
     allowed_upper = {conclusion_id.upper() for conclusion_id in allowed_conclusion_ids}

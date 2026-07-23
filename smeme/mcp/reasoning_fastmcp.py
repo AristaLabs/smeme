@@ -40,7 +40,7 @@ Authentication (DR-3 P2 + transport challenge)
 Tools
 -----
 - ``smeme_reasoning_capabilities`` — same Bearer + user-row requirements as other reasoning tools.
-- ``smeme_reasoning_list`` — lists the caller's deployed + current + MCP-discoverable QNRs (owner-scoped).
+- ``smeme_reasoning_list`` — lists the caller's deployed + current + MCP-discoverable decision trees (owner-scoped).
 - ``smeme_reasoning_validate_answers`` — Phase 1 ingest gate only (provenance envelope + answer checks); no persistence.
 - ``smeme_reasoning_evaluate`` — runs evaluation; persists audit row; returns ``report`` JSON (product memo).
 - ``smeme_reasoning_what_if`` — compare baseline vs override assignments; report-vocabulary delta; optional shared reach assumptions.
@@ -84,6 +84,8 @@ from smeme.core.config import Settings, settings
 from smeme.core.database import AsyncSessionLocal
 from smeme.core.logging import get_logger
 from smeme.core.models import DecisionTree, ReasoningCompiledArtifact, User
+from smeme.decision_tree.helpers.db_queries import parse_graph_data
+from smeme.decision_tree.models import DTGraph
 from smeme.mcp._generated_design_guidance import (
     DESIGN_GUIDANCE_DIGEST,
     DESIGN_GUIDANCE_MARKDOWN,
@@ -130,8 +132,6 @@ from smeme.mcp.tool_contract import (
     tool_error_json,
 )
 from smeme.mcp.urls import mcp_resource_url, transport_security_allowed_hosts
-from smeme.decision_tree.helpers.db_queries import parse_graph_data
-from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_from_json
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION, IRNodeKind
@@ -374,7 +374,9 @@ async def _mcp_load_owner_reasoning_context(
 
     Returns a JSON error string from :func:`~smeme.mcp.tool_contract.tool_error_json` on failure.
     """
-    decision_tree_result = await db.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_uuid))
+    decision_tree_result = await db.execute(
+        select(DecisionTree).where(DecisionTree.id == decision_tree_uuid)
+    )
     decision_tree = decision_tree_result.scalar_one_or_none()
     if decision_tree is None or decision_tree.author_id != user.id:
         return tool_error_json(
@@ -402,7 +404,9 @@ async def _mcp_load_owner_reasoning_context(
         return tool_error_json(code, msg)
 
     artifact_result = await db.execute(
-        select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_uuid)
+        select(ReasoningCompiledArtifact).where(
+            ReasoningCompiledArtifact.decision_tree_id == decision_tree_uuid
+        )
     )
     artifact = artifact_result.scalar_one_or_none()
     if artifact is None:
@@ -439,7 +443,9 @@ async def _mcp_load_owner_compiled_artifact(
 
     Returns a JSON error string from :func:`~smeme.mcp.tool_contract.tool_error_json` on failure.
     """
-    loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+    loaded = await _mcp_load_owner_reasoning_context(
+        db, user=user, decision_tree_uuid=decision_tree_uuid
+    )
     if isinstance(loaded, str):
         return loaded
     decision_tree, artifact, _, live_hash = loaded
@@ -889,7 +895,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         if isinstance(parsed, str):
                             rec.note_json_response(parsed)
                             return parsed
-                        from smeme.decision_tree.helpers.validation import validate_graph_for_editing
+                        from smeme.decision_tree.helpers.validation import (
+                            validate_graph_for_editing,
+                        )
 
                         result = validate_graph_for_editing(parsed)
                         out = _tool_json(validation_payload(parsed, result))
@@ -953,7 +961,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return created
                         decision_tree, result = created
                         rec.note_decision_tree_id(str(decision_tree.id))
-                        editor_url = editor_url_for_decision_tree(decision_tree.id, base_url=cfg.effective_base_url)
+                        editor_url = editor_url_for_decision_tree(
+                            decision_tree.id, base_url=cfg.effective_base_url
+                        )
                         out = _tool_json(
                             {
                                 "decision_tree_id": str(decision_tree.id),
@@ -1015,11 +1025,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             is_workflow_pick_required,
                         )
 
-                        result = await db.execute(select_decision_trees_for_assistant_tools_list(user.id))
-                        qnrs = result.scalars().all()
+                        result = await db.execute(
+                            select_decision_trees_for_assistant_tools_list(user.id)
+                        )
+                        decision_trees = result.scalars().all()
 
                         decision_trees: list[dict[str, Any]] = []
-                        for q in qnrs:
+                        for q in decision_trees:
                             entry: dict[str, Any] = {
                                 "id": str(q.id),
                                 "title": q.title,
@@ -1028,7 +1040,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 "intended_audience": q.intended_audience,
                                 "use_case": q.use_case,
                             }
-                            if is_workflow_pick_required(user) or not is_decision_tree_live(user, q):
+                            if is_workflow_pick_required(user) or not is_decision_tree_live(
+                                user, q
+                            ):
                                 entry["accessible"] = False
                                 entry["status"] = "account_downgrade_pending"
                             decision_trees.append(entry)
@@ -1086,7 +1100,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return out
             except Exception:
                 logger.exception(
-                    "smeme_reasoning_validate_answers failed", extra={"decision_tree_id": decision_tree_id}
+                    "smeme_reasoning_validate_answers failed",
+                    extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
@@ -1125,7 +1140,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             request = request_from_mcp_context(ctx)
@@ -1135,10 +1151,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -1268,7 +1286,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     rec.note_json_response(out)
                     return out
             except Exception:
-                logger.exception("smeme_reasoning_evaluate failed", extra={"decision_tree_id": decision_tree_id})
+                logger.exception(
+                    "smeme_reasoning_evaluate failed", extra={"decision_tree_id": decision_tree_id}
+                )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
         async def _smeme_reasoning_evaluate_body(
@@ -1317,7 +1337,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             phi = assumptions_from_lists(force_reachable_ids, force_unreachable_ids)
@@ -1330,10 +1351,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -1507,7 +1530,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             request = request_from_mcp_context(ctx)
@@ -1517,10 +1541,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -1638,7 +1664,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     rec.note_json_response(out)
                     return out
             except Exception:
-                logger.exception("smeme_reasoning_what_if failed", extra={"decision_tree_id": decision_tree_id})
+                logger.exception(
+                    "smeme_reasoning_what_if failed", extra={"decision_tree_id": decision_tree_id}
+                )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
         async def _smeme_reasoning_how_to_reach_body(
@@ -1670,7 +1698,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             request = request_from_mcp_context(ctx)
@@ -1680,10 +1709,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -1828,7 +1859,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     rec.note_json_response(out)
                     return out
             except Exception:
-                logger.exception("smeme_reasoning_how_to_reach failed", extra={"decision_tree_id": decision_tree_id})
+                logger.exception(
+                    "smeme_reasoning_how_to_reach failed",
+                    extra={"decision_tree_id": decision_tree_id},
+                )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
         async def _smeme_reasoning_decisive_support_body(
@@ -1857,7 +1891,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             request = request_from_mcp_context(ctx)
@@ -1867,10 +1902,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -1995,7 +2032,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return out
             except Exception:
                 logger.exception(
-                    "smeme_reasoning_decisive_support failed", extra={"decision_tree_id": decision_tree_id}
+                    "smeme_reasoning_decisive_support failed",
+                    extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
@@ -2031,7 +2069,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
 
             request = request_from_mcp_context(ctx)
@@ -2041,10 +2080,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return user_or_err
                 user = user_or_err
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
-                _qnr, artifact, graph, live_hash = loaded
+                _decision_tree, artifact, graph, live_hash = loaded
                 if live_hash != artifact.graph_hash:
                     return tool_error_json(
                         "stale_theory",
@@ -2156,7 +2197,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return out
             except Exception:
                 logger.exception(
-                    "smeme_reasoning_edit_affects_path failed", extra={"decision_tree_id": decision_tree_id}
+                    "smeme_reasoning_edit_affects_path failed",
+                    extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
@@ -2190,7 +2232,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         decision_tree_uuid = UUID(decision_tree_id)
                     except ValueError:
                         err = tool_error_json(
-                            "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                            "invalid_decision_tree_id",
+                            f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                         )
                         rec.note_json_response(err)
                         return err
@@ -2242,16 +2285,20 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         return payload
             except Exception:
                 logger.exception(
-                    "smeme_reasoning_list_conclusions failed", extra={"decision_tree_id": decision_tree_id}
+                    "smeme_reasoning_list_conclusions failed",
+                    extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
-        async def _reasoning_template_load(decision_tree_id: str, ctx: Context) -> dict[str, Any] | str:
+        async def _reasoning_template_load(
+            decision_tree_id: str, ctx: Context
+        ) -> dict[str, Any] | str:
             try:
                 decision_tree_uuid = UUID(decision_tree_id)
             except ValueError:
                 return tool_error_json(
-                    "invalid_decision_tree_id", f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}"
+                    "invalid_decision_tree_id",
+                    f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
                 )
             request = request_from_mcp_context(ctx)
             async with AsyncSessionLocal() as db:
@@ -2261,7 +2308,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return auth_error_tool_json(exc)
                 bind_mcp_user(user, request=request)
 
-                loaded = await _mcp_load_owner_reasoning_context(db, user=user, decision_tree_uuid=decision_tree_uuid)
+                loaded = await _mcp_load_owner_reasoning_context(
+                    db, user=user, decision_tree_uuid=decision_tree_uuid
+                )
                 if isinstance(loaded, str):
                     return loaded
                 decision_tree, artifact, graph, live_hash = loaded
@@ -2325,7 +2374,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     rec.note_json_response(out)
                     return out
             except Exception:
-                logger.exception("smeme_reasoning_template_check failed", extra={"decision_tree_id": decision_tree_id})
+                logger.exception(
+                    "smeme_reasoning_template_check failed",
+                    extra={"decision_tree_id": decision_tree_id},
+                )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
         @_holder.tool(
@@ -2382,7 +2434,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     rec.note_json_response(payload)
                     return payload
             except Exception:
-                logger.exception("smeme_reasoning_template_get failed", extra={"decision_tree_id": decision_tree_id})
+                logger.exception(
+                    "smeme_reasoning_template_get failed",
+                    extra={"decision_tree_id": decision_tree_id},
+                )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
     return _holder

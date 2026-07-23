@@ -1,7 +1,7 @@
 """LLM prompts for agentic DecisionTree generation.
 
 These are skeleton prompts - iterate based on real outputs during development.
-See docs/AGENTIC_QNR_GENERATION_PLAN.md for design rationale.
+See docs/AGENTIC_DECISION_TREE_GENERATION_PLAN.md for design rationale.
 
 Prompt Design Principles:
 1. Clear role and context for the LLM
@@ -354,7 +354,7 @@ Generate the factor analysis now.
 # Phase 2: Design Questionnaire (Freeform Markdown)
 # =============================================================================
 
-DESIGN_QUESTIONNAIRE_PROMPT = """You are a Subject Matter Expert designing a decision-tree questionnaire to efficiently gather information and lead users to one of several predefined conclusions.
+DESIGN_DECISION_TREE_PROMPT = """You are a Subject Matter Expert designing a decision-tree questionnaire to efficiently gather information and lead users to one of several predefined conclusions.
 
 ## Context
 
@@ -540,7 +540,7 @@ Design the complete questionnaire now.
 BUILD_GRAPH_PROMPT = """Convert the markdown questionnaire into a DTGraph JSON structure.
 
 ## Input Markdown
-{questionnaire_design_edited}
+{decision_tree_design_edited}
 
 ## Output Structure
 

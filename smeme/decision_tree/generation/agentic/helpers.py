@@ -8,10 +8,10 @@ from pydantic import BaseModel
 
 from smeme.decision_tree.models import (
     ConclusionData,
-    GraphEdge,
-    GraphNode,
     DTGraph,
     DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
     QuestionData,
 )
 

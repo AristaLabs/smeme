@@ -19,7 +19,10 @@ from smeme.decision_tree.generation.agentic.background import (
     schedule_retry_research_workflow,
 )
 from smeme.decision_tree.generation.agentic.brief_models import GenerationBriefInput
-from smeme.decision_tree.generation.agentic.file_limits import MAX_FILES_PER_GENERATION, MAX_TOTAL_BYTES
+from smeme.decision_tree.generation.agentic.file_limits import (
+    MAX_FILES_PER_GENERATION,
+    MAX_TOTAL_BYTES,
+)
 from smeme.decision_tree.generation.agentic.ingestion import (
     parse_uploaded_file,
     prepare_research_corpus,
@@ -96,7 +99,9 @@ def _brief_page_context(
         "form_pasted_text": form.get("pasted_text", ""),
         "form_exclude_domains": form.get("exclude_domains") or default_exclude_domains,
         "form_country": (
-            form.get("country", "") if settings.show_decision_tree_generation_region_selector else ""
+            form.get("country", "")
+            if settings.show_decision_tree_generation_region_selector
+            else ""
         ),
         "form_enable_web_search": form.get("enable_web_search", "") in ("on", "true", "1", "yes"),
         "form_enable_user_materials": (
@@ -518,7 +523,9 @@ async def start_generation(
         )
         is_htmx = request.headers.get("HX-Request") == "true"
         if is_htmx:
-            return templates.TemplateResponse("decision_tree/generation/_main_initial_form.html", ctx)
+            return templates.TemplateResponse(
+                "decision_tree/generation/_main_initial_form.html", ctx
+            )
         return templates.TemplateResponse("decision_tree/generation/_generation_layout.html", ctx)
 
     # start_new_generation acquires a per-user advisory lock and re-checks all
@@ -546,7 +553,9 @@ async def start_generation(
         )
         is_htmx = request.headers.get("HX-Request") == "true"
         if is_htmx:
-            return templates.TemplateResponse("decision_tree/generation/_main_initial_form.html", ctx)
+            return templates.TemplateResponse(
+                "decision_tree/generation/_main_initial_form.html", ctx
+            )
         return templates.TemplateResponse("decision_tree/generation/_generation_layout.html", ctx)
     except GenerationConcurrencyError:
         # Another start request for this user is in the middle of its lock

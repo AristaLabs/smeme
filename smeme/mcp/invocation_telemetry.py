@@ -215,7 +215,11 @@ class McpInvocationRecorder:
         if decision_tree_id is None:
             return
         try:
-            self._decision_tree_id = decision_tree_id if isinstance(decision_tree_id, UUID) else UUID(str(decision_tree_id))
+            self._decision_tree_id = (
+                decision_tree_id
+                if isinstance(decision_tree_id, UUID)
+                else UUID(str(decision_tree_id))
+            )
         except (TypeError, ValueError):
             return
 

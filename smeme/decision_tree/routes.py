@@ -1,4 +1,4 @@
-"""DecisionTree routes for questionnaire interaction."""
+"""DecisionTree routes for decision-tree interaction."""
 
 import logging
 from typing import Annotated, Any
@@ -15,10 +15,9 @@ from smeme.core.config import settings
 from smeme.core.database import get_db
 from smeme.core.models import DecisionTree, DecisionTreeSession, ReasoningCompiledArtifact, User
 from smeme.core.templates import templates
-from smeme.mcp.urls import mcp_connect_template_context
 from smeme.decision_tree.helpers.db_queries import (
-    get_or_create_session,
     get_decision_tree_by_id,
+    get_or_create_session,
     get_session_by_id,
     save_session,
 )
@@ -26,28 +25,31 @@ from smeme.decision_tree.helpers.export import build_decision_tree_export, expor
 from smeme.decision_tree.helpers.workflow_delete import DELETE_CONFIRM_PHRASE
 from smeme.decision_tree.workflow import build_decision_tree_session_workflow
 from smeme.decision_tree.workflow_state import DecisionTreeSessionState
+from smeme.mcp.urls import mcp_connect_template_context
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/decision-trees", tags=["decision_tree"])
 
 
-async def _assistant_tools_row_map(db: AsyncSession, qnrs: list[DecisionTree]) -> dict[UUID, str]:
+async def _assistant_tools_row_map(
+    db: AsyncSession, decision_trees: list[DecisionTree]
+) -> dict[UUID, str]:
     """Per-DecisionTree tools column: ``live`` | ``not_built`` | ``stale`` (hash vs artifact)."""
     from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state
 
-    if not qnrs:
+    if not decision_trees:
         return {}
-    ids = [q.id for q in qnrs]
+    ids = [q.id for q in decision_trees]
     result = await db.execute(
         select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id.in_(ids))
     )
     by_q = {a.decision_tree_id: a for a in result.scalars().all()}
-    return {q.id: reasoning_tools_row_state(q, by_q.get(q.id)) for q in qnrs}
+    return {q.id: reasoning_tools_row_state(q, by_q.get(q.id)) for q in decision_trees}
 
 
 async def _fetch_dashboard_decision_trees(db: AsyncSession, user_id: UUID) -> list[DecisionTree]:
-    """Current-version QNRs for the author (non-archived)."""
+    """Current-version decision trees for the author (non-archived)."""
     authored_result = await db.execute(
         select(DecisionTree)
         .where(
@@ -165,7 +167,9 @@ async def _dashboard_page_context(
     mcp_calls_by_decision_tree = await mcp_weighted_by_decision_tree_month(db, current_user)
     active_root_count = await count_active_root_workflows(db, current_user.id)
     billing_ctx = billing_lifecycle_context(current_user, active_root_count=active_root_count)
-    decision_tree_grayed = {q.id: is_decision_tree_dashboard_grayed(current_user, q) for q in decision_trees}
+    decision_tree_grayed = {
+        q.id: is_decision_tree_dashboard_grayed(current_user, q) for q in decision_trees
+    }
     show_upgraded = request.query_params.get("upgraded") == "true"
     ctx: dict[str, Any] = {
         "request": request,
@@ -241,7 +245,7 @@ async def decision_tree_dashboard(
     current_user: Annotated[User, Depends(current_active_user)],
 ):
     """
-    Creator dashboard: own QNRs in one table, entry to agentic generation.
+    Creator dashboard: own decision trees in one table, entry to agentic generation.
 
     Archived current versions are listed separately for restore.
     """
@@ -272,7 +276,7 @@ async def start_decision_tree(
 
     is_author = decision_tree.author_id == current_user.id
 
-    # Block starting sessions on archived QNRs (unless author)
+    # Block starting sessions on archived decision trees (unless author)
     if decision_tree.is_archived and not is_author:
         raise HTTPException(
             status_code=404,
@@ -287,8 +291,8 @@ async def start_decision_tree(
             detail="Workflow not found",  # Don't reveal private workflow ids
         )
 
-    # Block answering QNRs with validation errors
-    # Authors can edit broken QNRs but no one can answer them until errors are fixed
+    # Block answering decision trees with validation errors
+    # Authors can edit broken decision trees but no one can answer them until errors are fixed
     from smeme.decision_tree.helpers.db_queries import parse_graph_data
     from smeme.decision_tree.helpers.validation import validate_graph_for_editing
 
@@ -619,7 +623,9 @@ async def delete_decision_tree(
         request,
         success_message=f'Workflow "{title}" was permanently deleted.',
     )
-    response = templates.TemplateResponse(request=request, name="decision_tree/dashboard.html", context=ctx)
+    response = templates.TemplateResponse(
+        request=request, name="decision_tree/dashboard.html", context=ctx
+    )
     return _dashboard_no_store_headers(response)
 
 
@@ -648,7 +654,9 @@ async def execute_decision_tree_session_workflow(
     Returns:
         Rendered HTML string
     """
-    logger.info(f"Executing workflow: decision_tree={decision_tree_id}, user={user_id}, intent={navigation_intent}")
+    logger.info(
+        f"Executing workflow: decision_tree={decision_tree_id}, user={user_id}, intent={navigation_intent}"
+    )
 
     # Build workflow (no db parameter needed)
     workflow = build_decision_tree_session_workflow()

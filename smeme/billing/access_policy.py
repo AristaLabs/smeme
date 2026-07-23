@@ -207,7 +207,9 @@ async def clear_downgrade_state_on_upgrade(db: AsyncSession, user: User) -> None
     user.workflow_pick_required = False
     user.live_workflow_root_id = None
     user.free_usage_epoch = None
-    await db.execute(update(DecisionTree).where(DecisionTree.author_id == user.id).values(billing_dormant=False))
+    await db.execute(
+        update(DecisionTree).where(DecisionTree.author_id == user.id).values(billing_dormant=False)
+    )
     db.add(user)
 
 

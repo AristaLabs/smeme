@@ -298,7 +298,7 @@ class DesignSubgraphOutput(BaseModel):
     Includes source tracking and raw response for debugging.
     """
 
-    questionnaire_design: str = Field(
+    decision_tree_design: str = Field(
         ...,
         description="Generated questionnaire in markdown format",
     )
@@ -337,7 +337,7 @@ class DesignSubgraphState(BaseModel):
     possible_conclusions_edited: str
 
     # Output fields (to parent)
-    questionnaire_design: str = ""
+    decision_tree_design: str = ""
     design_source: str = ""
     design_raw: dict[str, Any] | None = None
     token_usage: dict[str, int] | None = None
@@ -369,7 +369,7 @@ class BuildSubgraphInput(BaseModel):
         ...,
         description="User who initiated the generation",
     )
-    questionnaire_design_edited: str = Field(
+    decision_tree_design_edited: str = Field(
         ...,
         description="User-reviewed questionnaire design in markdown",
     )
@@ -454,7 +454,7 @@ class BuildSubgraphState(BaseModel):
     # Input fields (from parent)
     user_prompt: str
     user_id: UUID
-    questionnaire_design_edited: str
+    decision_tree_design_edited: str
     possible_conclusions_edited: str = ""
     allowed_conclusion_ids: list[str] = Field(default_factory=list)
     allowed_conclusions_parse_ok: bool = False

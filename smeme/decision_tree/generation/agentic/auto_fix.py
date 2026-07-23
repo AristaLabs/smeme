@@ -3,7 +3,7 @@
 Applies rule-based fixes for common structural problems.
 Reuses existing operations from smeme/decision-trees/editor/operations.py.
 
-See docs/AGENTIC_QNR_GENERATION_PLAN.md for fix specifications.
+See docs/AGENTIC_DECISION_TREE_GENERATION_PLAN.md for fix specifications.
 
 Handles both question and conclusion nodes:
 - Conclusion nodes are terminal (no outgoing edges expected)

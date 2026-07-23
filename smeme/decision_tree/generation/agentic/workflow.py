@@ -207,7 +207,7 @@ def set_build_phase(state: AgenticDecisionTreeGenerationState) -> dict:
 def set_complete_phase(state: AgenticDecisionTreeGenerationState) -> dict:
     """Transition to complete phase.
 
-    Called after successful save_qnr.
+    Called after successful save_decision_tree.
     """
     current_time = time.time()
     previous_phase = state.get("current_phase")
@@ -431,7 +431,7 @@ async def invoke_design_subgraph(
         "Design subgraph completed",
         extra={
             "user_id": str(state["user_id"]),
-            "design_length": len(design_output.questionnaire_design),
+            "design_length": len(design_output.decision_tree_design),
             "design_source": design_output.design_source,
             "token_usage": design_output.token_usage,
         },
@@ -458,7 +458,7 @@ async def invoke_build_subgraph(
         extra={
             "user_id": str(state["user_id"]),
             "thread_id": config.get("configurable", {}).get("thread_id"),
-            "design_length": len(state.get("questionnaire_design_edited", "")),
+            "design_length": len(state.get("decision_tree_design_edited", "")),
         },
     )
 
@@ -541,7 +541,7 @@ async def save_decision_tree_node(
             "user_id": str(user_id),
             "has_errors": bool(errors),
             "has_warnings": bool(warnings),
-            "node": "save_qnr",
+            "node": "save_decision_tree",
             "phase": "complete",
         },
     )
@@ -562,7 +562,9 @@ async def save_decision_tree_node(
         if brief_title and brief_title.strip():
             decision_tree_title = brief_title.strip()[:200]
         else:
-            decision_tree_title = graph_dict.get("metadata", {}).get("title", f"Decision tree: {user_prompt[:50]}...")
+            decision_tree_title = graph_dict.get("metadata", {}).get(
+                "title", f"Decision tree: {user_prompt[:50]}..."
+            )
 
         # Create DecisionTree record (DecisionTree has title; description lives in graph_data.metadata)
         decision_tree = DecisionTree(
@@ -578,7 +580,11 @@ async def save_decision_tree_node(
         merged_corpus = build_research_corpus_text_from_generation_state(dict(state))
         normalized_corpus = truncate_corpus_to_max_bytes(normalize_corpus_text(merged_corpus))
         if normalized_corpus:
-            db.add(DecisionTreeResearchCorpus(decision_tree_id=decision_tree.id, body_text=normalized_corpus))
+            db.add(
+                DecisionTreeResearchCorpus(
+                    decision_tree_id=decision_tree.id, body_text=normalized_corpus
+                )
+            )
 
         await db.commit()
         await db.refresh(decision_tree)
@@ -589,7 +595,7 @@ async def save_decision_tree_node(
                 "user_id": str(user_id),
                 "decision_tree_id": str(decision_tree.id),
                 "final_status": final_status,
-                "node": "save_qnr",
+                "node": "save_decision_tree",
                 "phase": "complete",
             },
         )
@@ -606,12 +612,12 @@ async def save_decision_tree_node(
             extra={
                 "user_id": str(user_id),
                 "error": str(e),
-                "node": "save_qnr",
+                "node": "save_decision_tree",
             },
             exc_info=True,
         )
         return {
-            "error": f"Failed to save questionnaire: {str(e)}",
+            "error": f"Failed to save decision tree: {str(e)}",
             "error_recoverable": True,
         }
 
@@ -767,13 +773,13 @@ async def wait_for_design_edit_node(state: AgenticDecisionTreeGenerationState) -
     6. interrupt() returns result_dict
     7. Node returns result_dict to update state
     """
-    questionnaire_design = state.get("questionnaire_design", "")
+    decision_tree_design = state.get("decision_tree_design", "")
     design_source = state.get("design_source", "unknown")
 
     logger.info(
         "Waiting for design edit",
         extra={
-            "questionnaire_design_length": len(questionnaire_design),
+            "decision_tree_design_length": len(decision_tree_design),
             "design_source": design_source,
             "phase": "design",
         },
@@ -784,7 +790,7 @@ async def wait_for_design_edit_node(state: AgenticDecisionTreeGenerationState) -
         phase="design",
         user_id=state["user_id"],
         action_required="Review and edit questionnaire design",
-        data_to_edit={"questionnaire_design": questionnaire_design},
+        data_to_edit={"decision_tree_design": decision_tree_design},
         metadata={
             "design_source": design_source,
             "token_usage": state.get("design_token_usage"),
@@ -799,7 +805,7 @@ async def wait_for_design_edit_node(state: AgenticDecisionTreeGenerationState) -
         extra={
             "result_type": type(result).__name__,
             "is_dict": isinstance(result, dict),
-            "has_edited_field": "questionnaire_design_edited" in result
+            "has_edited_field": "decision_tree_design_edited" in result
             if isinstance(result, dict)
             else False,
         },
@@ -808,20 +814,20 @@ async def wait_for_design_edit_node(state: AgenticDecisionTreeGenerationState) -
     # Handle different result formats
     if isinstance(result, dict):
         # If result contains edited design, return as-is
-        if "questionnaire_design_edited" in result:
+        if "decision_tree_design_edited" in result:
             return result
         # If result is empty dict, preserve original
         if not result:
-            return {"questionnaire_design_edited": questionnaire_design}
+            return {"decision_tree_design_edited": decision_tree_design}
 
     # Legacy format: result is the edited text directly (backward compat)
     if isinstance(result, str):
         if not result:  # Empty string, use original
-            return {"questionnaire_design_edited": questionnaire_design}
-        return {"questionnaire_design_edited": result}
+            return {"decision_tree_design_edited": decision_tree_design}
+        return {"decision_tree_design_edited": result}
 
     # Default: preserve original
-    return {"questionnaire_design_edited": questionnaire_design}
+    return {"decision_tree_design_edited": decision_tree_design}
 
 
 # =============================================================================
@@ -839,11 +845,11 @@ def should_continue_after_error(state: AgenticDecisionTreeGenerationState) -> st
 def route_after_build_subgraph(state: AgenticDecisionTreeGenerationState) -> str:
     """Route after build subgraph completes.
 
-    Always routes to save_qnr - we save even questionnaires with errors
+    Always routes to save_decision_tree - we save even questionnaires with errors
     so users can fix them manually in the editor.
 
     Routes to:
-    - save_qnr: Always (users can fix errors in editor)
+    - save_decision_tree: Always (users can fix errors in editor)
     - end: Only if build completely failed (no graph generated)
     """
     final_status = state.get("final_status", "has_errors")
@@ -865,8 +871,8 @@ def route_after_build_subgraph(state: AgenticDecisionTreeGenerationState) -> str
         logger.warning("Routing to end (no graph generated)")
         return "end"
 
-    logger.info("Routing to save_qnr (will save even with errors)")
-    return "save_qnr"
+    logger.info("Routing to save_decision_tree (will save even with errors)")
+    return "save_decision_tree"
 
 
 def route_after_research_edit(state: AgenticDecisionTreeGenerationState) -> str:
@@ -934,7 +940,7 @@ def build_agentic_generation_workflow() -> StateGraph:
           ↓
         [INTERRUPT: wait_for_design_edit] ← User edits design
           ↓
-        Phase 3: build_graph → validate_graph ←→ auto_fix (loop) → save_qnr
+        Phase 3: build_graph → validate_graph ←→ auto_fix (loop) → save_decision_tree
           ↓
         END
 
@@ -982,7 +988,7 @@ def build_agentic_generation_workflow() -> StateGraph:
 
     # Phase 3: Build + Validate + Fix (Subgraph) + Save
     workflow.add_node("build_subgraph", invoke_build_subgraph)
-    workflow.add_node("save_qnr", save_decision_tree_node)
+    workflow.add_node("save_decision_tree", save_decision_tree_node)
 
     # =========================================================================
     # Add Edges (Sprint 6: Phase trackers added before each major phase)
@@ -1041,14 +1047,14 @@ def build_agentic_generation_workflow() -> StateGraph:
         "build_subgraph",
         route_after_build_subgraph,
         {
-            "save_qnr": "set_complete_phase",  # Set complete phase before save
+            "save_decision_tree": "set_complete_phase",  # Set complete phase before save
             "end": END,  # Enables retry via route
         },
     )
 
     # Set Complete Phase → Save DecisionTree → END
-    workflow.add_edge("set_complete_phase", "save_qnr")
-    workflow.add_edge("save_qnr", END)
+    workflow.add_edge("set_complete_phase", "save_decision_tree")
+    workflow.add_edge("save_decision_tree", END)
 
     # Return uncompiled workflow
     # Will be compiled at runtime with persistent checkpointer

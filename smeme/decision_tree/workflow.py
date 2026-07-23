@@ -46,7 +46,9 @@ jinja_env = Environment(loader=FileSystemLoader("smeme/templates"))
 # ============================================================================
 
 
-async def load_decision_tree_node(state: DecisionTreeSessionState, config: RunnableConfig) -> SessionStateUpdate:
+async def load_decision_tree_node(
+    state: DecisionTreeSessionState, config: RunnableConfig
+) -> SessionStateUpdate:
     """
     Load DecisionTree graph from database or cache.
 
@@ -834,7 +836,7 @@ def build_decision_tree_session_workflow() -> StateGraph:
     Build the DecisionTree workflow graph.
 
     Workflow:
-        load_qnr -> determine_next_question -> [render_question | render_completion] -> END
+        load_decision_tree -> determine_next_question -> [render_question | render_completion] -> END
 
     Note: Database session is passed via config at runtime, not during graph construction.
     """

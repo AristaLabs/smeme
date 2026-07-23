@@ -8,10 +8,10 @@ from sqlalchemy.orm import sessionmaker
 from smeme.core.config import settings
 from smeme.core.models import (  # noqa: F401
     DecisionTree,
-    Memo,
     DecisionTreeLexiconDraft,
     DecisionTreeResearchCorpus,
     DecisionTreeSession,
+    Memo,
     ReasoningCompiledArtifact,
     ReasoningEvaluationRun,
     User,

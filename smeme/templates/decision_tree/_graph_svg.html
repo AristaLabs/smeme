@@ -134,11 +134,11 @@
          nodeInput.name = 'node_id';
          nodeInput.value = '{{ node.id }}';
          form.appendChild(nodeInput);
-         var qnrInput = document.createElement('input');
-         qnrInput.type = 'hidden';
-         qnrInput.name = 'decision_tree_id';
-         qnrInput.value = '{{ decision_tree_id }}';
-         form.appendChild(qnrInput);
+         var decisionTreeInput = document.createElement('input');
+         decisionTreeInput.type = 'hidden';
+         decisionTreeInput.name = 'decision_tree_id';
+         decisionTreeInput.value = '{{ decision_tree_id }}';
+         form.appendChild(decisionTreeInput);
          document.body.appendChild(form);
          htmx.process(form);
          form.requestSubmit();

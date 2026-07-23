@@ -114,7 +114,7 @@ class DecisionTreeViewerState(TypedDict):
     is_read_only: NotRequired[bool]  # Computed: is_public or was_ever_public
     is_owner: NotRequired[bool]  # Current user is the workflow author
     version_number: NotRequired[int]  # DecisionTree version (v1, v2, v3, etc.)
-    parent_qnr: NotRequired[Any]  # Parent DecisionTree object if this is a child version
+    parent_decision_tree: NotRequired[Any]  # Parent DecisionTree object if this is a child version
     intended_audience: NotRequired[str | None]  # Economics metadata (Sprint 6)
     use_case: NotRequired[str | None]  # Economics metadata (Sprint 6)
     reasoning_status: NotRequired[

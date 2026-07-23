@@ -3,15 +3,15 @@
 {% include "decision_tree/generation/_phase_stepper.html" %}
 
 <div class="content-display mb-8">
-    <h1>Step 3: Review Decision Tree Design</h1>
-    
+    <h1>Step 3: Review Workflow Design</h1>
+
     <div class="prose mb-6">
         <p>
-            We've designed a decision tree based on the research context and conclusions you approved. 
+            We've designed a workflow based on the research context and conclusions you approved.
             Review and edit the questions, options, and branching logic.
         </p>
     </div>
-    
+
     <!-- Design Source Indicator -->
     {% if design_source == "llm_generated" %}
     {% call callout("success", title="AI-Generated Design", variant="accent-left", extra_class="mb-6") %}
@@ -85,18 +85,18 @@
     
     <div>
         <div class="flex items-center justify-between mb-3">
-            <label for="questionnaire_design_edited" class="block text-base font-medium text-ui-ink">
-                Decision Tree Design
+            <label for="decision_tree_design_edited" class="block text-base font-medium text-ui-ink">
+                Workflow Design
             </label>
             <span class="text-sm text-ui-ink-muted">Markdown format</span>
         </div>
         
         <textarea
-            id="questionnaire_design_edited"
-            name="questionnaire_design_edited"
+            id="decision_tree_design_edited"
+            name="decision_tree_design_edited"
             class="w-full px-4 py-3 border border-ui-line-strong rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono text-sm resize-vertical"
             style="min-height: 600px;"
-        >{{ questionnaire_design }}</textarea>
+        >{{ decision_tree_design }}</textarea>
         
         <p class="text-sm text-ui-ink-muted mt-2">
             Edit questions, options, and branching conditions. Follow the markdown format for each question.
@@ -130,14 +130,14 @@
             type="submit"
             class="btn-primary"
         >
-            Build Graph
+            Build Workflow
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
         </button>
     </div>
     
-    {% with id='design-loading', message='Building graph...' %}
+    {% with id='design-loading', message='Building workflow...' %}
     {% include 'components/overlay.html' %}
     {% endwith %}
 </form>

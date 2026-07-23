@@ -10,7 +10,7 @@ import logging
 from copy import deepcopy
 from typing import Literal
 
-from smeme.decision_tree.models import ConclusionData, GraphEdge, GraphNode, DTGraph, QuestionData
+from smeme.decision_tree.models import ConclusionData, DTGraph, GraphEdge, GraphNode, QuestionData
 
 logger = logging.getLogger(__name__)
 
@@ -464,9 +464,7 @@ def _create_node_wired_conclusion(graph: DTGraph, node_id: str, operation_data: 
 # =============================================================================
 
 
-def create_edge(
-    graph: DTGraph, source: str, target: str, condition: str | None = None
-) -> DTGraph:
+def create_edge(graph: DTGraph, source: str, target: str, condition: str | None = None) -> DTGraph:
     """
     Create a new edge between two nodes.
 
@@ -578,9 +576,7 @@ def update_edge(
     return new_graph
 
 
-def delete_edge(
-    graph: DTGraph, source: str, target: str, condition: str | None = None
-) -> DTGraph:
+def delete_edge(graph: DTGraph, source: str, target: str, condition: str | None = None) -> DTGraph:
     """
     Delete an edge between two nodes.
 

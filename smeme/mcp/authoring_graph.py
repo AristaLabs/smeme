@@ -15,9 +15,9 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import DecisionTree, User
-from smeme.mcp.tool_contract import tool_error_json
 from smeme.decision_tree.helpers.validation import ValidationResult, validate_graph_for_editing
 from smeme.decision_tree.models import DTGraph
+from smeme.mcp.tool_contract import tool_error_json
 
 AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES = 512 * 1024
 
@@ -65,6 +65,13 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
         return payload
 
     if "smeme_export_version" in payload:
+        export_version = payload.get("smeme_export_version")
+        if export_version != "2":
+            return tool_error_json(
+                "invalid_graph",
+                f"Unsupported smeme_export_version {export_version!r}. "
+                "Only version '2' exports or a raw DTGraph are accepted.",
+            )
         decision_tree = payload.get("decision_tree")
         if not isinstance(decision_tree, dict):
             return tool_error_json(
@@ -168,14 +175,14 @@ async def create_draft_from_graph(
             suggestions=result.get("suggestions") or {},
         )
 
-    quota = await check_quota(db, user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+    quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
     if not quota.allowed:
         return tool_error_json(
             "quota_exceeded",
             quota.message,
             remaining=quota.remaining,
             limit=quota.limit,
-            dimension="workflows",
+            dimension="decision_trees",
             resets_at=quota.resets_at_iso,
         )
 

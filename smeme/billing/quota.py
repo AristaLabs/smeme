@@ -31,7 +31,7 @@ from .usage import (
 
 
 class QuotaDimension(str, Enum):
-    WORKFLOWS = "workflows"
+    DECISION_TREES = "decision_trees"
     MCP_WEIGHTED = "mcp_weighted"
     WIZARD_COMPLETIONS = "wizard_completions"
 
@@ -61,7 +61,7 @@ def _exceeded_message(
     limit: float,
 ) -> str:
     plan = _tier_plan_label(tier)
-    if dimension == QuotaDimension.WORKFLOWS:
+    if dimension == QuotaDimension.DECISION_TREES:
         n = int(limit)
         return (
             f"{plan} allows {n} active workflow{'s' if n != 1 else ''}. "
@@ -103,7 +103,7 @@ async def check_quota(
         await ensure_pro_billing_period(db, user)
     limits = limits_for_user(user) if enforced else None
 
-    if dimension == QuotaDimension.WORKFLOWS:
+    if dimension == QuotaDimension.DECISION_TREES:
         if enforced and tier == BillingTier.FREE:
             used = float(await count_live_root_workflows_for_user(db, user))
         else:
@@ -205,7 +205,7 @@ async def check_wizard_start_block(
             show_upgrade=show_upgrade,
         )
 
-    workflow_quota = await check_quota(db, user, QuotaDimension.WORKFLOWS, projected_add=1.0)
+    workflow_quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
     if not workflow_quota.allowed:
         return WizardStartBlock(
             reason="workflow_cap",

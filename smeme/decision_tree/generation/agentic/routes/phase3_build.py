@@ -18,7 +18,9 @@ from smeme.decision_tree.generation.agentic.workflow import get_compiled_workflo
 router = APIRouter()
 
 
-def _redirect_to_editor_response(request: Request, decision_tree_id: str) -> HTMLResponse | RedirectResponse:
+def _redirect_to_editor_response(
+    request: Request, decision_tree_id: str
+) -> HTMLResponse | RedirectResponse:
     editor_url = f"/decision-trees/{decision_tree_id}/editor"
     if request.headers.get("HX-Request", "").lower() == "true":
         response = HTMLResponse(content="", status_code=200)
@@ -68,7 +70,7 @@ async def retry_build_generation(
             "fixes_applied": [],
             "final_status": "",
             "user_prompt": state.get("user_prompt"),
-            "questionnaire_design_edited": state.get("questionnaire_design_edited", ""),
+            "decision_tree_design_edited": state.get("decision_tree_design_edited", ""),
         }
 
         await workflow.ainvoke(Command(resume=resume_state), config)

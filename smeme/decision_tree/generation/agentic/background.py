@@ -13,7 +13,9 @@ from smeme.core.database import AsyncSessionLocal
 from smeme.core.llm import get_openai_client
 from smeme.core.logging import get_logger
 from smeme.core.search import TavilyNotConfiguredError
-from smeme.decision_tree.generation.agentic.routes._helpers import wizard_generation_error_recoverable
+from smeme.decision_tree.generation.agentic.routes._helpers import (
+    wizard_generation_error_recoverable,
+)
 from smeme.decision_tree.generation.agentic.streaming import (
     _heartbeat_loop,
     get_cancel_event,
@@ -24,7 +26,10 @@ from smeme.decision_tree.generation.agentic.streaming import (
     register_task,
     reset_bus_for_run,
 )
-from smeme.decision_tree.generation.agentic.subgraphs.models import InterruptPayload, ResearchSubgraphOutput
+from smeme.decision_tree.generation.agentic.subgraphs.models import (
+    InterruptPayload,
+    ResearchSubgraphOutput,
+)
 from smeme.decision_tree.generation.agentic.subgraphs.research import (
     create_research_subgraph,
     extract_research_input,

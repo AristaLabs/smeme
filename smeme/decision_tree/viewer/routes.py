@@ -58,7 +58,10 @@ async def view_editor_page(
     This is the main entry point for the editor interface.
     Runs the Viewer Workflow to generate the visualization.
     """
-    logger.info("Editor page requested", extra={"decision_tree_id": str(decision_tree_id), "user_id": str(user.id)})
+    logger.info(
+        "Editor page requested",
+        extra={"decision_tree_id": str(decision_tree_id), "user_id": str(user.id)},
+    )
 
     # Load DecisionTree for authorization check
     decision_tree = await get_decision_tree_by_id(db, decision_tree_id)
@@ -72,7 +75,7 @@ async def view_editor_page(
             detail="Workflow not found",  # Don't reveal archived status to non-authors
         )
 
-    # Authorization: Only author can view private QNRs
+    # Authorization: Only author can view private decision trees
     if not decision_tree.is_public and decision_tree.author_id != user.id:
         raise HTTPException(
             status_code=403, detail="Private workflows can only be accessed by their author"
@@ -121,7 +124,10 @@ async def view_editor_page(
 
         rendered_html = result.get("rendered_html", "<p>Error rendering editor</p>")
 
-        logger.info("Editor page rendered", extra={"decision_tree_id": str(decision_tree_id), "user_id": str(user.id)})
+        logger.info(
+            "Editor page rendered",
+            extra={"decision_tree_id": str(decision_tree_id), "user_id": str(user.id)},
+        )
 
         response = HTMLResponse(content=rendered_html)
         if should_persist_editor_view(view):
@@ -158,7 +164,11 @@ async def select_node_with_decision_tree(
     """
     logger.info(
         "Node selected in editor",
-        extra={"decision_tree_id": str(decision_tree_id), "node_id": node_id, "user_id": str(user.id)},
+        extra={
+            "decision_tree_id": str(decision_tree_id),
+            "node_id": node_id,
+            "user_id": str(user.id),
+        },
     )
 
     # Authorization check
@@ -192,7 +202,9 @@ async def select_node_with_decision_tree(
         rendered_html = result.get("rendered_html", "<p>Error rendering editor</p>")
 
         # Also render graph view pane for OOB swap to keep empty/legend states consistent
-        graph_view_html = templates.env.get_template("decision_tree/_graph_view_content.html").render(
+        graph_view_html = templates.env.get_template(
+            "decision_tree/_graph_view_content.html"
+        ).render(
             {
                 "graph": result["graph"],
                 "visualization": result.get("visualization"),
@@ -228,7 +240,11 @@ async def select_node_with_decision_tree(
 
         logger.info(
             "Editor re-rendered with node selection",
-            extra={"decision_tree_id": str(decision_tree_id), "node_id": node_id, "user_id": str(user.id)},
+            extra={
+                "decision_tree_id": str(decision_tree_id),
+                "node_id": node_id,
+                "user_id": str(user.id),
+            },
         )
 
         return HTMLResponse(content=combined_html)
@@ -236,7 +252,11 @@ async def select_node_with_decision_tree(
     except Exception as e:
         logger.error(
             f"Error re-rendering editor with selection: {e}",
-            extra={"decision_tree_id": str(decision_tree_id), "node_id": node_id, "user_id": str(user.id)},
+            extra={
+                "decision_tree_id": str(decision_tree_id),
+                "node_id": node_id,
+                "user_id": str(user.id),
+            },
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail="Error rendering editor") from e

@@ -25,7 +25,9 @@ from smeme.decision_tree.generation.agentic.workflow import get_compiled_workflo
 router = APIRouter()
 
 
-def _redirect_to_editor_response(request: Request, decision_tree_id: str) -> HTMLResponse | RedirectResponse:
+def _redirect_to_editor_response(
+    request: Request, decision_tree_id: str
+) -> HTMLResponse | RedirectResponse:
     editor_url = f"/decision-trees/{decision_tree_id}/editor"
     if request.headers.get("HX-Request", "").lower() == "true":
         response = HTMLResponse(content="", status_code=200)
@@ -63,7 +65,7 @@ async def retry_design_generation(
         state = state_snapshot.values
 
         resume_state = {
-            "questionnaire_design": "",
+            "decision_tree_design": "",
             "design_source": "",
             "design_raw": None,
             "user_prompt": state.get("user_prompt"),
@@ -88,7 +90,7 @@ async def retry_design_generation(
             main_content_template="decision_tree/generation/_main_design_edit.html",
             context={
                 "thread_id": thread_id,
-                "questionnaire_design": state.get("questionnaire_design", ""),
+                "decision_tree_design": state.get("decision_tree_design", ""),
                 "design_source": state.get("design_source", "unknown"),
                 "design_token_usage": state.get("design_token_usage"),
                 "current_phase": "design",
@@ -120,7 +122,7 @@ async def submit_design(
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
     thread_id: str = Form(...),
-    questionnaire_design_edited: str = Form(...),
+    decision_tree_design_edited: str = Form(...),
 ):
     """
     Resume workflow after design edit.
@@ -133,7 +135,7 @@ async def submit_design(
         extra={
             "user_id": str(user.id),
             "thread_id": thread_id,
-            "design_length": len(questionnaire_design_edited),
+            "design_length": len(decision_tree_design_edited),
         },
     )
 
@@ -155,7 +157,7 @@ async def submit_design(
         workflow = await get_compiled_workflow()
 
         result = await workflow.ainvoke(
-            Command(resume=questionnaire_design_edited),
+            Command(resume=decision_tree_design_edited),
             config,
         )
 

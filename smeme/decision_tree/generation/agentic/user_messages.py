@@ -103,8 +103,11 @@ def sanitize_wizard_error_for_user(error: str) -> str:
         return "Something went wrong. Please try again."
     if _looks_like_ai_service_error(error):
         return openai_research_message_for_kind("other")
-    if "failed to save questionnaire" in error.lower():
-        return "We could not save your questionnaire. Please try again."
+    if (
+        "failed to save questionnaire" in error.lower()
+        or "failed to save decision tree" in error.lower()
+    ):
+        return "We could not save your decision tree. Please try again."
     if "web search not configured" in error.lower():
         return "Web search is not available right now. You can still continue by editing the research manually."
     # Avoid leaking exception details (status codes, JSON blobs, stack traces).

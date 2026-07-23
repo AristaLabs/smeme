@@ -21,7 +21,7 @@ from openai import AsyncOpenAI
 from smeme.core.openai_models import OPENAI_MODEL_HEAVY
 from smeme.decision_tree.generation.agentic.conclusions_parse import parse_allowed_conclusions
 from smeme.decision_tree.generation.agentic.design_context import format_structured_design_context
-from smeme.decision_tree.generation.agentic.prompts import DESIGN_QUESTIONNAIRE_PROMPT
+from smeme.decision_tree.generation.agentic.prompts import DESIGN_DECISION_TREE_PROMPT
 from smeme.decision_tree.generation.agentic.subgraphs.models import (
     DesignSubgraphInput,
     DesignSubgraphOutput,
@@ -158,7 +158,7 @@ async def generate_design_node(
     )
 
     try:
-        system_prompt = DESIGN_QUESTIONNAIRE_PROMPT.format(
+        system_prompt = DESIGN_DECISION_TREE_PROMPT.format(
             user_prompt=state.user_prompt,
             research_context_edited=combined_context,
             allowed_conclusions=allowed.formatted_block,
@@ -186,7 +186,7 @@ async def generate_design_node(
             max_completion_tokens=10000,
         )
 
-        questionnaire_design = response.choices[0].message.content or ""
+        decision_tree_design = response.choices[0].message.content or ""
 
         # Extract token usage
         token_usage = None
@@ -203,7 +203,7 @@ async def generate_design_node(
             "Design generation completed",
             extra={
                 "user_id": str(state.user_id),
-                "design_length": len(questionnaire_design),
+                "design_length": len(decision_tree_design),
                 "elapsed_ms": round(elapsed_ms, 2),
                 "token_usage": token_usage,
                 "optimization_applied": was_optimized,
@@ -211,7 +211,7 @@ async def generate_design_node(
         )
 
         return {
-            "questionnaire_design": questionnaire_design,
+            "decision_tree_design": decision_tree_design,
             "design_source": "llm_generated",
             "design_raw": {
                 "model": response.model,
@@ -239,7 +239,7 @@ async def generate_design_node(
 
         # Return graceful failure (enables retry)
         return {
-            "questionnaire_design": "",
+            "decision_tree_design": "",
             "design_source": "llm_failed",
             "design_raw": {
                 "error": str(e),
@@ -261,7 +261,7 @@ async def generate_design_node(
         )
 
         return {
-            "questionnaire_design": "",
+            "decision_tree_design": "",
             "design_source": "llm_failed",
             "design_raw": {
                 "error": str(e),
@@ -341,7 +341,7 @@ def merge_design_output(
         State updates to merge into parent
     """
     return {
-        "questionnaire_design": design_output.questionnaire_design,
+        "decision_tree_design": design_output.decision_tree_design,
         "design_source": design_output.design_source,
         "design_raw": design_output.design_raw,
         "design_token_usage": design_output.token_usage,
