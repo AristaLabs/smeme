@@ -8,21 +8,21 @@ from smeme.core.config import settings as process_settings
 def test_base_url_wins_over_render_external_for_custom_domain() -> None:
     s = process_settings.model_copy(
         update={
-            "base_url": "https://www.smeme.ai",
-            "render_external_url": "https://smeme.onrender.com",
+            "base_url": "https://core.example.com",
+            "render_external_url": "https://platform-host.example",
         }
     )
-    assert s.effective_base_url == "https://www.smeme.ai"
+    assert s.effective_base_url == "https://core.example.com"
 
 
 def test_render_external_used_when_base_url_is_default_localhost() -> None:
     s = process_settings.model_copy(
         update={
             "base_url": "http://localhost:8000",
-            "render_external_url": "https://smeme-dev.onrender.com",
+            "render_external_url": "https://platform-host.example",
         }
     )
-    assert s.effective_base_url == "https://smeme-dev.onrender.com"
+    assert s.effective_base_url == "https://platform-host.example"
 
 
 def test_base_url_used_when_no_render_external() -> None:

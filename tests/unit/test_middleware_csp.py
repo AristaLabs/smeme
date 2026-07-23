@@ -32,7 +32,7 @@ def test_csp_includes_turnstile_when_clerk_browser_sync(monkeypatch) -> None:
 
 
 def test_csp_includes_plausible_when_analytics_enabled(monkeypatch) -> None:
-    monkeypatch.setattr(process_settings, "plausible_domain", "smeme.ai", raising=False)
+    monkeypatch.setattr(process_settings, "plausible_domain", "core.example.com", raising=False)
     policy = _csp_policy_for_request()
     assert "https://plausible.io" in policy
     assert "script-src" in policy

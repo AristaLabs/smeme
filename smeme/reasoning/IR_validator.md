@@ -129,9 +129,9 @@ Counterexample {
 
 These are **different layers**:
 
-* **QNR / editor:** [`validate_graph_for_editing` / `validate_graph_for_publication`](../../qnr/helpers/validation.py) — authoring rules, conclusions, defaults, reasoning authoring contract (tier-2/3).
+* **QNR / editor:** [`validate_graph_for_editing` / `validate_graph_for_publication`](../qnr/helpers/validation.py) — authoring rules, conclusions, defaults, reasoning authoring contract (tier-2/3).
 * **Publish gate (app):** [`assess_publish_readiness`](publish_readiness.py) — publication validation → `compile_qnr_to_ir` → `validate_ir` → `enumerate_conclusion_sat_queries`. Editor: `GET …/publish-preflight`, `POST …/publish`.
-* **IR layer:** Same spine as the gate; `validate_ir` is the IR-side contract per [D017](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline).
+* **IR layer:** Same spine as the gate; `validate_ir` is the IR-side contract.
 
 `solve_reachability_witness` is optional cheap smoke; for systematic preflight prefer **`validate_ir`** plus **`enumerate_conclusion_sat_queries`** when you need per-conclusion / pairwise SAT outcomes.
 

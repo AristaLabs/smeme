@@ -61,6 +61,5 @@ agent-skills/        # Authoring source for MCP guidance markdown
 - [Engine promises](guides/engine-promises.md)
 - [Self-host quickstart](guides/self-host-quickstart.md)
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)
-- [MCP connector runbooks](guides/cowork-reasoning-plugin-runbooks.md)
 - [Contribution paths](CONTRIBUTION_PATHS.md)
 - [Agent Skills source](../agent-skills/README.md)

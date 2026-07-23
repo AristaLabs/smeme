@@ -8,7 +8,7 @@ packages = ["smeme"]
 [project]
 name = "smeme-platform"
 version = "2.0.0"
-description = "SMEme Core — source-available decision-workflow platform (fair-code)"
+description = "SMEme Core — source-available decision-tree platform (fair-code)"
 authors = [
     {name = "Arista Labs, LLC", email = "team@smeme.ai"},
 ]
@@ -61,11 +61,6 @@ Repository = "https://github.com/AristaLabs/smeme"
 Issues = "https://github.com/AristaLabs/smeme/issues"
 
 [project.optional-dependencies]
-saas = [
-    # Private smeme-cloud / hosted smeme.ai adapters (omit from Core image)
-    "sendgrid>=6.10.0",
-    "stripe>=11.0.0",
-]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",

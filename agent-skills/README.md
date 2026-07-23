@@ -93,7 +93,7 @@ Reasoning tools return structured JSON. Expected failures use `error.code` / `er
 
 ## Related docs
 
-- [MCP connector runbook](../docs/guides/cowork-reasoning-plugin-runbooks.md) —
-  operator and end-user setup, list → evaluate → outcomes.
+- [MCP / OAuth operator guide](../docs/guides/dr3-mcp-oauth-authoritative-sources.md) —
+  self-host endpoint, discovery, and OAuth configuration.
 - [Self-host quickstart](../docs/guides/self-host-quickstart.md) — Core setup
   and operator configuration.

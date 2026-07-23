@@ -53,8 +53,7 @@ DCR (``registration_endpoint``) policy
 While **Clerk instance-level Dynamic Client Registration** is **off** (SMEme default —
 Clerk warns that ``POST {issuer}/oauth/register`` is a public API), we **omit**
 ``registration_endpoint`` from the mirrored RFC 8414 and OIDC documents so clients
-prefer a **static** Clerk OAuth app ``clientId`` (see ``MCP_SAAS_OAUTH_CLIENT_ID`` in
-``smeme/mcp/urls.py``).
+prefer a **static** Clerk OAuth app ``clientId`` configured by the Core operator.
 When DCR is enabled in Clerk, add ``"registration_endpoint": f"{base}/oauth/register"``
 in ``_clerk_as_metadata`` and ``_clerk_oidc_config`` (see inline comments there).
 """

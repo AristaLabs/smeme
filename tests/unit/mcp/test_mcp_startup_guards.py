@@ -26,7 +26,7 @@ def _prod_settings(**kwargs):
     base = {
         "environment": "production",
         "mcp_enabled": True,
-        "base_url": "https://www.smeme.ai",
+        "base_url": "https://core.example.com",
         "clerk_oauth_issuer_override": "https://clerk.example.com",
         "mcp_invocation_telemetry_persist": True,
         "mcp_allowed_oauth_client_ids": ["client_abc"],
@@ -126,14 +126,14 @@ def test_validate_no_warning_when_allowlist_set():
 
 def test_build_transport_security_raises_in_production_without_base_url():
     # Mock the URL helper to simulate an unparseable BASE_URL returning no hosts.
-    s = _prod_settings(base_url="https://www.smeme.ai")
+    s = _prod_settings(base_url="https://core.example.com")
     with patch("smeme.mcp.reasoning_fastmcp.transport_security_allowed_hosts", return_value=([], [])):
         with pytest.raises(RuntimeError, match="DNS rebinding"):
             _build_transport_security(s)
 
 
 def test_build_transport_security_ok_in_production_with_base_url():
-    s = _prod_settings(base_url="https://www.smeme.ai")
+    s = _prod_settings(base_url="https://core.example.com")
     ts = _build_transport_security(s)
     assert ts is not None
     assert ts.enable_dns_rebinding_protection is True
@@ -153,12 +153,12 @@ def test_build_transport_security_disabled_in_dev():
 def test_build_transport_security_does_not_include_allowed_origins():
     extra_origin = "https://staging.other-app.example.com"
     s = _prod_settings(
-        base_url="https://www.smeme.ai",
-        allowed_origins=["https://www.smeme.ai", extra_origin],
+        base_url="https://core.example.com",
+        allowed_origins=["https://core.example.com", extra_origin],
     )
     ts = _build_transport_security(s)
     assert ts is not None
     assert ts.allowed_origins is not None
     assert extra_origin not in ts.allowed_origins
     # BASE_URL-derived origin must be present
-    assert any("smeme.ai" in o for o in ts.allowed_origins)
+    assert any("core.example.com" in o for o in ts.allowed_origins)

@@ -102,9 +102,13 @@
                   </div>
                   <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
+                    {% if mcp_oauth_client_id %}
                     <p class="mt-1 text-xs text-ui-ink-muted leading-snug">When your client asks for a Client ID (leave secret blank — PKCE public client):</p>
                     <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
                        title="Select all to copy">{{ mcp_oauth_client_id }}</p>
+                    {% else %}
+                    <p class="mt-1 text-xs text-ui-ink-muted leading-snug">Ask your Core operator for the static OAuth Client ID, or use dynamic client registration when enabled.</p>
+                    {% endif %}
                   </div>
                 </div>
               </div>

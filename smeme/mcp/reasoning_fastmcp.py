@@ -560,7 +560,7 @@ def _build_transport_security(s: Settings) -> TransportSecuritySettings | None:
     if not hosts:
         raise RuntimeError(
             "MCP_ENABLED=true in a non-development environment requires BASE_URL to be a valid "
-            "HTTPS origin (e.g. https://www.smeme.ai) so DNS rebinding protection can be enabled. "
+            "HTTPS origin (e.g. https://core.example.com) so DNS rebinding protection can be enabled. "
             "Set BASE_URL to the production HTTPS origin or disable MCP."
         )
     return TransportSecuritySettings(

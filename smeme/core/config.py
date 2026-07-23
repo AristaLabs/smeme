@@ -154,7 +154,7 @@ class Settings(BaseSettings):
 
     # Email (SendGrid)
     sendgrid_api_key: str | None = Field(default=None, alias="SENDGRID_API_KEY")
-    email_from_address: str = Field(default="noreply@smeme.ai", alias="EMAIL_FROM_ADDRESS")
+    email_from_address: str = Field(default="noreply@localhost", alias="EMAIL_FROM_ADDRESS")
     email_from_name: str = Field(default="SMEme", alias="EMAIL_FROM_NAME")
     teams_waitlist_notify_email: str = Field(
         default="contact@aristalabs.ai",
@@ -271,8 +271,8 @@ class Settings(BaseSettings):
     """Clerk OAuth application client IDs allowed to call MCP tools (Bearer access tokens).
 
     Comma-separated in env. **Empty (default)** = do not enforce client_id/azp binding.
-    **SaaS prod (DCR on):** leave blank — DCR mints per-connector client ids.
-    **Self-hosted DCR-off:** set to your static Clerk OAuth app client id(s).
+    With DCR on, leave blank because DCR mints per-connector client ids.
+    With DCR off, set this to your static Clerk OAuth app client id(s).
     """
 
     mcp_oauth_access_token_audience: str | None = Field(

@@ -183,17 +183,17 @@ async def test_user_not_in_db_raises(monkeypatch):
 def test_unlinked_account_auth_error_includes_signup_urls(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "smeme.mcp.bearer_auth.settings",
-        MagicMock(effective_base_url="https://www.smeme.ai"),
+        MagicMock(effective_base_url="https://core.example.com"),
     )
     exc = unlinked_account_mcp_auth_error()
     payload = json.loads(auth_error_tool_json(exc))
     err = payload["error"]
     assert err["code"] == "auth_error"
     assert err["auth_reason"] == "no_local_user_for_clerk_sub"
-    assert err["signup_url"] == "https://www.smeme.ai/auth/register"
-    assert err["sign_in_url"] == "https://www.smeme.ai/auth/login"
+    assert err["signup_url"] == "https://core.example.com/auth/register"
+    assert err["sign_in_url"] == "https://core.example.com/auth/login"
     assert len(err["next_steps"]) == 4
-    assert "www.smeme.ai" in err["message"]
+    assert "core.example.com" in err["message"]
     assert "clerk" not in err["message"].lower()
 
 
