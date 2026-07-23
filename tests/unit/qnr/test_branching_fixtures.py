@@ -9,7 +9,7 @@ import pytest
 
 from smeme.qnr.generation.agentic.branching_quality import assess_branching_quality
 from smeme.qnr.helpers.validation import validate_graph_for_editing, validate_graph_for_generation
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "qnr_generation"
 
@@ -19,8 +19,8 @@ def _load_fixture(name: str) -> dict:
     return json.loads(path.read_text())
 
 
-def _graph_from_fixture(payload: dict) -> QNRGraph:
-    return QNRGraph(**payload["graph"])
+def _graph_from_fixture(payload: dict) -> DTGraph:
+    return DTGraph(**payload["graph"])
 
 
 @pytest.mark.parametrize(

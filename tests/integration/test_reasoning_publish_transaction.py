@@ -23,7 +23,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -46,7 +46,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 def _publishable_graph() -> dict:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -79,7 +79,7 @@ def _publishable_graph() -> dict:
 
 
 def _one_conclusion_graph() -> dict:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -295,7 +295,7 @@ async def test_publish_contract_validates_and_round_trips(
     def fake_induce(
         *,
         ir_json: dict,
-        graph: QNRGraph,
+        graph: DTGraph,
         graph_hash: str,
         ir_format_version: int,
         corpus_body: str | None,

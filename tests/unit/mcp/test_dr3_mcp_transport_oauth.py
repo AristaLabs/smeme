@@ -13,10 +13,10 @@ from httpx import ASGITransport, AsyncClient
 from mcp.server.auth.routes import build_resource_metadata_url
 from pydantic import AnyHttpUrl
 
-from smeme.core.middleware import McpTransportRateLimitMiddleware
+from smeme.app_factory import create_core_app as create_app
 from smeme.core.config import Settings
 from smeme.core.config import settings as process_settings
-from smeme.app_factory import create_core_app as create_app
+from smeme.core.middleware import McpTransportRateLimitMiddleware
 from smeme.mcp.reasoning_fastmcp import reset_mcp_runtime_for_tests
 from smeme.mcp.urls import mcp_resource_url, oauth_protected_resource_metadata_path
 

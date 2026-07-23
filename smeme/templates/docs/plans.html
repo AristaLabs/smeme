@@ -21,7 +21,7 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Plans &amp; usage</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          SMEme bills by plan tier with monthly caps on workflows, MCP tool calls, and AI-assisted workflow builds.
+          SMEme bills by plan tier with monthly caps on decision trees, MCP tool calls, and AI-assisted wizard builds.
           <strong class="font-medium text-ui-ink">Free</strong> limits reset monthly on your account anniversary (signup date).
           <strong class="font-medium text-ui-ink">Pro</strong> limits reset on your Stripe billing date each month.
         </p>
@@ -42,7 +42,7 @@
               </thead>
               <tbody class="bg-ui-surface divide-y divide-ui-line">
                 <tr>
-                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">Active workflows</th>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">Active decision trees</th>
                   <td class="px-4 py-3 text-center tabular-nums">3</td>
                   <td class="px-4 py-3 text-center tabular-nums">20</td>
                   <td class="px-4 py-3 text-center tabular-nums">50</td>
@@ -54,7 +54,7 @@
                   <td class="px-4 py-3 text-center tabular-nums">3,000 / mo</td>
                 </tr>
                 <tr>
-                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">AI-assisted workflow builds / mo</th>
+                  <th scope="row" class="px-4 py-3 font-medium text-ui-ink">AI-assisted wizard builds / mo</th>
                   <td class="px-4 py-3 text-center tabular-nums">3</td>
                   <td class="px-4 py-3 text-center tabular-nums">20</td>
                   <td class="px-4 py-3 text-center tabular-nums">50</td>
@@ -74,15 +74,15 @@
           <h2 id="definitions-heading" class="text-base font-semibold text-ui-ink mb-3">What counts</h2>
           <dl class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
             <div>
-              <dt class="font-medium text-ui-ink">Active workflow</dt>
-              <dd class="mt-1">A non-deleted root workflow you own. Deleting a workflow frees a slot immediately. (Archive is a separate feature — availability depends on your deployment.)</dd>
+              <dt class="font-medium text-ui-ink">Active decision tree</dt>
+              <dd class="mt-1">A non-deleted root decision tree you own. Deleting a decision tree frees a slot immediately. (Archive is a separate feature — availability depends on your deployment.)</dd>
             </div>
             <div>
               <dt class="font-medium text-ui-ink">MCP tool call</dt>
-              <dd class="mt-1">Weighted sum of successful MCP reasoning tool invocations this UTC month. Evidence validation and a standard evaluate each count as <strong class="text-ui-ink">1</strong> (a typical Cowork run uses both). Scenario comparisons (<code class="text-xs bg-ui-surface-muted px-1 rounded">what_if</code>) count as <strong class="text-ui-ink">2</strong>; repair plans (<code class="text-xs bg-ui-surface-muted px-1 rounded">how_to_reach</code>) count as <strong class="text-ui-ink">2.5</strong>. Listing workflows, fetching the outcome catalog, and downloading worksheets count as <strong class="text-ui-ink">0</strong>.</dd>
+              <dd class="mt-1">Weighted sum of successful MCP reasoning tool invocations this UTC month. Evidence validation and a standard evaluate each count as <strong class="text-ui-ink">1</strong> (a typical Cowork run uses both). Scenario comparisons (<code class="text-xs bg-ui-surface-muted px-1 rounded">what_if</code>) count as <strong class="text-ui-ink">2</strong>; repair plans (<code class="text-xs bg-ui-surface-muted px-1 rounded">how_to_reach</code>) count as <strong class="text-ui-ink">2.5</strong>. Listing decision trees, fetching the outcome catalog, and downloading worksheets count as <strong class="text-ui-ink">0</strong>.</dd>
             </div>
             <div>
-              <dt class="font-medium text-ui-ink">AI-assisted workflow build</dt>
+              <dt class="font-medium text-ui-ink">AI-assisted wizard build</dt>
               <dd class="mt-1">One full AI-assisted creation run (research through publish-ready output) per distinct generation ID per month. Retries on the same in-progress generation do not consume extra credits.</dd>
             </div>
           </dl>
@@ -104,11 +104,11 @@
         <section aria-labelledby="exceeded-heading">
           <h2 id="exceeded-heading" class="text-base font-semibold text-ui-ink mb-3">When you hit a cap</h2>
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-disc pl-5">
-            <li><strong class="text-ui-ink">Workflows</strong> — you cannot create a new workflow until you delete/archive one or upgrade.</li>
-            <li><strong class="text-ui-ink">AI builds</strong> — you cannot start a new AI-assisted workflow build when your monthly allowance is exhausted.</li>
+            <li><strong class="text-ui-ink">Decision trees</strong> — you cannot create a new decision tree until you delete/archive one or upgrade.</li>
+            <li><strong class="text-ui-ink">AI builds</strong> — you cannot start a new AI-assisted wizard build when your monthly allowance is exhausted.</li>
             <li><strong class="text-ui-ink">MCP</strong> — Cowork receives a structured <code class="text-xs bg-ui-surface-muted px-1 rounded">quota_exceeded</code> error with remaining allowance and reset time.</li>
           </ul>
-          <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more workflows than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through Cowork until you either delete enough workflows to get back under the limit or upgrade again.</p>
+          <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more decision trees than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through Cowork until you either delete enough decision trees to get back under the limit or upgrade again.</p>
         </section>
       </div>
     </article>

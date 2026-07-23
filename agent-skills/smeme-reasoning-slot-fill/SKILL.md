@@ -11,7 +11,7 @@ description: >-
 
 Use this skill **after** a **worksheet** is loaded and **before** **`smeme_reasoning_evaluate`** or logical analysis tools that need a baseline envelope.
 
-You are a **slot-filler**, not a reasoner. The server owns the workflow's decision logic; you supply structured answers plus **provenance** so each answered question cites where the answer came from.
+You are a **slot-filler**, not a reasoner. The server owns the decision tree's decision logic; you supply structured answers plus **provenance** so each answered question cites where the answer came from.
 
 ## Provenance envelope (required)
 
@@ -51,9 +51,9 @@ Build **`raw_answers_json`** as a JSON object with **`answers`**, **`evidence_it
 
 Establish **one subject** (case, patient, vendor, matter, etc.) before wide search. Connector results count only if they pertain to that subject. Do not merge two subjects into one payload.
 
-## Workflow
+## Decision tree
 
-1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to re-publish the workflow in the SMEme web app.
+1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to re-publish the decision tree in the SMEme web app.
 2. **Subject** — Confirm with the user when ambiguous.
 3. **Gather** — Subject-scoped connectors, files, chat.
 4. **Build envelope** — Map each question to one exact option string; register each source in **`evidence_items`** with a **`locator`** you can reuse to read the full document again.

@@ -395,7 +395,7 @@ class BuildSubgraphOutput(BaseModel):
 
     generated_graph: dict[str, Any] = Field(
         ...,
-        description="Generated QNRGraph as dict (may be invalid if fixes failed)",
+        description="Generated DTGraph as dict (may be invalid if fixes failed)",
     )
     build_source: str = Field(
         ...,

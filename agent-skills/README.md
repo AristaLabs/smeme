@@ -36,7 +36,7 @@ Shipped **`SKILL.md`** files are loaded into third-party LLM context. They must 
 
 `scripts/validate_agent_skills.py` enforces a denylist on all shipped skills
 (prose only — text inside `` `backticks` `` may use wire field names such as
-``satisfiable`` or ``blockers.sat_calls``). Generated per-workflow manifests
+``satisfiable`` or ``blockers.sat_calls``). Generated per decision tree manifests
 ([`templates/reasoning-question-manifest/`](templates/reasoning-question-manifest/))
 must follow the same rules.
 
@@ -60,15 +60,15 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 | Skill | Role | When to load |
 |-------|------|----------------|
-| **`smeme-reasoning-plugin`** | Connect to SMEme, list workflows, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core plugin skill. |
-| **Per-workflow question manifest** | Flat checklist: question ids, text, valid answers for *this* workflow — no topology. | **After** the user (or agent) has chosen a target workflow — from **`template_get`** or CWP-5 file. |
+| **`smeme-reasoning-plugin`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core plugin skill. |
+| **Per decision tree question manifest** | Flat checklist: question ids, text, valid answers for *this* decision tree — no topology. | **After** the user (or agent) has chosen a target decision tree — from **`template_get`** or CWP-5 file. |
 | **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate`**. |
 | **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate`** returns a **`report`** that is not **`concluded`**. |
-| **`smeme-workflow-author`** | Chat-native authoring: design guidance → iterate Q/options/branches in prose → `smeme_authoring_validate_graph` → `smeme_authoring_create_draft`. Secondary path; wizard remains primary for research-heavy greenfield. | When the user wants to build in chat. Gated by `MCP_AUTHORING_GRAPH_TOOLS_ENABLED`. Calls `smeme_authoring_design_guidance`. |
+| **`smeme-decision-tree-author`** | Chat-native authoring: design guidance → iterate Q/options/branches in prose → `smeme_authoring_validate_graph` → `smeme_authoring_create_draft`. Secondary path; wizard remains primary for research-heavy greenfield. | When the user wants to build a decision tree in chat. On by default when MCP is enabled; opt out with `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false`. Calls `smeme_authoring_design_guidance`. |
 
-**Per-workflow skills** should not all sit in the default context. Preferred patterns:
+**Per decision tree skills** should not all sit in the default context. Preferred patterns:
 
-1. **Generated at publish** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + workflow metadata.
+1. **Generated at publish** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + decision tree metadata.
 2. **Template fill**: Use `templates/reasoning-question-manifest/SKILL.template.md` in CI or a small script; substitute title, slug, question list, and schema JSON.
 3. **Manual**: Early adopters add a generated skill to their agent project.
 
@@ -80,11 +80,11 @@ agent-skills/
 ├── smeme-reasoning-plugin/SKILL.md          # core guidance
 ├── smeme-reasoning-slot-fill/SKILL.md       # Phase 1 subject + gather → raw_answers
 ├── smeme-reasoning-outcomes/SKILL.md        # non-concluded and conflict report handling
-├── smeme-workflow-author/
+├── smeme-decision-tree-author/
 │   ├── SKILL.md                             # chat authoring → validate → create_draft
 │   └── DESIGN.md                            # design standard (build → _generated_design_guidance.py)
 └── templates/reasoning-question-manifest/
-    └── SKILL.template.md              # one copy per workflow after substitution (not loaded until filled)
+    └── SKILL.template.md              # one copy per decision tree after substitution (not loaded until filled)
 ```
 
 ## MCP error contract

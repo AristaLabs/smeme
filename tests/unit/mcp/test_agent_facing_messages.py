@@ -59,16 +59,7 @@ def _collect_emitter_codes(path: Path) -> set[str]:
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if isinstance(func, ast.Name) and func.id == "tool_error_json":
-            if node.args and (code := _string_value(node.args[0])):
-                codes.add(code)
-        elif isinstance(func, ast.Attribute) and func.attr == "tool_error_json":
-            if node.args and (code := _string_value(node.args[0])):
-                codes.add(code)
-        elif isinstance(func, ast.Name) and func.id == "CounterfactualError":
-            if node.args and (code := _string_value(node.args[0])):
-                codes.add(code)
-        elif isinstance(func, ast.Name) and func.id in {
+        if isinstance(func, ast.Name) and func.id == "tool_error_json" or isinstance(func, ast.Attribute) and func.attr == "tool_error_json" or isinstance(func, ast.Name) and func.id == "CounterfactualError" or isinstance(func, ast.Name) and func.id in {
             "PathUnderEditError",
             "DecisiveSupportError",
         }:
@@ -97,11 +88,7 @@ def _collect_agent_messages(path: Path) -> list[tuple[int, str]]:
             "PathUnderEditError",
             "DecisiveSupportError",
         }
-        if is_tool_error and len(node.args) >= 2:
-            add_message(node, _string_value(node.args[1]))
-        elif is_counterfactual and len(node.args) >= 2:
-            add_message(node, _string_value(node.args[1]))
-        elif is_domain_error and len(node.args) >= 2:
+        if is_tool_error and len(node.args) >= 2 or is_counterfactual and len(node.args) >= 2 or is_domain_error and len(node.args) >= 2:
             add_message(node, _string_value(node.args[1]))
         elif isinstance(func, ast.Name) and func.id == "_how_to_reach_blocked":
             for kw in node.keywords:

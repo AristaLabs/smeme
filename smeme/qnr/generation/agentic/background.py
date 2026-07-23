@@ -1,4 +1,4 @@
-"""Background execution for agentic QNR generation (research streaming Release 1)."""
+"""Background execution for agentic decision-tree generation (research streaming Release 1)."""
 
 from __future__ import annotations
 

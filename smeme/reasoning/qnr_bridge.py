@@ -1,4 +1,4 @@
-"""QNR → IR bridge. Import this when you have a ``QNRGraph``; avoid pulling ``qnr`` via ``smeme.reasoning``."""
+"""QNR → IR bridge. Import this when you have a ``DTGraph``; avoid pulling ``qnr`` via ``smeme.reasoning``."""
 
 from __future__ import annotations
 

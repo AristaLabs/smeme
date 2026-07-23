@@ -49,6 +49,9 @@ jobs:
       - name: §10.2 product-path gate (no legacy DTQ tokens)
         run: uv run python scripts/check_no_dtq_product_refs.py
 
+      - name: Product vocabulary (decision-tree copy)
+        run: uv run python scripts/check_product_vocabulary.py
+
       - name: Core entrypoint must not import SAAS-ONLY modules (D023)
         run: uv run python scripts/check_core_no_saas_imports.py
 

@@ -38,7 +38,7 @@ Use the candidate **title** (not `result_kind`) when speaking to the user. Never
 
 - **`headline`** — one-line status for the user
 - **`brief_memo`** — canonical server text; you may paraphrase but do not contradict it
-- **`reasoning_path`** — ordered steps (questions answered, then outcome). Use it for narrative; it is **not** permission to edit the workflow. The terminal **conclusion title** names the outcome — it may differ from an earlier answer label (for example **Business** on one question vs a **personal-use** conclusion after a later **No**).
+- **`reasoning_path`** — ordered steps (questions answered, then outcome). Use it for narrative; it is **not** permission to edit the decision tree. The terminal **conclusion title** names the outcome — it may differ from an earlier answer label (for example **Business** on one question vs a **personal-use** conclusion after a later **No**).
 - **`answer_sheet`** — all slots with answers and **`supporting_evidence`** (includes **`locator`** to re-open files)
 - **`candidates`** — possible conclusions with **`status`**: `selected` or `possible`
 

@@ -1,7 +1,7 @@
 ---
 name: smeme-reasoning-plugin
 description: >-
-  SMEme reasoning plugin — OAuth MCP, list your workflows, build provenance
+  SMEme reasoning plugin — OAuth MCP, list your decision trees, build provenance
   ingest, validate then evaluate, logical analysis tools (what_if / how_to_reach /
   decisive_support / edit_affects_path; often after evaluate, not required).
   Call smeme_reasoning_capabilities for authoritative reasoning.tools catalog;
@@ -9,24 +9,24 @@ description: >-
   Slot-fill: smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 2.18.0 -->
+<!-- installed_plugin_version: 2.19.0 -->
 
 # SMEme reasoning plugin (Cowork)
 
 ## What SMEme reasoning does
 
-- **Deterministic** evaluation: a published **workflow** + provenance ingest (answers + evidence) → a server **`report`** (brief memo, reasoning path, candidates).
+- **Deterministic** evaluation: a published **decision tree** + provenance ingest (answers + evidence) → a server **`report`** (brief memo, reasoning path, candidates).
 - **Logical analysis** on the same \(T\) and envelope: what-if, how-to-reach, decisive support, path-under-edit, list conclusions — **often after evaluate**, but **not required** to run evaluate first.
-- The workflow's decision logic lives on SMEme. You are an **answer mapper**, not a reasoner — you **do not** reinterpret branches, infer hidden rules, or fix the workflow.
+- The decision tree's decision logic lives on SMEme. You are an **answer mapper**, not a reasoner — you **do not** reinterpret branches, infer hidden rules, or fix the decision tree.
 
 ## Assumptions (do not pre-confirm with the user)
 
 These are normal preconditions. Call the tools; if one fails, follow the [error map](#reading-mcp-tool-errors).
 
-1. The user has **published** a reasoning-eligible **workflow** in the **SMEme web app**.
+1. The user has **published** a reasoning-eligible **decision tree** in the **SMEme web app**.
 2. The **MCP connector** is connected (OAuth in Cowork). On **`auth_error`**, reconnect once; do **not** retry in a loop.
 3. **The user has logged into SMEme web at least once** so their account is linked (Bearer `sub` matches their SMEme account).
-4. Pick the workflow via **`smeme_reasoning_list`**. Load the worksheet via **`smeme_reasoning_template_get`** (or a filled manifest skill).
+4. Pick the decision tree via **`smeme_reasoning_list`**. Load the worksheet via **`smeme_reasoning_template_get`** (or a filled manifest skill).
 
 ### Worksheet: `template_check` vs `template_get`
 
@@ -40,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`2.18.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`2.19.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`2.18.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`2.19.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
@@ -56,10 +56,10 @@ Every **success** response includes `_server_plugin_version`. Compare it against
 
 When the user asks **what these tools let them do**, call **`smeme_reasoning_capabilities`**, summarize **both** intents, and ask which they want — do **not** default to evaluate unless the open thread is already a case run.
 
-## Workflow (case evaluation happy path)
+## Decision tree (case evaluation happy path)
 
 1. **`smeme_reasoning_capabilities`** — session bootstrap; `reasoning.tools` is the authoritative tool list. See [Tool catalog](#tool-catalog).
-2. **`smeme_reasoning_list`** — your discoverable workflows. **If this is empty, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess workflow ids.**
+2. **`smeme_reasoning_list`** — your discoverable decision trees. **If this is empty, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
 3. **`smeme_reasoning_template_get`** — question ids, labels, exact option strings.
 4. **`smeme-reasoning-slot-fill`** — establish the subject, gather sources, build **`raw_answers_json`** (provenance envelope).
 5. **`smeme_reasoning_validate_answers`** — same envelope. Branch on **`harness_next`** (authoritative server routing):
@@ -135,7 +135,7 @@ Optional reach assumptions \(\phi\): `force_reachable_ids` / `force_unreachable_
 
 | Field | Meaning |
 |-------|---------|
-| `conclusions[]` | Each possible workflow outcome with `conclusion_id`, `conclusion_title`, `summary`, `reachable` |
+| `conclusions[]` | Each possible decision tree outcome with `conclusion_id`, `conclusion_title`, `summary`, `reachable` |
 | `count` / `reachable_count` | Total conclusions vs structurally reachable under published rules |
 | `workflow_rules_consistent` | `false` when branching rules cannot all hold together |
 | `hint` | Present when rules are inconsistent or some conclusions are unreachable |
@@ -144,7 +144,7 @@ Reachability is **structural** (some valid answer path could reach the conclusio
 
 **`how_to_reach` input:** copy **`conclusion_id`** from a row here into **`target_conclusion_id`**. Show **`conclusion_title`** to the user when choosing a target. Do **not** take ids from evaluate **`report.candidates`** or guess from titles alone.
 
-### `how_to_reach` workflow
+### `how_to_reach` decision tree
 
 1. **`smeme_reasoning_list_conclusions`** — list outcomes; pick **`conclusion_id`** + **`conclusion_title`** for the target.
 2. Build baseline **`base_raw_answers_json`** (same provenance envelope as evaluate).
@@ -177,7 +177,7 @@ Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumpti
 
 Explain deltas to the user in plain language — never invent graph ids or branch rules.
 
-### `edit_affects_path` workflow
+### `edit_affects_path` decision tree
 
 Use when the user asks whether a **hypothetical change** would **affect the current decision path** (not when they want a full alternate-world tour — that is **`what_if`**).
 
@@ -199,9 +199,9 @@ On **`path_not_entailed_at_baseline`**: gather or fix answers via evaluate/valid
 | `assumptions` | Echo of force lists when non-empty |
 | `warnings` | Same ingest warnings as validate/evaluate |
 
-### `decisive_support` workflow (minimal sufficient evidence)
+### `decisive_support` decision tree (minimal sufficient evidence)
 
-Use **only** when the current answers already force the target outcome (typically after **`concluded`** evaluate, or when the user asks “which answers mattered?”). This returns inclusion-minimal answered supports under fixed workflow rules and fixed answers — **not** a tentative conclusion from incomplete evidence, and **not** conflict reconciliation.
+Use **only** when the current answers already force the target outcome (typically after **`concluded`** evaluate, or when the user asks “which answers mattered?”). This returns inclusion-minimal answered supports under fixed decision tree rules and fixed answers — **not** a tentative conclusion from incomplete evidence, and **not** conflict reconciliation.
 
 1. **`smeme_reasoning_list_conclusions`** — obtain **`target_conclusion_id`**.
 2. Pass the same provenance envelope as evaluate plus that target.
@@ -257,11 +257,11 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 | `error.code` | What it means | What to do |
 |--------------|---------------|------------|
 | `auth_error` | Not connected, or no linked SMEme account | Read `error.message` to the user. If `auth_reason` is `no_local_user_for_clerk_sub` (or `signup_url` is present), they need a SMEme account first: open **`signup_url`** (or **`sign_in_url`** if they already registered) and complete web sign-in, then **reconnect** the MCP connector in Cowork. Quote the URLs from the error — do **not** retry in a loop. |
-| `not_found` | Workflow id unknown, or not owned by this user | Call `smeme_reasoning_list` and use an `id` from there. Do not invent ids. |
-| `not_discoverable` | Workflow exists but is hidden from MCP | Ask the user to go to their **SMEme dashboard**, find the workflow, and turn on the **Listed** toggle. Then retry. |
-| `no_reasoning_artifact` | Workflow not published/deployed for reasoning | Ask the user to **publish** the workflow from the SMEme editor, then retry. |
-| `stale_theory` | Workflow changed since it was last published | Ask the user to **re-publish** it from the SMEme editor, then retry the same answers. |
-| `account_downgrade_pending` | Plan/billing limits this workflow right now | Surface the `message` (and any `choose_workflow_url`); the user resolves it in SMEme. Do not retry blindly. |
+| `not_found` | Decision tree id unknown, or not owned by this user | Call `smeme_reasoning_list` and use an `id` from there. Do not invent ids. |
+| `not_discoverable` | Decision tree exists but is hidden from MCP | Ask the user to go to their **SMEme dashboard**, find the decision tree, and turn on the **Listed** toggle. Then retry. |
+| `no_reasoning_artifact` | Decision tree not published/deployed for reasoning | Ask the user to **publish** the decision tree from the SMEme editor, then retry. |
+| `stale_theory` | Decision tree changed since it was last published | Ask the user to **re-publish** it from the SMEme editor, then retry the same answers. |
+| `account_downgrade_pending` | Plan/billing limits this decision tree right now | Surface the `message` (and any `choose_workflow_url`); the user resolves it in SMEme. Do not retry blindly. |
 | `quota_exceeded` | Monthly reasoning allowance reached | Tell the user plainly. The allowance resets at the start of their next billing period — they can see the exact date on the **SMEme billing page**. Suggest upgrading if they need access sooner. Do not retry. |
 | `concurrency_limit` | Another MCP tool call is already in flight for this account | Wait a moment and retry once. This is transient coordination, not a monthly cap hit — do not suggest upgrading. |
 | `invalid_answers_json` | `raw_answers_json` is not a valid provenance envelope | Rebuild the envelope (see `smeme-reasoning-slot-fill`); pass a bare JSON object, not double-encoded. |
@@ -269,7 +269,7 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 | `payload_too_large` | Ingest exceeds caps | Trim excerpts; keep evidence bounded (locator + short quote, not full documents). |
 | `internal_error` | Unexpected server error | Retry **once**. If it persists, tell the user and include the approximate time. |
 | `persist_not_implemented` | v1 logical analysis tools do not write audit rows | Retry with `persist=false`. Do not block the user. |
-| `invalid_target_conclusion_id` | Bad or non-conclusion target id | Call `smeme_reasoning_list_conclusions` for valid ids, or ask the workflow owner; do not guess from `report.candidates`. |
+| `invalid_target_conclusion_id` | Bad or non-conclusion target id | Call `smeme_reasoning_list_conclusions` for valid ids, or ask the decision tree owner; do not guess from `report.candidates`. |
 | `invalid_locked_question_id` | Lock list references unknown question | Re-read `template_get`; only lock ids that appear on the worksheet. |
 | `invalid_reach_mode` | `reach_mode` not `entailed` or `possible` | Retry with `entailed` (default) or `possible`. |
 | `invalid_assumption_node_id` | Bad id in force_reachable / force_unreachable | Use ids from `template_get` or `list_conclusions`. |
@@ -292,7 +292,7 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 
 An empty `reasoning_qnrs` array (`count: 0`) means nothing is currently discoverable for this account. Tell the user:
 
-> "Nothing showed up in the list. On your **SMEme dashboard**, find the workflow and make sure (1) it's been **published** from the editor, and (2) the **Listed** toggle is **on**. Then I'll try again."
+> "Nothing showed up in the list. On your **SMEme dashboard**, find the decision tree and make sure (1) it's been **published** from the editor, and (2) the **Listed** toggle is **on**. Then I'll try again."
 
 Never fabricate a `qnr_id` to work around an empty list.
 
@@ -302,15 +302,15 @@ Call `smeme_reasoning_capabilities` and report `reasoning.tools`. Present **case
 
 If `reasoning.tools` includes **`smeme_authoring_design_guidance`** /
 **`smeme_authoring_validate_graph`** / **`smeme_authoring_create_draft`**, those
-are for **building** a workflow in chat — they create an **unpublished** workflow
-in the user’s SMEme account (`create_draft` returns `editor_url`). That workflow
+are for **building** a decision tree in chat — they create an **unpublished**
+draft in the user’s SMEme account (`create_draft` returns `editor_url`). That tree
 is **not** ready for evaluate until the user **Deploys** it and sets **Listed**.
-Do not use these tools for case evaluation. Follow **`smeme-workflow-author`**
+Do not use these tools for case evaluation. Follow **`smeme-decision-tree-author`**
 for the build path.
 
 ### Other quick checks
 
-- **Hold the `id` for the session** — once you have a workflow `id` from `smeme_reasoning_list`, keep it in memory for all subsequent tool calls. Do not re-call list on every round-trip.
+- **Hold the `id` for the session** — once you have a decision tree `id` from `smeme_reasoning_list`, keep it in memory for all subsequent tool calls. Do not re-call list on every round-trip.
 - **Same `id` for list and evaluate** — pass the exact `id` from `smeme_reasoning_list` into the evaluate/template tools.
 - **Exact option strings** — answer values must match the worksheet's option labels exactly (case and spacing). When unsure, re-read `template_get`.
 - **Provenance + `harness_next`** — every answered question needs ≥1 evidence ref; validate first; only evaluate when **`harness_next` is `phase_2_ok`** (or after resolving `user_input_needed` / `phase_1_continue`).

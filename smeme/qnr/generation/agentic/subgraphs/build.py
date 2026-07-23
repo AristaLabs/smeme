@@ -1,4 +1,4 @@
-"""Build subgraph for agentic QNR generation.
+"""Build subgraph for agentic decision-tree generation.
 
 Handles graph building, validation, and auto-fix loop.
 Most complex subgraph with internal validation → fix → validation loop (up to 3 iterations).
@@ -34,7 +34,7 @@ from smeme.qnr.generation.agentic.subgraphs.models import (
     BuildSubgraphState,
 )
 from smeme.qnr.helpers.validation import validate_graph_for_generation
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 logger = logging.getLogger("smeme.qnr.generation.agentic")
 
@@ -115,7 +115,7 @@ async def build_graph_node(
     state: BuildSubgraphState,
     config,
 ) -> dict[str, Any]:
-    """Build QNRGraph from markdown design using LLM.
+    """Build DTGraph from markdown design using LLM.
 
     Applies token optimization before calling LLM.
     Includes retry-friendly error handling.
@@ -152,14 +152,14 @@ async def build_graph_node(
         # Import LLM models from helpers (Sprint 6 cleanup)
         from smeme.qnr.generation.agentic.helpers import (
             LLMSimpleGraph,
-            convert_simple_graph_to_qnr_graph,
+            convert_simple_graph_to_dt_graph,
         )
 
         response = await openai_client.beta.chat.completions.parse(
             model=MODEL_BUILD,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "Generate the complete QNRGraph JSON now."},
+                {"role": "user", "content": "Generate the complete DTGraph JSON now."},
             ],
             response_format=LLMSimpleGraph,
             max_completion_tokens=16000,
@@ -167,9 +167,9 @@ async def build_graph_node(
 
         parsed_graph = response.choices[0].message.parsed
 
-        # Convert to full QNRGraph
-        qnr_graph = convert_simple_graph_to_qnr_graph(parsed_graph)
-        generated_graph_dict = qnr_graph.model_dump()
+        # Convert to full DTGraph
+        dt_graph = convert_simple_graph_to_dt_graph(parsed_graph)
+        generated_graph_dict = dt_graph.model_dump()
 
         # Extract token usage
         token_usage = None
@@ -282,8 +282,8 @@ async def validate_graph_node(
         }
 
     try:
-        # Reconstruct QNRGraph from dict
-        qnr_graph = QNRGraph(**state.generated_graph)
+        # Reconstruct DTGraph from dict
+        dt_graph = DTGraph(**state.generated_graph)
 
         # Validate: structural tier-2 + generation branching quality gates
         collect_only_ids = parse_collect_only_question_ids(state.questionnaire_design_edited)
@@ -298,7 +298,7 @@ async def validate_graph_node(
         allowed_frozen = frozenset(allowed_ids) if allowed_ids else None
 
         validation_result = validate_graph_for_generation(
-            qnr_graph,
+            dt_graph,
             collect_only_question_ids=collect_only_ids,
             allowed_conclusion_ids=allowed_frozen,
             allowed_conclusions_parse_ok=parse_ok,
@@ -307,7 +307,7 @@ async def validate_graph_node(
         warnings = validation_result["warnings"]
 
         branching_assessment = assess_branching_quality(
-            qnr_graph,
+            dt_graph,
             collect_only_question_ids=collect_only_ids,
             allowed_conclusion_ids=allowed_frozen,
             allowed_conclusions_parse_ok=parse_ok,
@@ -383,12 +383,12 @@ async def auto_fix_node(
     )
 
     try:
-        # Reconstruct QNRGraph from dict
-        qnr_graph = QNRGraph(**state.generated_graph)
+        # Reconstruct DTGraph from dict
+        dt_graph = DTGraph(**state.generated_graph)
 
         # Apply auto-fix (structural errors only; branching quality is not auto-fixable)
         fixed_graph, _, _, fixes_applied = auto_fix_graph(
-            qnr_graph,
+            dt_graph,
             state.validation_errors,
             state.validation_warnings or [],
         )

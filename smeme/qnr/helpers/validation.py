@@ -1,6 +1,6 @@
 """Graph validation helpers.
 
-Node types in a QNRGraph:
+Node types in a DTGraph:
 - question: Gathers information, can have outgoing edges
 - conclusion: Terminal outcome, no outgoing edges
 
@@ -15,7 +15,7 @@ from collections import deque
 from collections.abc import Callable
 from typing import NotRequired, TypedDict
 
-from smeme.qnr.models import GraphEdge, GraphNode, QNRGraph
+from smeme.qnr.models import DTGraph, GraphEdge, GraphNode
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +183,7 @@ def _issue_rows_for_message(
     return [_row(message, node_for(message))]
 
 
-def _multiple_entry_points_message(graph: QNRGraph) -> str | None:
+def _multiple_entry_points_message(graph: DTGraph) -> str | None:
     """Return a blocking error if more than one node has indegree zero."""
     entry_ids = [n.id for n in graph.get_entry_nodes()]
     if len(entry_ids) <= 1:
@@ -195,7 +195,7 @@ def _multiple_entry_points_message(graph: QNRGraph) -> str | None:
     )
 
 
-def bare_create_node_blocked_message(graph: QNRGraph) -> str | None:
+def bare_create_node_blocked_message(graph: DTGraph) -> str | None:
     """
     Message when POST /create_node would add a question with no incoming edges.
 
@@ -212,9 +212,9 @@ def bare_create_node_blocked_message(graph: QNRGraph) -> str | None:
     )
 
 
-def validate_graph(graph: QNRGraph) -> tuple[bool, str | None]:
+def validate_graph(graph: DTGraph) -> tuple[bool, str | None]:
     """
-    Validate QNR graph structure (strict validation).
+    Validate DTGraph structure (strict validation).
 
     Node types: question and conclusion.
     - Questions gather information and have outgoing edges
@@ -405,32 +405,32 @@ def validate_graph(graph: QNRGraph) -> tuple[bool, str | None]:
     return True, None
 
 
-def get_node_by_id(graph: QNRGraph, node_id: str) -> GraphNode | None:
+def get_node_by_id(graph: DTGraph, node_id: str) -> GraphNode | None:
     """Get node by ID from graph. Uses graph's built-in method."""
     return graph.get_node(node_id)
 
 
-def get_outgoing_edges(graph: QNRGraph, node_id: str) -> list[GraphEdge]:
+def get_outgoing_edges(graph: DTGraph, node_id: str) -> list[GraphEdge]:
     """Get all edges originating from a node. Uses graph's built-in method."""
     return graph.get_outgoing_edges(node_id)
 
 
-def get_incoming_edges(graph: QNRGraph, node_id: str) -> list[GraphEdge]:
+def get_incoming_edges(graph: DTGraph, node_id: str) -> list[GraphEdge]:
     """Get all edges targeting a node. Uses graph's built-in method."""
     return graph.get_incoming_edges(node_id)
 
 
-def has_conditional_edges(graph: QNRGraph, node_id: str) -> bool:
+def has_conditional_edges(graph: DTGraph, node_id: str) -> bool:
     """Check if node has any conditional outgoing edges. Uses graph's built-in method."""
     return graph.has_conditional_edges(node_id)
 
 
-def get_first_question_id(graph: QNRGraph) -> str | None:
+def get_first_question_id(graph: DTGraph) -> str | None:
     """Get ID of the entry node (the unique node with no incoming edges when valid)."""
     return graph.entry_node_id
 
 
-def get_reachable_questions(graph: QNRGraph, responses: dict[str, str]) -> set[str]:
+def get_reachable_questions(graph: DTGraph, responses: dict[str, str]) -> set[str]:
     """
     Traverse the graph from start following the path determined by current responses.
 
@@ -447,7 +447,7 @@ def get_reachable_questions(graph: QNRGraph, responses: dict[str, str]) -> set[s
     3. Continue until we reach the end or path is blocked
 
     Args:
-        graph: The QNR graph structure
+        graph: The DTGraph structure
         responses: Current user responses (question_id -> answer)
 
     Returns:
@@ -542,7 +542,7 @@ def get_reachable_questions(graph: QNRGraph, responses: dict[str, str]) -> set[s
 # =============================================================================
 
 
-def build_node_maps(graph: QNRGraph) -> tuple[dict[str, GraphNode], dict[str, list[str]]]:
+def build_node_maps(graph: DTGraph) -> tuple[dict[str, GraphNode], dict[str, list[str]]]:
     """
     Build optimized node and adjacency maps for graph traversal.
 
@@ -556,12 +556,12 @@ def build_node_maps(graph: QNRGraph) -> tuple[dict[str, GraphNode], dict[str, li
     return node_map, adjacency
 
 
-def get_question_nodes(graph: QNRGraph) -> list[GraphNode]:
+def get_question_nodes(graph: DTGraph) -> list[GraphNode]:
     """Get all question nodes from graph (excludes conclusion nodes)."""
     return graph.get_question_nodes()
 
 
-def get_outgoing_edges_map(graph: QNRGraph) -> dict[str, list[GraphEdge]]:
+def get_outgoing_edges_map(graph: DTGraph) -> dict[str, list[GraphEdge]]:
     """Build map of node_id -> outgoing edges for efficient lookup."""
     edges_map: dict[str, list[GraphEdge]] = {}
     for edge in graph.edges:
@@ -687,7 +687,7 @@ def _validate_question_options(nodes: list[GraphNode], ctx: _ValidationContext) 
 
 
 def _validate_edge_conditions(
-    nodes: list[GraphNode], graph: QNRGraph, ctx: _ValidationContext
+    nodes: list[GraphNode], graph: DTGraph, ctx: _ValidationContext
 ) -> None:
     """Validate edge conditions for all nodes.
 
@@ -740,7 +740,7 @@ def _validate_edge_conditions(
 
 
 def _validate_graph_structure(
-    graph: QNRGraph, nodes: list[GraphNode], ctx: _ValidationContext
+    graph: DTGraph, nodes: list[GraphNode], ctx: _ValidationContext
 ) -> None:
     """Validate graph structure and add warnings for potential issues.
 
@@ -975,7 +975,7 @@ def _validate_graph_structure(
 # =============================================================================
 
 
-def has_cycle(graph: QNRGraph) -> tuple[bool, str | None]:
+def has_cycle(graph: DTGraph) -> tuple[bool, str | None]:
     """
     Detect cycles in the graph using DFS with path tracking.
 
@@ -1028,7 +1028,7 @@ def has_cycle(graph: QNRGraph) -> tuple[bool, str | None]:
     return False, None
 
 
-def find_orphaned_nodes(graph: QNRGraph) -> list[str]:
+def find_orphaned_nodes(graph: DTGraph) -> list[str]:
     """
     Find nodes that are unreachable from any entry point using BFS.
 
@@ -1064,7 +1064,7 @@ def find_orphaned_nodes(graph: QNRGraph) -> list[str]:
     return sorted(orphaned)
 
 
-def _validate_basic_structure(graph: QNRGraph, ctx: _ValidationContext) -> bool:
+def _validate_basic_structure(graph: DTGraph, ctx: _ValidationContext) -> bool:
     """Validate basic graph structure. Returns True if valid, False if critical errors."""
     if not graph.nodes:
         ctx.error(
@@ -1075,7 +1075,7 @@ def _validate_basic_structure(graph: QNRGraph, ctx: _ValidationContext) -> bool:
     return True
 
 
-def _validate_node_integrity(graph: QNRGraph, ctx: _ValidationContext) -> None:
+def _validate_node_integrity(graph: DTGraph, ctx: _ValidationContext) -> None:
     """Validate node-level integrity issues."""
     node_ids = {node.id for node in graph.nodes}
 
@@ -1100,7 +1100,7 @@ def _validate_node_integrity(graph: QNRGraph, ctx: _ValidationContext) -> None:
         )
 
 
-def _validate_edge_integrity(graph: QNRGraph, ctx: _ValidationContext) -> None:
+def _validate_edge_integrity(graph: DTGraph, ctx: _ValidationContext) -> None:
     """Validate edge-level integrity issues."""
     node_ids = graph.node_ids
 
@@ -1153,7 +1153,7 @@ def _validate_edge_integrity(graph: QNRGraph, ctx: _ValidationContext) -> None:
 
 
 def validate_graph_for_generation(
-    graph: QNRGraph,
+    graph: DTGraph,
     *,
     collect_only_question_ids: frozenset[str] | None = None,
     allowed_conclusion_ids: frozenset[str] | None = None,
@@ -1202,7 +1202,7 @@ def validate_graph_for_generation(
     return result
 
 
-def validate_graph_for_editing(graph: QNRGraph) -> ValidationResult:
+def validate_graph_for_editing(graph: DTGraph) -> ValidationResult:
     """
     Tier-2 validation: Lenient validation for draft editing.
 
@@ -1252,7 +1252,7 @@ def validate_graph_for_editing(graph: QNRGraph) -> ValidationResult:
     return ctx.to_result(is_valid=True)
 
 
-def validate_graph_for_publication(graph: QNRGraph) -> tuple[bool, list[str]]:
+def validate_graph_for_publication(graph: DTGraph) -> tuple[bool, list[str]]:
     """
     Tier-3 validation: Strict validation before preview/publish.
 
@@ -1293,7 +1293,7 @@ def build_validation_issue_rows(
     errors: list[str],
     warnings: list[str],
     *,
-    graph: QNRGraph | None = None,
+    graph: DTGraph | None = None,
     suggestions: dict[str, str] | None = None,
 ) -> list[ValidationIssueRow]:
     """Flat issue list for sidebar jump-to-node (errors first, then warnings)."""
@@ -1330,7 +1330,7 @@ def build_validation_issue_rows(
     return rows
 
 
-def get_node_validation_status(graph: QNRGraph) -> dict[str, NodeValidationStatus]:
+def get_node_validation_status(graph: DTGraph) -> dict[str, NodeValidationStatus]:
     """
     Extract node-specific validation issues from graph validation.
 

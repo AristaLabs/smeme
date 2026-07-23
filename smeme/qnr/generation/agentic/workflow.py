@@ -1,4 +1,4 @@
-"""LangGraph workflow for agentic QNR generation.
+"""LangGraph workflow for agentic decision-tree generation.
 
 Orchestrates the 3-phase workflow with separate conclusion extraction:
 - Phase 1: Search + Factor Analysis → User edits factors
@@ -505,7 +505,7 @@ async def save_qnr_node(
     config: RunnableConfig,
 ) -> dict:
     """
-    Save QNRGraph to database.
+    Save DTGraph to database.
 
     Always saves, even if there are remaining errors (user can fix in editor).
     Moved from nodes/build.py during Sprint 6 cleanup.
@@ -913,7 +913,7 @@ def route_after_research_edit(state: AgenticQNRGenerationState) -> str:
 
 def build_agentic_generation_workflow() -> StateGraph:
     """
-    Build and compile the agentic QNR generation workflow with subgraph architecture.
+    Build and compile the agentic decision-tree generation workflow with subgraph architecture.
 
     3-Phase Flow with Research Subgraph (Option A - Conditional Routing):
         START

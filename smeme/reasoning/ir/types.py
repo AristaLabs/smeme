@@ -74,7 +74,7 @@ class IREdge:
 
 @dataclass(frozen=True, slots=True)
 class IR:
-    """Compiled intermediate representation of a QNR graph."""
+    """Compiled intermediate representation of a DTGraph."""
 
     format_version: int
     nodes: tuple[IRNode, ...]

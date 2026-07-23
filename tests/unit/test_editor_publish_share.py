@@ -14,7 +14,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -27,7 +27,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 def _publishable_graph() -> dict:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -47,7 +47,7 @@ def _publishable_graph() -> dict:
 
 
 def _mock_ready_readiness() -> PublishReadiness:
-    graph = QNRGraph.model_validate(_publishable_graph())
+    graph = DTGraph.model_validate(_publishable_graph())
     ir = compile_qnr_to_ir(graph)
     return PublishReadiness(
         ready=True,

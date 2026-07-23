@@ -8,7 +8,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -133,9 +133,9 @@ def test_enumerate_conclusion_sat_queries_parallel_calls_do_not_crash():
         assert pairs == expected.conclusion_pairs_co_reachable
 
 
-def test_enumerate_conclusion_sat_queries_from_compiled_qnr_graph():
-    """End-to-end: QNRGraph → IR → validate → enumeration + witness."""
-    g = QNRGraph(
+def test_enumerate_conclusion_sat_queries_from_compiled_dt_graph():
+    """End-to-end: DTGraph → IR → validate → enumeration + witness."""
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

@@ -4,16 +4,16 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
 from smeme.qnr.viewer.layout import linear_node_ids_for_layout, ordered_nodes_for_checklist
 
 
-def _branching_graph() -> QNRGraph:
+def _branching_graph() -> DTGraph:
     """Same shape as multi_edge_graph in test_graph_operations."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -62,7 +62,7 @@ def _branching_graph() -> QNRGraph:
 
 
 def test_linear_node_ids_empty_graph():
-    g = QNRGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+    g = DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
     assert linear_node_ids_for_layout(g) == []
     assert ordered_nodes_for_checklist(g) == []
 

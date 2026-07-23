@@ -6,7 +6,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -19,7 +19,7 @@ from smeme.reasoning.ir.types import IR_FORMAT_VERSION
 
 def test_deterministic_glosses_identity_options_and_lexical_without_corpus() -> None:
     """No snapshot → empty manifest; glosses and identity paraphrases still emitted."""
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -65,7 +65,7 @@ def test_deterministic_glosses_identity_options_and_lexical_without_corpus() -> 
 
 def test_skips_empty_question_gloss_but_keeps_options() -> None:
     """Whitespace-only stem → no gloss row; options + lexical still emitted."""
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -96,7 +96,7 @@ def test_skips_empty_question_gloss_but_keeps_options() -> None:
 
 def test_attributed_chunk_ids_only_when_corpus_overlaps_question_cues() -> None:
     """Narrow attribution: cite chunks whose text overlaps stem tokens or option labels."""
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -130,7 +130,7 @@ def test_attributed_chunk_ids_only_when_corpus_overlaps_question_cues() -> None:
 
 def test_corpus_attribution_miss_when_manifest_nonempty_but_no_overlap() -> None:
     """Non-empty manifest + authored cues that never appear in chunk text → warn + empty ids."""
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -162,7 +162,7 @@ def test_corpus_attribution_miss_when_manifest_nonempty_but_no_overlap() -> None
 
 
 def test_conclusion_attribution_matches_title_blob_in_corpus() -> None:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="c1",

@@ -1,4 +1,4 @@
-"""LLM prompts for agentic QNR generation.
+"""LLM prompts for agentic decision-tree generation.
 
 These are skeleton prompts - iterate based on real outputs during development.
 See docs/AGENTIC_QNR_GENERATION_PLAN.md for design rationale.
@@ -534,10 +534,10 @@ Design the complete questionnaire now.
 """
 
 # =============================================================================
-# Phase 3: Build QNRGraph from Markdown
+# Phase 3: Build DTGraph from Markdown
 # =============================================================================
 
-BUILD_GRAPH_PROMPT = """Convert the markdown questionnaire into a QNRGraph JSON structure.
+BUILD_GRAPH_PROMPT = """Convert the markdown questionnaire into a DTGraph JSON structure.
 
 ## Input Markdown
 {questionnaire_design_edited}
@@ -783,5 +783,5 @@ Before generating, verify:
 - [ ] Metadata object with title is present
 - [ ] Conclusion nodes have: title, summary, recommendations (list), severity
 
-Generate the complete QNRGraph JSON now.
+Generate the complete DTGraph JSON now.
 """

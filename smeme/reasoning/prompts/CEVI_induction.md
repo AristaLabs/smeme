@@ -5,7 +5,7 @@ This is the build-time compiler prompt for the research corpus used during QNR a
 
 ## Task
 
-Compile the provided **research corpus** (the same source material used during SME `qnr_graph` generation) into a **Canonical Evidence Vocabulary Interface (CEVI)**.
+Compile the provided **research corpus** (the same source material used during SME `dt_graph` generation) into a **Canonical Evidence Vocabulary Interface (CEVI)**.
 
 This workflow is the **evidence normalization compiler**.
 

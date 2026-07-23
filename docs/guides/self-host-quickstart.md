@@ -42,7 +42,7 @@ Self-host keeps **Deploy / evaluate / MCP report** on your infrastructure by def
 | **High if re-enabled** | LangSmith (`LANGCHAIN_*`) | Full LangGraph run I/O (prompts, state) → **LangSmith** | **Hard-disabled** at startup — keys have no effect |
 | **Medium — identity** | `CLERK_*` | Auth sessions, user profile sync, OAuth for MCP → **Clerk** (not your trees, but PII/login) | Operator-chosen |
 | **Low / none for trees** | `MCP_ENABLED` + evaluate tools | Answers + reports stay on **your** server; agents do not receive branch topology | Off until you enable |
-| **Low for trees** | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Server-owned design guidance / validate / create draft — **no OpenAI** in the current MCP authoring path | Off |
+| **Low for trees** | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Server-owned design guidance / validate / create draft — **no OpenAI** in the current MCP authoring path | On when `MCP_ENABLED` (set `false` to opt out) |
 | **None (trees)** | Manual editor + Deploy + Z3 evaluate | Compiles and reasons locally (Postgres + Z3 in-process) | Always available |
 
 **Sovereignty-preserving Core profile** (no decision-tree content to LLM/search vendors):
@@ -54,7 +54,9 @@ MCP_ENABLED=true   # optional; still on your host
 # configure Clerk (or future OIDC) only for login / MCP OAuth
 ```
 
-Authors build trees in the **editor**; agents call MCP evaluate on your instance.
+Authors build trees in the **editor** (or via the web wizard / MCP chat authoring
+path — see [Authoring decision trees](authoring-decision-trees.md)); agents call
+MCP evaluate on your instance.
 
 **LangSmith note:** the old `tracing.py` helpers were removed. Getting LangSmith working again is not “drop tracing.py back in” alone — you must stop (or gate) `disable_langsmith_tracing()`, set `LANGCHAIN_TRACING_V2` + API key, and accept that generation traces export workflow I/O. Optional metadata helpers can be re-added later; they are not the main switch.
 
@@ -71,7 +73,7 @@ Authors build trees in the **editor**; agents call MCP evaluate on your instance
 | | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | Usually `false` for self-host with a static OAuth client |
 | **MCP** | `MCP_ENABLED` | Streamable HTTP MCP + discovery |
 | | `MCP_HTTP_PATH` | Default `/api/v1/mcp` |
-| | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Chat authoring tools (`smeme_authoring_*`); default off |
+| | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Chat authoring tools (`smeme_authoring_*`); on when MCP is enabled; set `false` to opt out |
 | | `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` | Static client allowlist when DCR is off |
 | | `SMEME_MCP_OAUTH_ACCESS_TOKEN_AUDIENCE` | Optional `aud` binding |
 | | Transport rate limits / invocation telemetry | See `.env.core.example` |
@@ -81,6 +83,8 @@ Authors build trees in the **editor**; agents call MCP evaluate on your instance
 
 Vendor billing, analytics, waitlist, and cost-accounting settings are not part
 of Core compose.
+
+Full authoring comparison (wizard vs MCP chat, DTGraph shape, egress): [Authoring decision trees](authoring-decision-trees.md).
 
 ## Enable AI generation (with optional Tavily)
 
@@ -108,7 +112,7 @@ docker compose -f docker-compose.core.yml up --build
 1. Configure Clerk (or your OIDC AS) per [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md).
 2. In `.env.core`: `MCP_ENABLED=true`, set `BASE_URL` to your public HTTPS origin, fill `CLERK_*`.
 3. For DCR-off + a static OAuth client: set `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` to that client id; keep `CLERK_OAUTH_DYNAMIC_REGISTRATION=false`.
-4. Optionally set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true` for chat authoring tools.
+4. Authoring tools (`smeme_authoring_*`) are registered when MCP is enabled. Set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false` only if you want to disable them.
 5. Restart the `web` service.
 
 **How agents get guidance:** there is no plugin zip to download. After OAuth, the

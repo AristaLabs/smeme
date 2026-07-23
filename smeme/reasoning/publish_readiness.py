@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import dataclass, field
 
 from smeme.qnr.helpers.validation import validate_graph_for_publication
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.ir.types import IR
@@ -45,7 +45,7 @@ class PublishReadiness:
         return self.preflight_issues
 
 
-def assess_publish_readiness_sync(graph: QNRGraph) -> PublishReadiness:
+def assess_publish_readiness_sync(graph: DTGraph) -> PublishReadiness:
     """Run the publish gate synchronously (CPU-bound; prefer :func:`assess_publish_readiness` in async code)."""
     ok, errors = validate_graph_for_publication(graph)
     if not ok:
@@ -109,6 +109,6 @@ def assess_publish_readiness_sync(graph: QNRGraph) -> PublishReadiness:
     )
 
 
-async def assess_publish_readiness(graph: QNRGraph) -> PublishReadiness:
+async def assess_publish_readiness(graph: DTGraph) -> PublishReadiness:
     """Async wrapper (Z3 work runs off the event loop)."""
     return await asyncio.to_thread(assess_publish_readiness_sync, graph)

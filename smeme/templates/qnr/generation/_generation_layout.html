@@ -475,7 +475,7 @@ function initResearchStream() {
         }
     };
     researchStreamSource.onerror = function() {
-        if (!sawComplete && statusEl) statusEl.textContent = 'Connection lost — check in-progress workflows to resume.';
+        if (!sawComplete && statusEl) statusEl.textContent = 'Connection lost — check in-progress wizard drafts on your dashboard to resume.';
     };
 }
 

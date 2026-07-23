@@ -53,7 +53,7 @@ async def view_editor_page(
     view: str | None = None,
 ) -> HTMLResponse:
     """
-    Render QNR graph editor page (read-only visualization).
+    Render DTGraph editor page (read-only visualization).
 
     This is the main entry point for the editor interface.
     Runs the Viewer Workflow to generate the visualization.

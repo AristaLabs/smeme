@@ -27,16 +27,16 @@ from smeme.mcp.reasoning_fastmcp import (
 from smeme.qnr.helpers.validation import validate_graph_for_editing
 from smeme.qnr.models import (
     ConclusionData,
+    DTGraph,
     GraphEdge,
     GraphNode,
-    QNRGraph,
     QNRMetadata,
     QuestionData,
 )
 
 
 def _minimal_graph(title: str = "Vendor Check") -> dict:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -97,7 +97,7 @@ class TestAuthoringGraphHelpers:
         assert json.loads(err)["error"]["code"] == "payload_too_large"
 
     def test_validation_payload_draft_ready(self) -> None:
-        graph = QNRGraph.model_validate(_minimal_graph())
+        graph = DTGraph.model_validate(_minimal_graph())
         result = validate_graph_for_editing(graph)
         body = validation_payload(graph, result)
         assert body["draft_ready"] is True
@@ -106,8 +106,21 @@ class TestAuthoringGraphHelpers:
 
 
 class TestAuthoringGraphCapabilities:
-    def test_tools_absent_by_default(self) -> None:
+    def test_tools_present_by_default(self) -> None:
         doc = reasoning_capabilities_document()
+        tools = doc["reasoning"]["tools"]
+        assert "smeme_authoring_validate_graph" in tools
+        assert "smeme_authoring_create_draft" in tools
+        assert "smeme_authoring_design_guidance" in tools
+        assert "authoring_graph" in doc
+        assert "authoring_design" in doc
+
+    def test_tools_absent_when_opted_out(self) -> None:
+        from smeme.core.config import Settings
+
+        mock_settings = MagicMock(spec=Settings)
+        mock_settings.mcp_authoring_graph_tools_enabled = False
+        doc = reasoning_capabilities_document(cap_settings=mock_settings)
         tools = doc["reasoning"]["tools"]
         assert "smeme_authoring_validate_graph" not in tools
         assert "smeme_authoring_create_draft" not in tools
@@ -128,6 +141,27 @@ class TestAuthoringGraphCapabilities:
         assert doc["authoring_graph"]["validate"] == "smeme_authoring_validate_graph"
         assert doc["authoring_graph"]["design_guidance"] == "smeme_authoring_design_guidance"
         assert "authoring_design" in doc
+
+
+class TestAuthoringGraphToolSchemas:
+    @pytest.mark.asyncio
+    async def test_validate_and_create_draft_require_dt_graph_json(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        reset_mcp_runtime_for_tests()
+        monkeypatch.setattr("smeme.core.config.settings.mcp_authoring_graph_tools_enabled", True)
+
+        from smeme.mcp.reasoning_fastmcp import get_or_create_fastmcp
+
+        fm = get_or_create_fastmcp()
+        tools = await fm.list_tools()
+        by_name = {t.name: t for t in tools}
+
+        for tool_name in ("smeme_authoring_validate_graph", "smeme_authoring_create_draft"):
+            schema = by_name[tool_name].inputSchema
+            assert "dt_graph_json" in schema.get("properties", {})
+            assert "dt_graph_json" in schema.get("required", [])
+            assert "qnr_graph_json" not in schema.get("properties", {})
 
 
 class TestAuthoringGraphQuota:

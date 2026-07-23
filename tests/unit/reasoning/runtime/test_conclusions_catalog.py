@@ -8,7 +8,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -19,8 +19,8 @@ from smeme.reasoning.runtime.conclusions_catalog import build_conclusions_catalo
 _QNR_ID = UUID("00000000-0000-4000-8000-000000000001")
 
 
-def _exclusive_two_outcome_graph() -> QNRGraph:
-    return QNRGraph(
+def _exclusive_two_outcome_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

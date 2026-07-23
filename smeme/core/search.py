@@ -1,6 +1,6 @@
 """Tavily search client dependency injection.
 
-Provides web search capabilities for agentic QNR generation.
+Provides web search capabilities for agentic decision-tree generation.
 """
 
 from functools import lru_cache
@@ -38,7 +38,7 @@ def get_tavily_client() -> AsyncTavilyClient:
     if not settings.tavily_api_key:
         raise TavilyNotConfiguredError(
             "TAVILY_API_KEY not configured. "
-            "Set it in .env to enable agentic QNR generation with web search."
+            "Set it in .env to enable agentic decision-tree generation with web search."
         )
 
     return AsyncTavilyClient(api_key=settings.tavily_api_key)

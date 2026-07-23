@@ -1,0 +1,5 @@
+# One full line per allowlisted source line (exact match after strip).
+# Prefer fixing copy; use only for execution-context or wire-id lines the scanner cannot infer.
+
+# MCP reasoning guidance (agent-skills source) — evaluate path still uses workflow in places; migrate separately.
+# smeme/mcp/_generated_guidance.py is not scanned (generated artifact).

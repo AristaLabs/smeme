@@ -16,12 +16,12 @@
     {% endif %}
 
     {% if is_read_only %}
-    {% call callout("info" if is_public else "warning", title=("Read-Only View (Public Workflow)" if is_public else "Read-Only View (Previously Public)"), extra_class="mb-4") %}
+    {% call callout("info" if is_public else "warning", title=("Read-Only View (Public Decision Tree)" if is_public else "Read-Only View (Previously Public)"), extra_class="mb-4") %}
       <p class="mb-3">
         {% if is_public %}
-          This workflow is public and cannot be edited. Create a new version to make changes.
+          This decision tree is public and cannot be edited. Create a new version to make changes.
         {% else %}
-          This workflow was previously public and cannot be edited. Create a new version to make changes, or deploy as-is.
+          This decision tree was previously public and cannot be edited. Create a new version to make changes, or deploy as-is.
         {% endif %}
       </p>
       <div class="flex flex-wrap gap-2">

@@ -1,8 +1,8 @@
-"""Deterministic QNRGraph → IR compilation (structure + question shape for guard semantics)."""
+"""Deterministic DTGraph → IR compilation (structure + question shape for guard semantics)."""
 
 from __future__ import annotations
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 from smeme.reasoning.ir.types import (
     DEFAULT_GUARD_EXPR,
     IR,
@@ -15,7 +15,7 @@ from smeme.reasoning.ir.types import (
 )
 
 
-def _node_kind(graph: QNRGraph, node_id: str) -> IRNodeKind:
+def _node_kind(graph: DTGraph, node_id: str) -> IRNodeKind:
     node = graph.get_node(node_id)
     if node is None:
         msg = "Unknown node id: " + repr(node_id)
@@ -25,7 +25,7 @@ def _node_kind(graph: QNRGraph, node_id: str) -> IRNodeKind:
     return IRNodeKind.QUESTION
 
 
-def _question_shape(graph: QNRGraph, node_id: str) -> IRQuestionShape:
+def _question_shape(graph: DTGraph, node_id: str) -> IRQuestionShape:
     node = graph.get_node(node_id)
     if not node or not node.is_question():
         msg = "Expected question node: " + repr(node_id)
@@ -44,16 +44,16 @@ def _question_shape(graph: QNRGraph, node_id: str) -> IRQuestionShape:
     return IRQuestionShape(qtype="radio", options=opts)
 
 
-def _ir_node(graph: QNRGraph, node_id: str) -> IRNode:
+def _ir_node(graph: DTGraph, node_id: str) -> IRNode:
     kind = _node_kind(graph, node_id)
     if kind == IRNodeKind.CONCLUSION:
         return IRNode(id=node_id, kind=kind, question=None)
     return IRNode(id=node_id, kind=kind, question=_question_shape(graph, node_id))
 
 
-def compile_qnr_to_ir(graph: QNRGraph) -> IR:
+def compile_qnr_to_ir(graph: DTGraph) -> IR:
     """
-    Map a QNR graph to IR: nodes (with question shape), one guard per edge, sorted for stability.
+    Map a DTGraph to IR: nodes (with question shape), one guard per edge, sorted for stability.
 
     Edge order: (source, target, expr) lexicographically. Guard ids are ``g_000000``, ``g_000001``, …
     in that order. Node order: sorted by id.

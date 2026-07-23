@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 async def load_qnr_node(state: QNREditorState, config: RunnableConfig) -> dict[str, Any]:
     """
-    Node 1: Load QNR graph from database (no cache).
+    Node 1: Load DTGraph from database (no cache).
 
     Editor workflow ALWAYS loads fresh data from the database to ensure
     concurrency safety and authoritative source.
@@ -95,11 +95,11 @@ async def apply_operation_node(state: QNREditorState, config: RunnableConfig) ->
         # Apply operation (returns modified graph)
         modified_graph = apply_operation(graph, operation, operation_data)
 
-        # Ensure we have a QNRGraph instance
-        from smeme.qnr.models import QNRGraph
+        # Ensure we have a DTGraph instance
+        from smeme.qnr.models import DTGraph
 
-        if not isinstance(modified_graph, QNRGraph):
-            modified_graph = QNRGraph.model_validate(modified_graph)
+        if not isinstance(modified_graph, DTGraph):
+            modified_graph = DTGraph.model_validate(modified_graph)
 
         logger.info(
             "Operation applied successfully",
@@ -210,9 +210,9 @@ async def save_to_db_node(state: QNREditorState, config: RunnableConfig) -> dict
 
         # Update graph_data
         # Ensure saving dict form
-        from smeme.qnr.models import QNRGraph
+        from smeme.qnr.models import DTGraph
 
-        graph_dict = graph.model_dump() if isinstance(graph, QNRGraph) else graph
+        graph_dict = graph.model_dump() if isinstance(graph, DTGraph) else graph
         qnr.graph_data = graph_dict
 
         # Mark JSONB field as modified (SQLAlchemy requirement)

@@ -12,15 +12,15 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
 
 
-def _funnel_graph() -> QNRGraph:
+def _funnel_graph() -> DTGraph:
     """q3 has three edges that all target q4 (Georgia-style pseudo-branching)."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -94,9 +94,9 @@ def _funnel_graph() -> QNRGraph:
     )
 
 
-def _prefix_funnel_graph() -> QNRGraph:
+def _prefix_funnel_graph() -> DTGraph:
     """Q1→Q2→Q3→Q4 pass-through with no early split."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -138,9 +138,9 @@ def _prefix_funnel_graph() -> QNRGraph:
     )
 
 
-def _intake_then_branch_graph() -> QNRGraph:
+def _intake_then_branch_graph() -> DTGraph:
     """Q1 single-target intake is OK when Q2 splits."""
-    return QNRGraph(
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -178,8 +178,8 @@ def _intake_then_branch_graph() -> QNRGraph:
     )
 
 
-def _branching_graph() -> QNRGraph:
-    return QNRGraph(
+def _branching_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -289,7 +289,7 @@ def test_collect_only_skips_fake_branching_error():
 - **Options**: High, Low
 """
     collect_only_ids = parse_collect_only_question_ids(design)
-    graph = QNRGraph(
+    graph = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

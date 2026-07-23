@@ -19,16 +19,16 @@ from smeme.mcp.reasoning_template_worksheet import (
 )
 from smeme.qnr.models import (
     ConclusionData,
+    DTGraph,
     GraphEdge,
     GraphNode,
-    QNRGraph,
     QNRMetadata,
     QuestionData,
 )
 
 
-def _golden_radio_graph() -> QNRGraph:
-    return QNRGraph(
+def _golden_radio_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -67,13 +67,13 @@ def test_manifest_core_digest_changes_when_label_changes() -> None:
     assert q1.question_data is not None
     qd = q1.question_data.model_copy(update={"text": "Pick differently"})
     nodes[0] = GraphNode(id=q1.id, type=q1.type, data=qd)
-    g2 = QNRGraph(nodes=nodes, edges=g.edges, metadata=g.metadata)
+    g2 = DTGraph(nodes=nodes, edges=g.edges, metadata=g.metadata)
     m2 = build_manifest_core(g2, _GOLDEN_QNR_ID)
     assert manifest_core_digest(m1) != manifest_core_digest(m2)
 
 
 def test_options_sorted_lexicographically_in_manifest() -> None:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="z",
@@ -101,7 +101,7 @@ def test_options_sorted_lexicographically_in_manifest() -> None:
 
 def test_nfc_question_label_normalization_stable_digest() -> None:
     """NFC vs NFD for the same logical question label — manifest normalizes; digest matches."""
-    g1 = QNRGraph(
+    g1 = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -123,7 +123,7 @@ def test_nfc_question_label_normalization_stable_digest() -> None:
         metadata=QNRMetadata(title="t"),
     )
     # NFD for é in question label
-    g2 = QNRGraph(
+    g2 = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -194,7 +194,7 @@ def test_safe_worksheet_slug() -> None:
 
 
 def test_radio_question_has_options_in_manifest() -> None:
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="t1",

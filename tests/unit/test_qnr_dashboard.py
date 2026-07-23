@@ -33,14 +33,14 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 def _minimal_graph(title: str = "Test QNR") -> dict:
     from smeme.qnr.models import (
         ConclusionData,
+        DTGraph,
         GraphEdge,
         GraphNode,
-        QNRGraph,
         QNRMetadata,
         QuestionData,
     )
 
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -207,7 +207,8 @@ async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs")
     assert r.status_code == 200
-    assert b"Deploy" in r.content and b"Listed" in r.content
+    assert b"Deploy" in r.content
+    assert b"Listed" in r.content
     from smeme.docs.constants import DOCS_VERSION
 
     assert DOCS_VERSION.encode() in r.content
@@ -237,7 +238,8 @@ async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard
     assert r.status_code == 200
     assert b"Deploy, validate" in r.content
     assert b"How to fix" in r.content
-    assert b"Live" in r.content and b"Stale" in r.content
+    assert b"Live" in r.content
+    assert b"Stale" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
 
@@ -251,9 +253,80 @@ async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs/download-workflow")
     assert r.status_code == 200
-    assert b"Download your workflow" in r.content
+    assert b"Download your decision tree" in r.content
     assert b"smeme_export_version" in r.content
     assert b"Re-import" in r.content
+
+
+async def test_dashboard_empty_state_wizard_disabled_no_wizard_link(
+    client, app_with_db, test_session_factory, monkeypatch
+):
+    """When AI generation is off, empty dashboard must not link to wizard-start."""
+    uid = uuid4().hex[:8]
+    async with test_session_factory() as session:
+        user = User(
+            email=f"empty_{uid}@example.com",
+            hashed_password="unused",
+            is_active=True,
+            is_verified=True,
+            is_superuser=False,
+            username=f"empty_{uid}",
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+    monkeypatch.setattr("smeme.qnr.routes.settings.smeme_ai_generation_enabled", False)
+    monkeypatch.setattr("smeme.qnr.routes.settings.mcp_enabled", True)
+    monkeypatch.setattr("smeme.qnr.routes.settings.mcp_authoring_graph_tools_enabled", True)
+
+    with auth_as(app_with_db, user):
+        r = await client.get("/qnr/dashboard")
+
+    assert r.status_code == 200
+    assert b"No decision trees yet" in r.content
+    assert b"Web wizard is disabled on this server" in r.content
+    assert b"SMEME_AI_GENERATION_ENABLED" in r.content
+    assert b"MCP chat" in r.content or b"MCP authoring" in r.content
+    assert b"/qnr/agentic/wizard-start" not in r.content
+
+    async with test_session_factory() as session:
+        await session.execute(delete(User).where(User.id == user.id))
+        await session.commit()
+
+
+async def test_dashboard_empty_state_mcp_authoring_disabled_copy(
+    client, app_with_db, test_session_factory, monkeypatch
+):
+    """When MCP authoring is off, empty dashboard mentions enabling authoring tools."""
+    uid = uuid4().hex[:8]
+    async with test_session_factory() as session:
+        user = User(
+            email=f"mcpoff_{uid}@example.com",
+            hashed_password="unused",
+            is_active=True,
+            is_verified=True,
+            is_superuser=False,
+            username=f"mcpoff_{uid}",
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+    monkeypatch.setattr("smeme.qnr.routes.settings.smeme_ai_generation_enabled", False)
+    monkeypatch.setattr("smeme.qnr.routes.settings.mcp_enabled", False)
+    monkeypatch.setattr("smeme.qnr.routes.settings.mcp_authoring_graph_tools_enabled", False)
+
+    with auth_as(app_with_db, user):
+        r = await client.get("/qnr/dashboard")
+
+    assert r.status_code == 200
+    assert b"enabling MCP authoring tools" in r.content
+    assert b"/qnr/agentic/wizard-start" not in r.content
+
+    async with test_session_factory() as session:
+        await session.execute(delete(User).where(User.id == user.id))
+        await session.commit()
 
 
 async def test_docs_mcp_requires_auth(client):

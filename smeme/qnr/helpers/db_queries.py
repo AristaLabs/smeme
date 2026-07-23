@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
 from smeme.core.models import QNR, QnrResearchCorpus, QNRSession
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 logger = logging.getLogger(__name__)
 
@@ -94,10 +94,10 @@ async def list_user_sessions(db: AsyncSession, user_id: UUID, limit: int = 20) -
     return list(result.scalars().all())
 
 
-def parse_graph_data(qnr: QNR) -> QNRGraph:
-    """Parse QNR graph_data into validated QNRGraph model."""
+def parse_graph_data(qnr: QNR) -> DTGraph:
+    """Parse QNR.graph_data into validated DTGraph model."""
     # QNR.graph_data is already a dict from JSON column
-    return QNRGraph.model_validate(qnr.graph_data)
+    return DTGraph.model_validate(qnr.graph_data)
 
 
 async def get_current_public_qnrs(db: AsyncSession, limit: int = 50, offset: int = 0) -> list[QNR]:

@@ -1,43 +1,43 @@
-"""Caching helpers for QNR graphs using aiocache."""
+"""Caching helpers for DTGraphs using aiocache."""
 
 from uuid import UUID
 
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
-# In-memory cache for QNR graphs (1 hour TTL)
+# In-memory cache for DTGraphs (1 hour TTL)
 # TODO: Move to Redis when scaling
 qnr_cache = Cache(
     Cache.MEMORY,
     serializer=PickleSerializer(),
     ttl=3600,  # 1 hour
-    namespace="qnr_graphs",
+    namespace="dt_graphs",
 )
 
 
-async def get_cached_graph(qnr_id: UUID) -> QNRGraph | None:
+async def get_cached_graph(qnr_id: UUID) -> DTGraph | None:
     """
-    Get QNR graph from cache.
+    Get DTGraph from cache.
 
     Args:
         qnr_id: QNR UUID
 
     Returns:
-        Cached QNRGraph or None if not in cache
+        Cached DTGraph or None if not in cache
     """
     key = f"graph_{str(qnr_id)}"
     return await qnr_cache.get(key)
 
 
-async def cache_graph(qnr_id: UUID, graph: QNRGraph) -> None:
+async def cache_graph(qnr_id: UUID, graph: DTGraph) -> None:
     """
-    Cache QNR graph.
+    Cache DTGraph.
 
     Args:
         qnr_id: QNR UUID
-        graph: QNRGraph to cache
+        graph: DTGraph to cache
     """
     key = f"graph_{str(qnr_id)}"
     await qnr_cache.set(key, graph)
@@ -55,5 +55,5 @@ async def invalidate_graph_cache(qnr_id: UUID) -> None:
 
 
 async def clear_all_graph_cache() -> None:
-    """Clear entire QNR graph cache."""
+    """Clear entire DTGraph cache."""
     await qnr_cache.clear()

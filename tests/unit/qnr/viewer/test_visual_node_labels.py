@@ -4,7 +4,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -61,7 +61,7 @@ def test_visual_node_tooltip_includes_id_when_display_differs() -> None:
 
 
 def test_calculate_layout_uses_question_text_label() -> None:
-    graph = QNRGraph(
+    graph = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

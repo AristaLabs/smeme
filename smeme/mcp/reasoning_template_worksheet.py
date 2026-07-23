@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 # v1: max UTF-8 bytes for ``manifest_markdown`` or total success JSON from ``template_get`` (512 KiB).
 REASONING_TEMPLATE_SUCCESS_MAX_UTF8_BYTES = 512 * 1024
@@ -44,7 +44,7 @@ def manifest_core_digest(manifest_core: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_manifest_core_json_utf8(manifest_core)).hexdigest()
 
 
-def build_manifest_core(graph: QNRGraph, qnr_id: UUID) -> dict[str, Any]:
+def build_manifest_core(graph: DTGraph, qnr_id: UUID) -> dict[str, Any]:
     """Frozen machine manifest from question nodes only (live ``graph_data`` projection)."""
     qnodes = sorted(
         (n for n in graph.nodes if n.type == "question"),
@@ -144,7 +144,7 @@ def render_manifest_markdown(
         "",
         "## Answer formatting",
         "",
-        "Published questionnaires are **radio-only**: each question has a finite option set. "
+        "Published decision trees are **radio-only**: each question has a finite option set. "
         "For **`smeme_reasoning_evaluate`**, set `raw_answers[<question_id>]` to **one** option "
         "string **exactly** as listed above (case and spacing must match). Do not send checkbox "
         "arrays or arbitrary free-form types.",

@@ -3,14 +3,14 @@ name: smeme-reasoning-manifest-{{SLUG}}
 description: >-
   UNFILLED TEMPLATE — do not invoke as a skill until generated from SMEme publish output;
   placeholders like {{SLUG}} must be replaced. After fill: flat question manifest for
-  the SMEme reasoning workflow "{{TITLE}}" (slug {{SLUG}}). Load only when this workflow is the
+  the SMEme reasoning decision tree "{{TITLE}}" (slug {{SLUG}}). Load only when this decision tree is the
   evaluation target. Each question is independently answerable from local context —
   no branching hints.
 ---
 
 # Reasoning question manifest — {{TITLE}}
 
-**Slug / id:** `{{SLUG}}` · **Workflow id (version):** `{{QNR_ID}}`  
+**Slug / id:** `{{SLUG}}` · **Decision tree id (version):** `{{QNR_ID}}`  
 **Intended audience (author):** {{INTENDED_AUDIENCE}}  
 **Use case (author):** {{USE_CASE}}
 
@@ -32,7 +32,7 @@ Structured answers must **align** with these ids and option labels (no new quest
 
 ## Answer formatting
 
-Published workflows are **radio-only**: each question has a finite option set. Set `raw_answers_json.answers[node_id]` to the chosen option string **exactly** as listed in the schema (case and spacing must match).
+Published decision trees are **radio-only**: each question has a finite option set. Set `raw_answers_json.answers[node_id]` to the chosen option string **exactly** as listed in the schema (case and spacing must match).
 
 For **natural-language or document** evidence, map what the user said into `raw_answers_json.answers`: pick the option string from the schema that best matches each question. Do not put arbitrary freeform prose in answer values unless the manifest explicitly allows that shape (standard radio-only manifests do not).
 

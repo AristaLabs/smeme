@@ -1,4 +1,4 @@
-"""Editor-specific models for QNR graph modification.
+"""Editor-specific models for DTGraph modification.
 
 These models define the state and operations for the Editor Workflow.
 """
@@ -10,7 +10,7 @@ from uuid import UUID
 from fastapi import Form
 from pydantic import BaseModel, Field
 
-from smeme.qnr.models import QNRGraph
+from smeme.qnr.models import DTGraph
 
 # =============================================================================
 # Helper Decorator for Form Data Support
@@ -72,7 +72,7 @@ class QNREditorState(TypedDict):
     operation_data: dict  # Operation-specific data
 
     # Loaded data (always fresh from DB, no cache)
-    graph: NotRequired[QNRGraph]
+    graph: NotRequired[DTGraph]
     qnr_title: NotRequired[str]
     is_public: NotRequired[bool]
 

@@ -4,7 +4,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -18,8 +18,8 @@ from smeme.reasoning.ir.types import (
 from smeme.reasoning.qnr_bridge import compile_qnr_to_ir
 
 
-def _radio_two_conclusions() -> QNRGraph:
-    return QNRGraph(
+def _radio_two_conclusions() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -75,7 +75,7 @@ def test_compile_qnr_to_ir_structure_and_determinism():
 
 
 def test_compile_default_edge_empty_guard_expr():
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

@@ -32,12 +32,12 @@ def _minimal_graph(title: str = "Test QNR") -> dict:
         ConclusionData,
         GraphEdge,
         GraphNode,
-        QNRGraph,
+        DTGraph,
         QNRMetadata,
         QuestionData,
     )
 
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

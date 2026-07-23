@@ -14,7 +14,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -51,7 +51,7 @@ async def owner_with_invalid_graph(test_session_factory):
     uid = uuid4().hex[:10]
     email = f"val_jump_{uid}@example.com"
 
-    graph = QNRGraph(
+    graph = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

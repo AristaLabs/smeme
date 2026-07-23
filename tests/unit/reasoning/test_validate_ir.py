@@ -4,7 +4,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -25,7 +25,7 @@ _Q_RADIO = IRQuestionShape(qtype="radio", options=("A", "B"))
 
 
 def test_validate_ir_accepts_compiled_graph():
-    g = QNRGraph(
+    g = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -59,7 +59,7 @@ def test_validate_ir_accepts_compiled_graph():
     assert report.valid
     assert report.errors == ()
 
-    g2 = QNRGraph(
+    g2 = DTGraph(
         nodes=[
             GraphNode(
                 id="q1",

@@ -1,4 +1,4 @@
-"""Shared helper models and functions for agentic QNR generation.
+"""Shared helper models and functions for agentic decision-tree generation.
 
 Extracted from legacy nodes/build.py (Sprint 6 cleanup).
 These models and functions are used by the build subgraph.
@@ -8,9 +8,9 @@ from pydantic import BaseModel
 
 from smeme.qnr.models import (
     ConclusionData,
+    DTGraph,
     GraphEdge,
     GraphNode,
-    QNRGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -70,8 +70,8 @@ class LLMSimpleGraph(BaseModel):
 # =============================================================================
 
 
-def convert_simple_graph_to_qnr_graph(simple_graph: LLMSimpleGraph) -> QNRGraph:
-    """Convert simplified LLM graph to full QNRGraph with proper discriminated unions.
+def convert_simple_graph_to_dt_graph(simple_graph: LLMSimpleGraph) -> DTGraph:
+    """Convert simplified LLM graph to full DTGraph with proper discriminated unions.
 
     This mechanical conversion handles the complexity of discriminated unions
     that the LLM can't generate directly.
@@ -80,7 +80,7 @@ def convert_simple_graph_to_qnr_graph(simple_graph: LLMSimpleGraph) -> QNRGraph:
         simple_graph: Simplified graph structure from LLM
 
     Returns:
-        QNRGraph: Full graph with proper discriminated union types
+        DTGraph: Full graph with proper discriminated union types
     """
     nodes = []
     for simple_node in simple_graph.nodes:
@@ -130,4 +130,4 @@ def convert_simple_graph_to_qnr_graph(simple_graph: LLMSimpleGraph) -> QNRGraph:
     # Create metadata
     metadata = QNRMetadata(**simple_graph.metadata.__dict__)
 
-    return QNRGraph(nodes=nodes, edges=edges, metadata=metadata)
+    return DTGraph(nodes=nodes, edges=edges, metadata=metadata)

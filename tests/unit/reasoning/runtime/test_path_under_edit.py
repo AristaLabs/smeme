@@ -8,7 +8,7 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
@@ -49,8 +49,8 @@ def _exclusive_radio_ir() -> IR:
     )
 
 
-def _exclusive_radio_graph() -> QNRGraph:
-    return QNRGraph(
+def _exclusive_radio_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="Q1",
@@ -100,8 +100,8 @@ def _chain_ir() -> IR:
     )
 
 
-def _chain_graph() -> QNRGraph:
-    return QNRGraph(
+def _chain_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="Q1",

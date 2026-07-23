@@ -1,7 +1,7 @@
-"""QNR graph models - semantic graph structure for questionnaires.
+"""Decision-tree graph models — semantic graph structure.
 
-This module defines the core data models for QNR graphs:
-- QNRGraph: The complete graph structure (nodes + edges + metadata)
+This module defines the core data models for decision-tree graphs:
+- DTGraph: The complete graph structure (nodes + edges + metadata)
 - GraphNode: Individual nodes (questions or conclusions)
 - GraphEdge: Connections between nodes with optional conditions
 - QuestionData: Question-specific content and configuration
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 NodeType = Literal["question", "conclusion"]
 """
-Node types in a QNR graph:
+Node types in a DTGraph:
 - question: A question that gathers information from the user
 - conclusion: A terminal outcome that represents the result of a decision path
 """
@@ -142,7 +142,7 @@ def _get_node_data_discriminator(v: dict | QuestionData | ConclusionData) -> str
 
 
 class GraphNode(BaseModel):
-    """Node in the QNR graph - either a question or a conclusion.
+    """Node in the DTGraph - either a question or a conclusion.
 
     Two node types:
     - question: Gathers information, has outgoing edges
@@ -234,11 +234,11 @@ class QNRMetadata(BaseModel):
     tags: list[str] = Field(default_factory=list, description="QNR tags")
 
 
-class QNRGraph(BaseModel):
-    """Complete graph structure for a QNR.
+class DTGraph(BaseModel):
+    """Complete decision-tree graph structure.
 
     A directed graph of nodes (questions and conclusions) connected by edges.
-    The graph defines the structure and navigation flow of a questionnaire.
+    The graph defines the structure and navigation flow of a decision tree.
 
     Node Types:
     - question: Gathers information, can have outgoing edges

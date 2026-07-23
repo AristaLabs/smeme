@@ -7,20 +7,20 @@ from smeme.qnr.models import (
     ConclusionData,
     GraphEdge,
     GraphNode,
-    QNRGraph,
+    DTGraph,
     QNRMetadata,
     QuestionData,
 )
 
 
 @pytest.fixture
-def empty_graph() -> QNRGraph:
-    return QNRGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
+def empty_graph() -> DTGraph:
+    return DTGraph(nodes=[], edges=[], metadata=QNRMetadata(title="Empty"))
 
 
 @pytest.fixture
-def multi_edge_graph() -> QNRGraph:
-    return QNRGraph(
+def multi_edge_graph() -> DTGraph:
+    return DTGraph(
         nodes=[
             GraphNode(
                 id="q1",
@@ -62,7 +62,7 @@ def multi_edge_graph() -> QNRGraph:
     )
 
 
-def test_create_node_wired_first_question_on_empty_graph(empty_graph: QNRGraph):
+def test_create_node_wired_first_question_on_empty_graph(empty_graph: DTGraph):
     data = {
         "kind": "question",
         "node_id": "q_first",
@@ -81,7 +81,7 @@ def test_create_node_wired_first_question_on_empty_graph(empty_graph: QNRGraph):
     assert g.edges == []
 
 
-def test_create_node_wired_question_incoming(multi_edge_graph: QNRGraph):
+def test_create_node_wired_question_incoming(multi_edge_graph: DTGraph):
     data = {
         "kind": "question",
         "node_id": "q_side",
@@ -100,7 +100,7 @@ def test_create_node_wired_question_incoming(multi_edge_graph: QNRGraph):
     assert len(g.get_entry_nodes()) == 1
 
 
-def test_create_node_wired_question_new_start(multi_edge_graph: QNRGraph):
+def test_create_node_wired_question_new_start(multi_edge_graph: DTGraph):
     data = {
         "kind": "question",
         "node_id": "q_new_entry",
@@ -120,7 +120,7 @@ def test_create_node_wired_question_new_start(multi_edge_graph: QNRGraph):
     assert any(e.source == "q_new_entry" and e.target == "q1" and e.condition is None for e in g.edges)
 
 
-def test_create_node_wired_conclusion_conditional(multi_edge_graph: QNRGraph):
+def test_create_node_wired_conclusion_conditional(multi_edge_graph: DTGraph):
     data = {
         "kind": "conclusion",
         "node_id": "conclusion_c",
@@ -137,7 +137,7 @@ def test_create_node_wired_conclusion_conditional(multi_edge_graph: QNRGraph):
     )
 
 
-def test_create_node_wired_rejects_conclusion_on_empty(empty_graph: QNRGraph):
+def test_create_node_wired_rejects_conclusion_on_empty(empty_graph: DTGraph):
     data = {
         "kind": "conclusion",
         "node_id": "c1",
