@@ -3,6 +3,10 @@
 SMEme Core is a self-hosted application for authoring **decision-trees** and
 running them through a server-side **logical analysis engine**.
 
+Database migrations hold a PostgreSQL advisory lock for the complete Alembic
+transaction (`pg_advisory_lock` / `pg_advisory_unlock`), preventing concurrent
+container starts from racing the schema upgrade.
+
 ## Product shape
 
 - **Web application:** authors create, edit, and Deploy decision-trees.

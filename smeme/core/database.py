@@ -40,6 +40,19 @@ else:  # development
         "max_overflow": 10,
     }
 
+# Hosted PostgreSQL requires TLS; local Docker PostgreSQL may reject SSL upgrade.
+_db_url_lower = settings.database_url.lower()
+_requires_ssl = (
+    "neon" in _db_url_lower or settings.is_production or settings.environment.lower() == "staging"
+)
+_connect_args: dict = {
+    "server_settings": {
+        "application_name": "smeme_platform",
+    },
+}
+if _requires_ssl:
+    _connect_args["ssl"] = True
+
 # Create async engine with connection pooling and health checks
 engine = create_async_engine(
     settings.database_url,
@@ -51,14 +64,7 @@ engine = create_async_engine(
     **pool_config,
     pool_pre_ping=True,  # Test connection health before use (important for Neon)
     pool_recycle=3600,  # Recycle connections after 1 hour (handles Neon auto-suspend)
-    # SSL and connection settings
-    connect_args={
-        "ssl": True,
-        "server_settings": {
-            "application_name": "smeme_platform",  # For monitoring in Neon dashboard
-        },
-        # channel_binding is handled automatically by asyncpg
-    },
+    connect_args=_connect_args,
 )
 
 # Create async session factory
