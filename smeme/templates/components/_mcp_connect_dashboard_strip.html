@@ -2,7 +2,9 @@
 {% from "components/macros.html" import workflow_launch_link %}
 <div class="flex flex-col gap-2">
   <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-stretch">
+    {% if creator_ui.ai_generation_enabled %}
     {{ workflow_launch_link() }}
+    {% endif %}
 
     {% if mcp_enabled %}
         <div class="flex w-full flex-col overflow-hidden rounded-xl border border-brand-200/90 bg-ui-surface shadow-sm ring-1 ring-brand-500/10 sm:max-w-md sm:flex-1 sm:flex-row sm:items-stretch">

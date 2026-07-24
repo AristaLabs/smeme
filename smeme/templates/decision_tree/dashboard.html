@@ -219,10 +219,19 @@
     {% else %}
     <div class="rounded-xl border-2 border-dashed border-ui-line bg-ui-surface-muted/50 px-8 py-14 text-center">
       <p class="text-ui-ink-secondary font-medium">No decision trees yet</p>
+      {% if creator_ui.ai_generation_enabled %}
       <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Start from research and design with the AI-assisted decision tree—then refine structure in the editor and deploy verified MCP tools.</p>
       <div class="mt-8 max-w-md mx-auto">
         {{ wizard_create_cta(full_width=true, wizard_start_block=wizard_start_block) }}
       </div>
+      {% elif creator_ui.mcp_authoring_available %}
+      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Web generation is disabled for this deployment. Build a draft with your MCP-connected agent, then return here to refine and Deploy it.</p>
+      <div class="mt-8">
+        {{ btn("Set up MCP authoring", href="/docs/mcp", variant="primary") }}
+      </div>
+      {% else %}
+      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Decision-tree authoring is disabled for this deployment. Ask the operator to enable the web generation wizard or MCP authoring tools.</p>
+      {% endif %}
     </div>
     {% endif %}
   </section>

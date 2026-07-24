@@ -55,6 +55,18 @@ class CreatorUiTemplateFlags:
     """Jinja namespace: reads current ``settings`` so tests can monkeypatch flags."""
 
     @property
+    def ai_generation_enabled(self) -> bool:
+        from smeme.core.config import settings
+
+        return settings.smeme_ai_generation_enabled
+
+    @property
+    def mcp_authoring_available(self) -> bool:
+        from smeme.core.config import settings
+
+        return settings.mcp_enabled and settings.mcp_authoring_graph_tools_enabled
+
+    @property
     def show_decision_tree_generation_region_selector(self) -> bool:
         from smeme.core.config import settings
 
