@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -11,6 +12,7 @@ from smeme.core.models import DecisionTree, User
 from smeme.mcp.assistant_decision_tree_access import (
     assistant_tools_discoverability_violation,
     select_decision_trees_for_assistant_tools_list,
+    serialize_decision_trees_for_assistant_list,
 )
 
 
@@ -62,6 +64,34 @@ async def test_select_list_excludes_compiled_when_not_discoverable(test_session_
         await session.execute(delete(DecisionTree).where(DecisionTree.id == q.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
+
+
+def test_serialize_list_keeps_listed_rows(monkeypatch):
+    """Regression: D024 rename must not discard ORM rows before payload build."""
+    monkeypatch.setattr(
+        "smeme.billing.access_policy.is_workflow_pick_required",
+        lambda _user: False,
+    )
+    monkeypatch.setattr(
+        "smeme.billing.access_policy.is_decision_tree_live",
+        lambda _user, _dt: True,
+    )
+    user = SimpleNamespace()
+    row_id = uuid4()
+    row = SimpleNamespace(
+        id=row_id,
+        title="Foreign Foundations",
+        is_public=False,
+        reasoning_status="compiled",
+        intended_audience="attorneys",
+        use_case="tax",
+    )
+    entries = serialize_decision_trees_for_assistant_list(user, [row])
+    assert len(entries) == 1
+    assert entries[0]["id"] == str(row_id)
+    assert entries[0]["title"] == "Foreign Foundations"
+    assert entries[0]["reasoning_status"] == "compiled"
+    assert "accessible" not in entries[0]
 
 
 def test_discoverability_violation_when_false():
