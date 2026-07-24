@@ -149,6 +149,32 @@ async def test_dashboard_shows_authored_decision_tree_title(client, app_with_db,
     assert title.encode() in r.content
 
 
+async def test_dashboard_generation_disabled_offers_mcp_authoring(
+    client,
+    app_with_db,
+    dashboard_user,
+    monkeypatch,
+    test_session_factory,
+):
+    async with test_session_factory() as session:
+        await session.execute(
+            delete(DecisionTree).where(DecisionTree.id == dashboard_user["my_decision_tree"].id)
+        )
+        await session.commit()
+
+    monkeypatch.setattr(process_settings, "smeme_ai_generation_enabled", False)
+    monkeypatch.setattr(process_settings, "mcp_enabled", True)
+    monkeypatch.setattr(process_settings, "mcp_authoring_graph_tools_enabled", True)
+
+    with auth_as(app_with_db, dashboard_user["user"]):
+        r = await client.get("/decision-trees/dashboard")
+
+    assert r.status_code == 200
+    assert b"Web generation is disabled for this deployment" in r.content
+    assert b"Set up MCP authoring" in r.content
+    assert b'href="/decision-trees/agentic/wizard-start"' not in r.content
+
+
 async def test_dashboard_prunes_completed_generation_rows(monkeypatch, dashboard_user):
     """Saved workflows should not continue occupying the in-progress dashboard slot."""
     from smeme.decision_tree import routes as decision_tree_routes
@@ -267,7 +293,7 @@ async def test_docs_mcp_returns_200(client, app_with_db, dashboard_user):
     assert r.status_code == 200
     assert b"Connect your agent" in r.content
     assert b"smeme_reasoning" in r.content
-    assert b"does not install SMEme" in r.content
+    assert b"there is no separate install package" in r.content
     if process_settings.mcp_enabled:
         assert b"install-claude" in r.content
         assert b"install-chatgpt" in r.content
