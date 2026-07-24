@@ -6,7 +6,6 @@ on:
       image:
         description: 'Image reference'
         required: true
-        default: 'ghcr.io/aristalabs/smeme:v1.0.0'
 
 permissions:
   contents: read
@@ -44,9 +43,17 @@ jobs:
           bash scripts/prepare_core_release_evidence.sh "${{ inputs.image }}" build/release-evidence
           ls -laR build/release-evidence | head -80
 
+      - name: Derive artifact name
+        id: artifact
+        env:
+          IMAGE_REF: ${{ inputs.image }}
+        run: |
+          SAFE_SUFFIX="$(printf '%s' "${IMAGE_REF##*:}" | tr -c 'A-Za-z0-9._-' '-')"
+          echo "name=core-release-evidence-${SAFE_SUFFIX}" >> "$GITHUB_OUTPUT"
+
       - name: Upload evidence artifact
         uses: actions/upload-artifact@v4
         with:
-          name: core-release-evidence-v1.0.0
+          name: ${{ steps.artifact.outputs.name }}
           path: build/release-evidence
           retention-days: 90
