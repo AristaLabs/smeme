@@ -16,7 +16,7 @@ container starts from racing the schema upgrade.
 - **Remote MCP:** OAuth-protected tools let an owner list, validate, evaluate, and
   analyze their Listed decision-trees. After connect, the agent **fetches calling
   guidance over MCP** (`smeme_reasoning_guidance_get`) — there is no installable
-  plugin zip.
+  installable zip.
 - **PostgreSQL:** stores users, decision-tree graphs, deployed artifacts, and
   evaluation records.
 

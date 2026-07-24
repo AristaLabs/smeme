@@ -27,7 +27,7 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Connect your agent</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Add the SMEme MCP server to Claude Cowork, Cursor, Microsoft Copilot, or any MCP client.
+          Add the SMEme MCP server to Claude, Cursor, Microsoft Copilot, or any MCP client.
           After OAuth, your agent bootstraps the calling contract over the wire via
           <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code>.
           Invoke any of your deployed, listed decision trees from a plain-language prompt.
@@ -113,14 +113,14 @@
 
                 <details id="install-claude" class="group rounded-xl border border-ui-line bg-ui-surface open:ring-1 open:ring-brand-500/20">
                   <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ui-ink [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
-                    <span>Claude (Chat, Cowork, Desktop)</span>
+                    <span>Claude (Chat, Desktop, and related surfaces)</span>
                     <svg class="h-4 w-4 shrink-0 text-ui-ink-muted transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                   </summary>
                   <div class="border-t border-ui-line px-4 py-3">
                     <ol class="space-y-2.5 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
-                      <li>Open <strong class="font-medium text-ui-ink">Customize → Connectors</strong> at <a href="https://claude.ai/customize/connectors" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">claude.ai/customize/connectors</a> (same list in Claude Chat, Cowork, and Claude Desktop).</li>
+                      <li>Open <strong class="font-medium text-ui-ink">Customize → Connectors</strong> at <a href="https://claude.ai/customize/connectors" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium" target="_blank" rel="noopener noreferrer">claude.ai/customize/connectors</a> (same list in Claude Chat and Claude Desktop).</li>
                       <li>Click <strong class="font-medium text-ui-ink">+</strong> → <strong class="font-medium text-ui-ink">Add custom connector</strong>.</li>
                       <li>Paste the <strong class="font-medium text-ui-ink">MCP endpoint URL</strong> from above.</li>
                       <li>Open <strong class="font-medium text-ui-ink">Advanced settings</strong> → enter the <strong class="font-medium text-ui-ink">OAuth Client ID</strong> from above. Leave client secret <strong class="font-medium text-ui-ink">blank</strong> (PKCE public client).</li>
@@ -305,7 +305,7 @@
           <ul class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
             <li>
               <strong class="font-medium text-ui-ink">Connector first.</strong>
-              URL + OAuth Client ID + OAuth connects SMEme. Install the Cowork zip only <em>after</em> MCP works, and only if you want preloaded skills — the zip does not install SMEme.
+              URL + OAuth Client ID + OAuth connects SMEme. After OAuth, your agent loads the calling contract via <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code> — there is no separate install package.
             </li>
             <li>
               <strong class="font-medium text-ui-ink">Name decision trees clearly.</strong>

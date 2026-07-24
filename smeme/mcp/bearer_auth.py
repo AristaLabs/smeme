@@ -253,15 +253,15 @@ def mcp_web_auth_urls() -> tuple[str, str]:
 
 
 def unlinked_account_mcp_auth_error() -> MCPAuthError:
-    """Cowork-first (or plugin-only) callers: valid Clerk token, no ``users`` row yet."""
+    """MCP-first callers: valid Clerk token, no ``users`` row yet."""
     signup_url, sign_in_url = mcp_web_auth_urls()
     host = signup_url.split("/")[2] if "://" in signup_url else "the SMEme website"
     message = (
         "No SMEme account is linked to this connector yet. "
         f"Create a free account at {signup_url} "
         f"(or sign in at {sign_in_url} if you already have one). "
-        "Use the same email or sign-in method you used for Cowork. "
-        f"After you finish on {host}, return to Cowork, reconnect the SMEme MCP connector, "
+        "Use the same email or sign-in method you used in your MCP client. "
+        f"After you finish on {host}, return to your MCP client, reconnect the SMEme connector, "
         "and try again."
     )
     return MCPAuthError(
@@ -273,7 +273,7 @@ def unlinked_account_mcp_auth_error() -> MCPAuthError:
             "next_steps": [
                 f"Open {signup_url} and create a SMEme account (or sign in at {sign_in_url}).",
                 "Complete sign-in on the web so your account links to this connector.",
-                "In Cowork, disconnect and reconnect the SMEme MCP connector.",
+                "In your MCP client, disconnect and reconnect the SMEme connector.",
                 "Retry the SMEme tool.",
             ],
         },
@@ -585,7 +585,7 @@ async def get_mcp_user(request: Request | None, db: AsyncSession) -> User:
     # Resolve Clerk sub → local users row.
     # The clerk_user_id column is populated in get_or_create_user_for_clerk()
     # (smeme/auth/clerk_auth.py) the first time this user logs into the SMEme web UI.
-    # If a user authenticates a Cowork connector before ever logging into SMEme, their
+    # If a user authenticates an MCP connector before ever logging into SMEme, their
     # sub will not match any row — this is the expected "sign in first" requirement.
     result = await db.execute(select(User).where(User.clerk_user_id == clerk_user_id))
     user = result.scalar_one_or_none()

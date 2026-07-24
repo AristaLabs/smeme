@@ -13,7 +13,7 @@ and evaluation boundary under operator control.
 
 **Agent bootstrap:** after OAuth, the client asks SMEme for the calling contract
 via MCP (`smeme_reasoning_capabilities` → `smeme_reasoning_guidance_get`). There
-is no installable plugin zip — guidance is served over the wire. Humans edit
+is no installable zip — guidance is served over the wire. Humans edit
 prose under [`agent-skills/`](agent-skills/README.md); CI builds what MCP returns.
 
 ---

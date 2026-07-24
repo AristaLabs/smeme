@@ -26,6 +26,6 @@ Thin operator and contributor surface for the public Core tree.
 
 ## Agent guidance authoring
 
-Skill markdown under [`agent-skills/`](../agent-skills/) is the **authoring source** for MCP guidance (`smeme_reasoning_guidance_get`). Agents load that contract over MCP after OAuth — there is no installable plugin zip in Core.
+Skill markdown under [`agent-skills/`](../agent-skills/) is the **authoring source** for MCP guidance (`smeme_reasoning_guidance_get`). Agents load that contract over MCP after OAuth — there is no installable zip in Core.
 
 After editing skills, regenerate with `scripts/build_guidance_artifact.py` and run `scripts/validate_agent_skills.py`.
