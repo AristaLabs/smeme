@@ -83,6 +83,15 @@ def test_serialize_list_keeps_listed_rows(monkeypatch):
     row = SimpleNamespace(
         id=row_id,
         title="Foreign Foundations",
+        graph_data={
+            "nodes": [],
+            "edges": [],
+            "metadata": {
+                "title": "Foreign Foundations",
+                "effective_date": "2020-01-01",
+                "review_by": "2020-12-31",
+            },
+        },
         is_public=False,
         reasoning_status="compiled",
         intended_audience="attorneys",
@@ -93,6 +102,9 @@ def test_serialize_list_keeps_listed_rows(monkeypatch):
     assert entries[0]["id"] == str(row_id)
     assert entries[0]["title"] == "Foreign Foundations"
     assert entries[0]["reasoning_status"] == "compiled"
+    assert entries[0]["effective_date"] == "2020-01-01"
+    assert entries[0]["review_by"] == "2020-12-31"
+    assert entries[0]["warnings"][0]["code"] == "review_overdue"
     assert "accessible" not in entries[0]
 
 

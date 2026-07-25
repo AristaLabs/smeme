@@ -16,6 +16,8 @@ from smeme.reasoning.runtime.analyze import (
     ConclusionSatQueryEnumeration,
     enumerate_conclusion_sat_queries,
 )
+from smeme.reasoning.runtime.evaluate import evaluate_reasoning
+from smeme.reasoning.runtime.input_validation import ReasoningInputValidationError
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,7 +99,42 @@ def assess_publish_readiness_sync(graph: DTGraph) -> PublishReadiness:
                 )
             )
 
-    ready = enumeration.is_theory_satisfiable and len(dead) == 0
+    for fixture in graph.metadata.regression_fixtures:
+        try:
+            fixture_result, _audit = evaluate_reasoning(
+                ir,
+                raw_answers=fixture.raw_answers,
+                skip_ir_validation=True,
+            )
+        except ReasoningInputValidationError as exc:
+            issues.append(
+                PreflightIssue(
+                    code="REGRESSION_FIXTURE_INVALID",
+                    message=f"Regression fixture {fixture.name!r} has invalid answers: {exc}",
+                )
+            )
+            continue
+
+        if (
+            fixture_result.status != "SAT_UNIQUE"
+            or fixture_result.true_conclusion_id != fixture.expected_conclusion_id
+        ):
+            actual = fixture_result.true_conclusion_id or fixture_result.status
+            issues.append(
+                PreflightIssue(
+                    code="REGRESSION_FIXTURE_FAILED",
+                    message=(
+                        f"Regression fixture {fixture.name!r} expected conclusion "
+                        f"{fixture.expected_conclusion_id!r}, but evaluation returned {actual!r}."
+                    ),
+                )
+            )
+
+    ready = (
+        enumeration.is_theory_satisfiable
+        and len(dead) == 0
+        and not any(issue.code.startswith("REGRESSION_FIXTURE_") for issue in issues)
+    )
 
     return PublishReadiness(
         ready=ready,

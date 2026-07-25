@@ -13,6 +13,8 @@ from uuid import UUID
 from sqlalchemy import Select, select
 
 from smeme.core.models import DecisionTree, User
+from smeme.decision_tree.models import DTGraph
+from smeme.reasoning.review_metadata import decision_tree_review_warnings
 
 
 def select_decision_trees_for_assistant_tools_list(author_id: UUID) -> Select:
@@ -39,6 +41,7 @@ def serialize_decision_trees_for_assistant_list(
 
     decision_trees: list[dict[str, Any]] = []
     for q in rows:
+        graph = DTGraph.model_validate(q.graph_data)
         entry: dict[str, Any] = {
             "id": str(q.id),
             "title": q.title,
@@ -47,6 +50,14 @@ def serialize_decision_trees_for_assistant_list(
             "intended_audience": q.intended_audience,
             "use_case": q.use_case,
         }
+        metadata = graph.metadata
+        if metadata.effective_date is not None:
+            entry["effective_date"] = metadata.effective_date.isoformat()
+        if metadata.review_by is not None:
+            entry["review_by"] = metadata.review_by.isoformat()
+        review_warnings = decision_tree_review_warnings(graph)
+        if review_warnings:
+            entry["warnings"] = review_warnings
         if is_workflow_pick_required(user) or not is_decision_tree_live(user, q):
             entry["accessible"] = False
             entry["status"] = "account_downgrade_pending"

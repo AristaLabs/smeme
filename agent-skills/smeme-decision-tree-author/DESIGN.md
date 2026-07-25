@@ -1,7 +1,7 @@
 # SMEme — Decision Tree Design Guidance
 
 _Versioned standard for designing reasoning decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 2.2.0_
+`smeme_authoring_design_guidance`. Content version: 2.3.0_
 
 ---
 
@@ -46,17 +46,21 @@ are **rejected** (`extra=forbid`).
 ```
 Node:            { id, type: "question"|"conclusion", data }
 Question data:   { text, type: "radio", options: [str], required: true,
-                   help_text? }
+                   help_text?, authorities?: [{ citation, title?, url? }] }
 Conclusion data: { title, summary, recommendations?: [str],
                    severity?: "info"|"warning"|"critical" }
 Edge:            { source, target, condition }   // no id
-Graph:           { nodes, edges, metadata: { title, ... } }
+Graph:           { nodes, edges, metadata: {
+                   title, estimated_time?, effective_date?, review_by?,
+                   regression_fixtures?: [{ name, raw_answers,
+                                             expected_conclusion_id }], ... } }
 ```
 
 Rules agents miss most often:
 
-- Put the short stem in `text`. Put clarifiers, examples, and statute citations
-  in `help_text` — long `text` triggers warnings above ~500 characters.
+- Put the short stem in `text`. Put clarifiers and examples in `help_text`;
+  put statutes, regulations, standards, and other source dependencies in
+  structured `authorities` — long `text` triggers warnings above ~500 characters.
 - Always set `required: true` on questions (do not omit and hope for a default).
 - Edges are `{ source, target, condition }` only — **no** `id` (or any other key).
 - `condition` must equal an option string exactly (prefer explicit conditions;
@@ -65,6 +69,9 @@ Rules agents miss most often:
   and `severity` (`info` | `warning` | `critical`).
 - Ids: start with a letter; letters, digits, `_`, `-` only.
 - `metadata.title` required (or pass `title` to `smeme_authoring_create_draft`).
+- `metadata.estimated_time` is measured in **minutes**.
+- For time-sensitive rules, set ISO dates `metadata.effective_date` and
+  `metadata.review_by`. A past `review_by` is surfaced to evaluating agents.
 
 Minimal example:
 
@@ -79,7 +86,14 @@ Minimal example:
         "type": "radio",
         "options": ["Yes", "No", "Unsure"],
         "required": true,
-        "help_text": "Use the latest audited statements when available."
+        "help_text": "Use the latest audited statements when available.",
+        "authorities": [
+          {
+            "citation": "Vendor Policy § 4.2",
+            "title": "Financial review standard",
+            "url": "https://example.com/vendor-policy"
+          }
+        ]
       }
     },
     {
@@ -96,7 +110,19 @@ Minimal example:
   "edges": [
     { "source": "q1", "target": "c_approve", "condition": "Yes" }
   ],
-  "metadata": { "title": "Vendor Approval Assessment" }
+  "metadata": {
+    "title": "Vendor Approval Assessment",
+    "estimated_time": 5,
+    "effective_date": "2026-07-01",
+    "review_by": "2027-07-01",
+    "regression_fixtures": [
+      {
+        "name": "sound vendor is approved",
+        "raw_answers": { "q1": "Yes" },
+        "expected_conclusion_id": "c_approve"
+      }
+    ]
+  }
 }
 ```
 
@@ -152,6 +178,23 @@ overlay “clear” → outside-the-rule on one path, de minimis on another),
 **duplicate the question** with distinct ids (`q7a`, `q7b`) and route each
 copy explicitly. Do not force a single shared node when outcomes diverge.
 
+### Independently sufficient triggers
+
+Real rules often contain triggers that can overlap: either one is sufficient,
+and more than one may be true in the same case. Do not create overlapping
+conclusions or pretend the triggers are mutually exclusive.
+
+Use a deterministic priority:
+
+1. Agree the trigger order with the user.
+2. Ask the highest-priority trigger first.
+3. On a hit, route to the shared conclusion immediately; otherwise continue.
+4. Let the report's `reasoning_path` preserve which trigger fired.
+
+This “first hit wins, shared conclusion” pattern keeps exactly one conclusion
+without losing the analytic reason. Record the priority choice in `help_text`
+or the decision-tree description when ordering has substantive meaning.
+
 ### Routing vs collect-only
 
 Default every question to **routing**: different options lead to materially
@@ -177,6 +220,11 @@ question.” Choose deliberately with the user:
 **Forbidden:** child Unsure routes **back** to the parent question (ping-pong /
 cycle). Always route Unsure **forward**.
 
+`smeme_authoring_validate_graph` enforces `required: true` and recognizes
+explicit labels such as `Unsure`, `Unknown`, `Not enough information`, and
+`Cannot determine`. It also warns when multiple options route identically and
+therefore cannot change the selected conclusion.
+
 ```
 Bad:  Q4 Unsure → Q5, Q5 Unsure → Q4
 Good: Q4 Unsure → Q5, Q5 Unsure → Q6 or a conclusion
@@ -199,6 +247,25 @@ validate / push).
 
 ---
 
+## Authorities, freshness, and regression fixtures
+
+For regulated, policy, tax, safety, or other time-sensitive trees:
+
+- Add `authorities` to each question that implements a source rule. Use a
+  canonical `citation`; optionally add `title` and `url`. Do not bury the only
+  citation in prose.
+- Set `metadata.effective_date` and `metadata.review_by` as `YYYY-MM-DD`.
+  Choose the review cadence with the user; do not invent a legal deadline.
+- Add representative `metadata.regression_fixtures`. Each fixture supplies
+  exact `raw_answers` and an `expected_conclusion_id`. Deploy re-runs every
+  fixture and blocks if an answer is invalid, the result is ambiguous, or the
+  expected conclusion changes.
+- Cover each dispositive path, exception, threshold boundary, independently
+  sufficient trigger, and conservative/unknown route. Fixtures are assertions,
+  not exploratory `what_if` calls.
+
+---
+
 ## Preflight checklist (before validate)
 
 - [ ] Exactly one entry question (start of the tree).
@@ -208,7 +275,10 @@ validate / push).
 - [ ] Option strings on edges match question options exactly.
 - [ ] Stable ids: start with a letter; letters, digits, `_`, `-` only.
 - [ ] Question `data` has `type: "radio"`, `required: true`, short `text`,
-      clarifiers in `help_text` (not stuffed into `text`).
+      clarifiers in `help_text`, authorities in `authorities`.
+- [ ] Every question has an explicit unknown/insufficient-information option.
+- [ ] Time-sensitive trees set `effective_date` and `review_by`.
+- [ ] Dispositive paths and exceptions have regression fixtures with expected conclusions.
 - [ ] Edges are `{ source, target, condition }` only (no `id`).
 - [ ] No unknown keys under `data` / nodes / edges / metadata.
 - [ ] `metadata.title` set (or you will pass `title` to create_draft).

@@ -23,7 +23,10 @@ from smeme.reasoning.runtime.canonical_facts import (
     raw_answers_to_canonical_facts,
 )
 from smeme.reasoning.runtime.evaluate import evaluate_reasoning
-from smeme.reasoning.runtime.ingest_envelope import prepare_evaluate_ingest
+from smeme.reasoning.runtime.ingest_envelope import (
+    ReasoningIngestError,
+    prepare_evaluate_ingest,
+)
 from smeme.reasoning.runtime.input_validation import (
     MAX_RADIO_OR_OPTION_STR_LEN,
     ReasoningInputValidationError,
@@ -207,3 +210,41 @@ def test_grounding_error_names_question_and_field() -> None:
     assert "q_big" in msg
     assert "option_label" in msg
     assert "string_too_long" in msg or "2048" in msg
+
+
+def test_phase1_grounding_error_is_structured_domain_error() -> None:
+    oversized = "Z" * (MAX_RADIO_OR_OPTION_STR_LEN + 1)
+    ir = IR(
+        format_version=IR_FORMAT_VERSION,
+        nodes=(
+            IRNode(
+                id="q_big",
+                kind=IRNodeKind.QUESTION,
+                question=IRQuestionShape(qtype="radio", options=("Short", oversized)),
+            ),
+            IRNode(id="c1", kind=IRNodeKind.CONCLUSION, question=None),
+            IRNode(id="c2", kind=IRNodeKind.CONCLUSION, question=None),
+        ),
+        edges=(
+            IREdge(source="q_big", target="c1", guard_id="g1"),
+            IREdge(source="q_big", target="c2", guard_id="g2"),
+        ),
+        guards=(
+            Guard(id="g1", expr="Short"),
+            Guard(id="g2", expr=oversized),
+        ),
+    )
+    with pytest.raises(ReasoningIngestError) as exc_info:
+        prepare_evaluate_ingest(ir, {"q_big": "Short"})
+
+    error = exc_info.value
+    assert error.code.value == "ingest_grounding_failed"
+    assert error.details == {
+        "question_id": "q_big",
+        "field": "option_label",
+        "constraint": "string_too_long",
+        "remedy": (
+            "Shorten the affected question id or option label, redeploy the decision tree, "
+            "then retry the same answers."
+        ),
+    }
