@@ -58,6 +58,8 @@ REASONING_TOOL_ERROR_CODES: frozenset[str] = frozenset(
         "quota_exceeded",
         "concurrency_limit",
         "account_downgrade_pending",
+        "graph_conflict",
+        "draft_not_editable",
         "ir_parse_or_validate_failed",
         "unsupported_ir_format_version",
         # Counterfactual tools (what_if / how_to_reach)

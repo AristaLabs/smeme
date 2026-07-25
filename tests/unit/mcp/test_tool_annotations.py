@@ -31,6 +31,7 @@ READ_ONLY_TOOLS = {
     "smeme_reasoning_template_get",
     "smeme_authoring_design_guidance",
     "smeme_authoring_validate_graph",
+    "smeme_authoring_get_draft",
 }
 
 # Compute/metered tools: not read-only, but not destructive (no data is
@@ -42,6 +43,7 @@ COMPUTE_TOOLS = {
     "smeme_reasoning_decisive_support",
     "smeme_reasoning_edit_affects_path",
     "smeme_authoring_create_draft",
+    "smeme_authoring_update_draft",
 }
 
 

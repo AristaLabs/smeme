@@ -9,7 +9,7 @@ description: >-
   Slot-fill: smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.2.0 -->
+<!-- installed_plugin_version: 3.3.0 -->
 
 # SMEme reasoning
 
@@ -40,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.2.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.3.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.2.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.3.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
@@ -301,9 +301,11 @@ Never fabricate a `decision_tree_id` to work around an empty list.
 Call `smeme_reasoning_capabilities` and report `reasoning.tools`. Present **case evaluation** and **logical analysis** as peers ([Two intents](#two-intents-peers)). Do not answer from an earlier tool listing — see [Tool catalog](#tool-catalog).
 
 If `reasoning.tools` includes **`smeme_authoring_design_guidance`** /
-**`smeme_authoring_validate_graph`** / **`smeme_authoring_create_draft`**, those
-are for **building** a decision tree in chat — they create an **unpublished** decision tree
-in the user’s SMEme account (`create_draft` returns `editor_url`). That decision tree
+**`smeme_authoring_validate_graph`** / **`smeme_authoring_create_draft`** /
+**`smeme_authoring_get_draft`** / **`smeme_authoring_update_draft`**, those
+are for **building or revising** a decision tree in chat — they create or update an
+**unpublished** working graph in the user’s SMEme account (`create_draft` /
+`update_draft` return `editor_url` and a `graph_hash`). That decision tree
 is **not** ready for evaluate until the user **Deploys** it and sets **Listed**.
 Do not use these tools for case evaluation. For the build path, call
 **`smeme_authoring_design_guidance`** once (and use `authoring_graph.schema` from

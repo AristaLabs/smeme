@@ -52,6 +52,8 @@ DEFAULT_QUOTA_WEIGHT_BY_TOOL: dict[str, float] = {
     "smeme_authoring_design_guidance": 0.0,
     "smeme_authoring_validate_graph": 0.0,
     "smeme_authoring_create_draft": 0.0,
+    "smeme_authoring_get_draft": 0.0,
+    "smeme_authoring_update_draft": 0.0,
 }
 
 # Internal COGS unit multipliers (ops / margin analysis — not shown on landing).
@@ -73,6 +75,8 @@ INTERNAL_COST_UNITS_BY_TOOL: dict[str, float] = {
     "smeme_authoring_design_guidance": 0.0,
     "smeme_authoring_validate_graph": 0.0,
     "smeme_authoring_create_draft": 0.1,
+    "smeme_authoring_get_draft": 0.0,
+    "smeme_authoring_update_draft": 0.1,
 }
 
 _active_recorder: ContextVar[McpInvocationRecorder | None] = ContextVar(
@@ -92,6 +96,8 @@ MCP_CLIENT_ERROR_OUTCOMES: frozenset[str] = frozenset(
         "no_compiled_theory",
         "account_downgrade_pending",
         "payload_too_large",
+        "graph_conflict",
+        "draft_not_editable",
         *(code.value for code in IngestErrorCode),
     }
 )

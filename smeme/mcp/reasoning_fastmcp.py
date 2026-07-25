@@ -50,7 +50,11 @@ Tools
 - ``smeme_reasoning_list_conclusions`` — catalog conclusion ids/titles and structural reachability (no answers required).
 - ``smeme_reasoning_template_check`` / ``smeme_reasoning_template_get`` — minimal drift/digest probe vs full worksheet markdown (owner, discoverable, deployed).
 - ``smeme_reasoning_guidance_check`` / ``smeme_reasoning_guidance_get`` — platform calling contract version/digest vs full stitched guidance markdown (connector-only bootstrap).
-- ``smeme_authoring_validate_graph`` / ``smeme_authoring_create_draft`` / ``smeme_authoring_design_guidance`` — (optional) chat-authored design standard + graph validate → dashboard draft; gated by ``Settings.mcp_authoring_graph_tools_enabled``.
+- ``smeme_authoring_design_guidance`` / ``smeme_authoring_validate_graph`` /
+  ``smeme_authoring_create_draft`` / ``smeme_authoring_get_draft`` /
+  ``smeme_authoring_update_draft`` — (optional) chat-authored design standard +
+  graph validate → create or revise a dashboard draft; gated by
+  ``Settings.mcp_authoring_graph_tools_enabled``.
 
 DR-3 P2 adds Bearer-authenticated reasoning tools.
 
@@ -105,7 +109,9 @@ from smeme.mcp.authoring_graph import (
     AUTHORING_GRAPH_WIRE_SCHEMA,
     create_draft_from_graph,
     editor_url_for_decision_tree,
+    get_owner_draft,
     parse_authoring_graph_json,
+    update_draft_from_graph,
     validation_payload,
 )
 from smeme.mcp.bearer_auth import (
@@ -176,7 +182,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.2.0"
+REASONING_CAPABILITIES_VERSION = "3.3.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -278,6 +284,8 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "smeme_authoring_design_guidance",
                 "smeme_authoring_validate_graph",
                 "smeme_authoring_create_draft",
+                "smeme_authoring_get_draft",
+                "smeme_authoring_update_draft",
             ]
         )
     cap: dict[str, Any] = {
@@ -349,14 +357,19 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
         cap["authoring_graph"] = {
             "note": (
                 "Authoring helpers — not evaluation tools. "
-                "Fetch design guidance, validate a chat-built decision tree graph, then create a "
-                "dashboard draft (bypasses the generation wizard). Deploy still happens in "
-                "the SMEme editor. Prefer authoring_graph.schema + smeme_authoring_design_guidance "
-                "over smeme_reasoning_guidance_get when building trees."
+                "Fetch design guidance, validate a chat-built decision tree graph, then create "
+                "or revise a dashboard draft (bypasses the generation wizard). "
+                "create_draft is strict (requires draft_ready); update_draft is lenient "
+                "(may persist intermediate graphs with expected_graph_hash concurrency). "
+                "Deploy still happens in the SMEme editor. Prefer authoring_graph.schema + "
+                "smeme_authoring_design_guidance over smeme_reasoning_guidance_get when "
+                "building trees."
             ),
             "design_guidance": "smeme_authoring_design_guidance",
             "validate": "smeme_authoring_validate_graph",
             "create_draft": "smeme_authoring_create_draft",
+            "get_draft": "smeme_authoring_get_draft",
+            "update_draft": "smeme_authoring_update_draft",
             "schema": AUTHORING_GRAPH_WIRE_SCHEMA,
         }
         cap["authoring_design"] = {
@@ -668,7 +681,10 @@ def _build_mcp_instructions(cfg: Settings) -> str:
             "(not the web wizard), call smeme_authoring_design_guidance once, iterate "
             "questions/options/branches in plain language until they say they are ready, "
             "then structure a dt_graph, call smeme_authoring_validate_graph, fix errors, "
-            "and only then smeme_authoring_create_draft. Do not auto-Deploy."
+            "and only then smeme_authoring_create_draft. To revise an existing draft: "
+            "smeme_authoring_get_draft → edit → smeme_authoring_validate_graph → "
+            "smeme_authoring_update_draft with expected_graph_hash; on graph_conflict, "
+            "fetch again and retry. Do not auto-Deploy."
         )
     return base
 
@@ -967,7 +983,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         if isinstance(created, str):
                             rec.note_json_response(created)
                             return created
-                        decision_tree, result = created
+                        decision_tree, result, graph_hash = created
                         rec.note_decision_tree_id(str(decision_tree.id))
                         editor_url = editor_url_for_decision_tree(
                             decision_tree.id, base_url=cfg.effective_base_url
@@ -978,13 +994,16 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 "title": decision_tree.title,
                                 "editor_url": editor_url,
                                 "status": "draft",
+                                "graph_hash": graph_hash,
                                 "warnings": list(result["warnings"]),
                                 "deployed": False,
                                 "mcp_discoverable": False,
                                 "next_step": (
                                     "Open editor_url in the SMEme web app to polish "
                                     "and Deploy. Until Deployed + Listed, this decision tree "
-                                    "will not appear in smeme_reasoning_list."
+                                    "will not appear in smeme_reasoning_list. "
+                                    "To revise in chat, pass graph_hash as "
+                                    "expected_graph_hash to smeme_authoring_update_draft."
                                 ),
                             }
                         )
@@ -992,6 +1011,139 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         return out
                 except Exception:
                     logger.exception("smeme_authoring_create_draft failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Get decision tree draft",
+                    readOnlyHint=True,
+                )
+            )
+            async def smeme_authoring_get_draft(
+                decision_tree_id: str,
+                ctx: Context,
+            ) -> str:
+                """Fetch the owner's current saved decision-tree graph for chat revision.
+
+                AUTHORING helper (not evaluation). Returns ``graph``, ``graph_hash``,
+                current validation (``errors`` / ``warnings`` / ``draft_ready``),
+                ``deployment_sync`` (``not_built`` / ``live`` / ``stale``), and
+                ``editable``. Does **not** require Listed or a Deployed artifact.
+
+                Use ``graph_hash`` as ``expected_graph_hash`` for
+                ``smeme_authoring_update_draft``. Prefer validate before update.
+
+                Requires OAuth Bearer.
+                """
+                request = request_from_mcp_context(ctx)
+                try:
+                    async with (
+                        mcp_invocation_scope("smeme_authoring_get_draft", ctx) as rec,
+                        AsyncSessionLocal() as db,
+                    ):
+                        user_or_err = await _mcp_auth_user_only(request, db)
+                        if isinstance(user_or_err, str):
+                            rec.note_json_response(user_or_err)
+                            return user_or_err
+                        try:
+                            decision_tree_uuid = UUID(decision_tree_id)
+                        except ValueError:
+                            err = tool_error_json(
+                                "invalid_decision_tree_id",
+                                "decision_tree_id must be a valid UUID.",
+                            )
+                            rec.note_json_response(err)
+                            return err
+                        loaded = await get_owner_draft(
+                            db,
+                            user=user_or_err,
+                            decision_tree_id=decision_tree_uuid,
+                            base_url=cfg.effective_base_url,
+                        )
+                        if isinstance(loaded, str):
+                            rec.note_json_response(loaded)
+                            return loaded
+                        rec.note_decision_tree_id(str(decision_tree_uuid))
+                        out = _tool_json(loaded)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_authoring_get_draft failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Update decision tree draft",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=False,
+                )
+            )
+            async def smeme_authoring_update_draft(
+                decision_tree_id: str,
+                dt_graph_json: str,
+                expected_graph_hash: str,
+                ctx: Context,
+                title: str | None = None,
+            ) -> str:
+                """Replace the owner's saved decision-tree graph (lenient draft save).
+
+                AUTHORING helper (not evaluation). Requires ``expected_graph_hash`` from
+                ``smeme_authoring_get_draft`` or ``smeme_authoring_create_draft``. Returns
+                ``graph_conflict`` if the graph changed first (atomic row lock + hash check).
+
+                Persists schema-valid graphs even when ``draft_ready`` is false (same
+                incremental-save posture as the web editor). Prefer calling
+                ``smeme_authoring_validate_graph`` before update. Does **not** Deploy,
+                List, or mutate the compiled reasoning artifact — deployed trees become
+                ``stale`` until Redeploy in the editor.
+
+                Optional ``title`` overrides ``metadata.title``. Does not consume the
+                decision-tree plan cap or monthly MCP weighted quota.
+
+                Requires OAuth Bearer.
+                """
+                request = request_from_mcp_context(ctx)
+                try:
+                    async with (
+                        mcp_invocation_scope("smeme_authoring_update_draft", ctx) as rec,
+                        AsyncSessionLocal() as db,
+                    ):
+                        user_or_err = await _mcp_auth_user_only(request, db)
+                        if isinstance(user_or_err, str):
+                            rec.note_json_response(user_or_err)
+                            return user_or_err
+                        try:
+                            decision_tree_uuid = UUID(decision_tree_id)
+                        except ValueError:
+                            err = tool_error_json(
+                                "invalid_decision_tree_id",
+                                "decision_tree_id must be a valid UUID.",
+                            )
+                            rec.note_json_response(err)
+                            return err
+                        parsed = parse_authoring_graph_json(dt_graph_json)
+                        if isinstance(parsed, str):
+                            rec.note_json_response(parsed)
+                            return parsed
+                        updated = await update_draft_from_graph(
+                            db,
+                            user=user_or_err,
+                            decision_tree_id=decision_tree_uuid,
+                            graph=parsed,
+                            expected_graph_hash=expected_graph_hash,
+                            title_override=title,
+                            base_url=cfg.effective_base_url,
+                        )
+                        if isinstance(updated, str):
+                            rec.note_json_response(updated)
+                            return updated
+                        rec.note_decision_tree_id(str(decision_tree_uuid))
+                        out = _tool_json(updated)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_authoring_update_draft failed")
                     return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
         @_holder.tool(

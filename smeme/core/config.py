@@ -314,13 +314,14 @@ class Settings(BaseSettings):
         default=True,
         alias="MCP_AUTHORING_GRAPH_TOOLS_ENABLED",
     )
-    """When true, register chat-authoring tools: design guidance, validate graph, create draft.
+    """When true, register chat-authoring tools: design guidance, validate, create/get/update draft.
 
     Defaults on whenever MCP is used: the agent builds a decision-tree draft in chat using
     server-owned design guidance (no server-side LLM/search), validates ``dt_graph_json``,
-    then creates a dashboard draft. Set ``false`` to opt out. Independent of
+    then creates or revises a dashboard draft. Set ``false`` to opt out. Independent of
     ``SMEME_AI_GENERATION_ENABLED`` (web wizard only). Quota weight 0 for MCP weighted
-    calls; create_draft still enforces the active decision-tree plan cap.
+    calls; create_draft still enforces the active decision-tree plan cap. Updates are
+    lenient (may persist intermediate graphs) and never Deploy or List.
     """
 
     # Clerk (hosted auth). When ``clerk_secret_key`` and ``clerk_sign_in_url`` are set, the app uses

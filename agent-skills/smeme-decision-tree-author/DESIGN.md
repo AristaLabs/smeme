@@ -1,7 +1,7 @@
 # SMEme — Decision Tree Design Guidance
 
 _Versioned standard for designing reasoning decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 2.3.0_
+`smeme_authoring_design_guidance`. Content version: 2.4.0_
 
 ---
 
@@ -285,6 +285,12 @@ For regulated, policy, tax, safety, or other time-sensitive trees:
 
 Then: **`smeme_authoring_validate_graph`** → fix `errors` → when `draft_ready`,
 **`smeme_authoring_create_draft`** after user confirmation.
+
+To **revise** an existing owned draft: **`smeme_authoring_get_draft`** → edit →
+**`smeme_authoring_validate_graph`** → **`smeme_authoring_update_draft`** with
+`expected_graph_hash`. On `graph_conflict`, fetch again and retry. Create is
+strict (`draft_ready` required); update may persist intentional intermediate
+graphs but validate first anyway. Never auto-Deploy.
 
 ---
 
