@@ -99,6 +99,7 @@ from smeme.mcp._generated_guidance import (
 from smeme.mcp.assistant_decision_tree_access import (
     assistant_tools_discoverability_violation,
     select_decision_trees_for_assistant_tools_list,
+    serialize_decision_trees_for_assistant_list,
 )
 from smeme.mcp.authoring_graph import (
     AUTHORING_GRAPH_WIRE_SCHEMA,
@@ -137,6 +138,7 @@ from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_from_json
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION, IRNodeKind
 from smeme.reasoning.persistence import persist_reasoning_evaluation_run
+from smeme.reasoning.review_metadata import decision_tree_review_warnings
 from smeme.reasoning.runtime.analyze import enumerate_conclusion_sat_queries
 from smeme.reasoning.runtime.assumptions import (
     AssumptionsError,
@@ -174,7 +176,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.1.0"
+REASONING_CAPABILITIES_VERSION = "3.2.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -298,10 +300,13 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "legacy_flat_object": True,
                 "evidence_requires_explicit_answers": True,
                 "evidence_locator_v1": True,
+                "grounding_error_details_v1": True,
             },
             "evaluate_response": {
                 "report_v1": True,
+                "decision_tree_warnings_review_v1": True,
             },
+            "list_response": {"review_metadata_v1": True},
             "counterfactual": {
                 "what_if": True,
                 "how_to_reach": True,
@@ -899,10 +904,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             rec.note_json_response(parsed)
                             return parsed
                         from smeme.decision_tree.helpers.validation import (
-                            validate_graph_for_editing,
+                            validate_graph_for_agent_authoring,
                         )
 
-                        result = validate_graph_for_editing(parsed)
+                        result = validate_graph_for_agent_authoring(parsed)
                         out = _tool_json(validation_payload(parsed, result))
                         rec.note_json_response(out)
                         return out
@@ -1001,6 +1006,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             Returns a JSON object with a ``decision_trees`` array and a ``count``. Each entry includes:
             - ``id`` — decision tree UUID (pass to smeme_reasoning_evaluate / template tools)
             - ``title``, ``is_public``, ``reasoning_status`` (``compiled`` in this list)
+            - optional ``effective_date``, ``review_by``, and ``warnings``; surface
+              ``review_overdue`` instead of silently treating stale rules as current
 
             A decision tree appears only when the owner has (1) published it for reasoning and
             (2) set it to **Listed** on the SMEme dashboard. When ``count`` is ``0`` the response
@@ -1023,32 +1030,11 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         bind_mcp_user(user, request=request)
 
-                        from smeme.billing.access_policy import (
-                            is_decision_tree_live,
-                            is_workflow_pick_required,
-                        )
-
                         result = await db.execute(
                             select_decision_trees_for_assistant_tools_list(user.id)
                         )
-                        decision_trees = result.scalars().all()
-
-                        decision_trees: list[dict[str, Any]] = []
-                        for q in decision_trees:
-                            entry: dict[str, Any] = {
-                                "id": str(q.id),
-                                "title": q.title,
-                                "is_public": q.is_public,
-                                "reasoning_status": q.reasoning_status,
-                                "intended_audience": q.intended_audience,
-                                "use_case": q.use_case,
-                            }
-                            if is_workflow_pick_required(user) or not is_decision_tree_live(
-                                user, q
-                            ):
-                                entry["accessible"] = False
-                                entry["status"] = "account_downgrade_pending"
-                            decision_trees.append(entry)
+                        rows = result.scalars().all()
+                        decision_trees = serialize_decision_trees_for_assistant_list(user, rows)
 
                     payload: dict[str, Any] = {
                         "decision_trees": decision_trees,
@@ -1207,7 +1193,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
 
             return _tool_json(
                 {
@@ -1259,6 +1245,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
               ``brief_memo``, ``reasoning_path``, ``candidates``, ``answer_sheet``)
             - ``evaluation_run_id``: persisted audit row ID (when persist=true), else null
             - ``warnings``: ingest hygiene (provenance envelope); deterministic order
+            - ``decision_tree_warnings``: author review/freshness advisories
             - ``harness_next``: routing hint when ingest succeeded (see capabilities)
             - ``assumptions``: echoed when force lists were non-empty
 
@@ -1403,7 +1390,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
 
                 rec = get_active_mcp_recorder()
                 if rec:
@@ -1455,6 +1442,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 "report": report,
                 "evaluation_run_id": str(run_id) if run_id else None,
                 "warnings": ingest_warnings,
+                "decision_tree_warnings": decision_tree_review_warnings(graph),
                 "harness_next": harness_next,
             }
             wire_assumptions = phi.to_wire()
@@ -1598,7 +1586,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
                 except ReasoningInputValidationError as exc:
                     return tool_error_json("invalid_answers", str(exc))
 
@@ -1758,7 +1746,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
 
                 base_norm = normalized_from_answers(flat_answers)
 
@@ -1951,7 +1939,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
 
                 base_norm = normalized_from_answers(flat_answers)
                 phi = assumptions_from_lists(force_reachable_ids, force_unreachable_ids)
@@ -2139,7 +2127,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         caller_user_id=user.id,
                         transport="mcp",
                     )
-                    return tool_error_json(exc.code.value, exc.message)
+                    return tool_error_json(exc.code.value, exc.message, **exc.details)
                 except ReasoningInputValidationError as exc:
                     return tool_error_json("invalid_answers", str(exc))
 

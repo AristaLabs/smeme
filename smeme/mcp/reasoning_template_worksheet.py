@@ -15,7 +15,7 @@ from smeme.decision_tree.models import DTGraph
 # v1: max UTF-8 bytes for ``manifest_markdown`` or total success JSON from ``template_get`` (512 KiB).
 REASONING_TEMPLATE_SUCCESS_MAX_UTF8_BYTES = 512 * 1024
 
-_MANIFEST_SCHEMA_VERSION = 1
+_MANIFEST_SCHEMA_VERSION = 2
 
 
 def utc_generated_at_iso_z() -> str:
@@ -64,6 +64,10 @@ def build_manifest_core(graph: DTGraph, decision_tree_id: UUID) -> dict[str, Any
             "label": label,
             "options": normalized,
         }
+        if qd.authorities:
+            entry["authorities"] = [
+                authority.model_dump(mode="json", exclude_none=True) for authority in qd.authorities
+            ]
         questions.append(entry)
 
     return {
@@ -120,6 +124,15 @@ def render_manifest_markdown(
         opts = q.get("options") or []
         parts = [f"- **`{qid}`** — {qlabel} (radio)"]
         parts.append(f"  - Allowed values (exact strings): {', '.join(repr(o) for o in opts)}")
+        authorities = q.get("authorities") or []
+        if authorities:
+            citations = ", ".join(
+                str(authority.get("citation"))
+                for authority in authorities
+                if isinstance(authority, dict) and authority.get("citation")
+            )
+            if citations:
+                parts.append(f"  - Authorities: {citations}")
         bullets.append("\n".join(parts))
 
     per_question = "\n".join(bullets) if bullets else "- _(no question nodes)_"

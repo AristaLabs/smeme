@@ -57,6 +57,7 @@ class IngestErrorCode(StrEnum):
     ingest_duplicate_evidence_item_id = "ingest_duplicate_evidence_item_id"
     ingest_invalid_timestamp = "ingest_invalid_timestamp"
     ingest_invalid_evidence_id = "ingest_invalid_evidence_id"
+    ingest_grounding_failed = "ingest_grounding_failed"
 
 
 def sort_warnings(warnings: list[dict[str, Any]]) -> list[dict[str, Any]]:

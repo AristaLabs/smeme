@@ -28,9 +28,16 @@ class ReasoningInputValidationError(ValueError):
     ``error.code`` (see :class:`~smeme.reasoning.runtime.ingest_codes.IngestErrorCode`).
     """
 
-    def __init__(self, message: str, *, ingest_error_code: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        ingest_error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.ingest_error_code = ingest_error_code
+        self.details = dict(details or {})
 
 
 def _reject_ctrl(s: str, *, field: str) -> None:

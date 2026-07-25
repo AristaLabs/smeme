@@ -20,7 +20,7 @@ These models are used for:
 - Session navigation (path traversal)
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID, uuid4
 
@@ -31,6 +31,7 @@ from pydantic import (
     Field,
     ValidationInfo,
     field_validator,
+    model_validator,
 )
 from sqlalchemy import Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -63,6 +64,19 @@ QuestionType = Literal["radio"]
 # ============================================================================
 
 
+class AuthorityReference(BaseModel):
+    """Structured source authority supporting one question."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    citation: str = Field(
+        min_length=1,
+        description="Canonical provision or source citation, e.g. '31 CFR § 800.401(c)'",
+    )
+    title: str | None = Field(default=None, description="Optional authority title")
+    url: str | None = Field(default=None, description="Optional source URL")
+
+
 class QuestionData(BaseModel):
     """Question-specific data for question nodes (radio-only).
 
@@ -72,6 +86,7 @@ class QuestionData(BaseModel):
         options: Non-empty list of mutually exclusive option labels
         required: If False, user can skip; affects edge validation rules
         help_text: Optional explanatory text for the question
+        authorities: Structured authorities implemented by this question
 
     Validation Rules (enforced at graph level):
     - options: at least one label, no duplicates (see validate_graph)
@@ -91,6 +106,10 @@ class QuestionData(BaseModel):
         description="If False, user can skip. Graph must have default edge for skip path.",
     )
     help_text: str | None = Field(default=None, description="Help text for question")
+    authorities: list[AuthorityReference] = Field(
+        default_factory=list,
+        description="Structured authorities implemented by this question",
+    )
 
     @field_validator("options")
     @classmethod
@@ -228,6 +247,22 @@ class GraphEdge(BaseModel):
     )
 
 
+class DecisionTreeRegressionFixture(BaseModel):
+    """Author-owned expected outcome re-run during every Deploy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, description="Short stable fixture name")
+    raw_answers: dict[str, str] = Field(
+        min_length=1,
+        description="Question ids mapped to exact radio option labels",
+    )
+    expected_conclusion_id: str = Field(
+        min_length=1,
+        description="Conclusion node id that must be uniquely selected",
+    )
+
+
 class DTGraphMetadata(BaseModel):
     """Metadata for a DecisionTree. Title is required."""
 
@@ -239,8 +274,33 @@ class DTGraphMetadata(BaseModel):
     estimated_time: int | None = Field(
         default=None, description="Estimated completion time (minutes)"
     )
+    effective_date: date | None = Field(
+        default=None,
+        description="Date the encoded rule set became effective (ISO 8601 date)",
+    )
+    review_by: date | None = Field(
+        default=None,
+        description="Date by which the deployed decision tree must be reviewed (ISO 8601 date)",
+    )
     version: str = Field(default="1.0.0", description="DecisionTree version")
     tags: list[str] = Field(default_factory=list, description="DecisionTree tags")
+    regression_fixtures: list[DecisionTreeRegressionFixture] = Field(
+        default_factory=list,
+        description="Expected-outcome fixtures re-run as a blocking Deploy gate",
+    )
+
+    @model_validator(mode="after")
+    def _review_date_not_before_effective_date(self) -> "DTGraphMetadata":
+        if (
+            self.effective_date is not None
+            and self.review_by is not None
+            and self.review_by < self.effective_date
+        ):
+            raise ValueError("review_by must be on or after effective_date")
+        fixture_names = [fixture.name for fixture in self.regression_fixtures]
+        if len(fixture_names) != len(set(fixture_names)):
+            raise ValueError("regression fixture names must be unique")
+        return self
 
 
 class DTGraph(BaseModel):

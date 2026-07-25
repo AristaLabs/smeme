@@ -20,17 +20,29 @@ _RADIO_FACT_ATOM_RE = re.compile(r"^fact:radio:([^:]+):(.+)$")
 SOURCE_SPAN_MAX_LEN = 120
 
 
-def _grounding_error_message(question_id: str, exc: ValidationError) -> str:
-    """Stable, actionable message: question + field + constraint + detail."""
+def _grounding_error(question_id: str, exc: ValidationError) -> tuple[str, dict[str, str]]:
+    """Stable message and machine-branchable grounding failure details."""
     err = exc.errors()[0] if exc.errors() else {}
     loc = err.get("loc") or ()
     field = ".".join(str(p) for p in loc) if loc else "record"
     constraint = str(err.get("type") or "validation_error")
     detail = str(err.get("msg") or exc)
-    return (
+    remedy = (
+        "Shorten the affected question id or option label, redeploy the decision tree, "
+        "then retry the same answers."
+        if constraint == "string_too_long"
+        else "Correct the affected deployed question metadata, redeploy, then retry."
+    )
+    message = (
         f"Answer grounding failed for question {question_id!r} "
         f"(field={field}, constraint={constraint}): {detail}"
     )
+    return message, {
+        "question_id": question_id,
+        "field": field,
+        "constraint": constraint,
+        "remedy": remedy,
+    }
 
 
 class CanonicalFactRecord(BaseModel):
@@ -120,7 +132,12 @@ def raw_answers_to_canonical_facts(
                     )
                 )
             except ValidationError as exc:
-                raise ReasoningInputValidationError(_grounding_error_message(qid, exc)) from exc
+                message, details = _grounding_error(qid, exc)
+                raise ReasoningInputValidationError(
+                    message,
+                    ingest_error_code="ingest_grounding_failed",
+                    details=details,
+                ) from exc
 
     return out
 

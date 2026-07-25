@@ -51,6 +51,7 @@ REASONING_TOOL_ERROR_CODES: frozenset[str] = frozenset(
         "ingest_duplicate_evidence_item_id",
         "ingest_invalid_timestamp",
         "ingest_invalid_evidence_id",
+        "ingest_grounding_failed",
         "not_discoverable",
         "internal_error",
         "payload_too_large",

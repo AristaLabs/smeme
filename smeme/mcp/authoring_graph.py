@@ -15,7 +15,10 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import DecisionTree, User
-from smeme.decision_tree.helpers.validation import ValidationResult, validate_graph_for_editing
+from smeme.decision_tree.helpers.validation import (
+    ValidationResult,
+    validate_graph_for_agent_authoring,
+)
 from smeme.decision_tree.models import DTGraph
 from smeme.mcp.tool_contract import tool_error_json
 from smeme.reasoning.runtime.input_validation import MAX_RADIO_OR_OPTION_STR_LEN
@@ -42,6 +45,19 @@ _QUESTION_DATA_SCHEMA: dict[str, Any] = {
         },
         "required": {"type": "boolean"},
         "help_text": {"type": ["string", "null"]},
+        "authorities": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["citation"],
+                "additionalProperties": False,
+                "properties": {
+                    "citation": {"type": "string", "minLength": 1},
+                    "title": {"type": ["string", "null"]},
+                    "url": {"type": ["string", "null"]},
+                },
+            },
+        },
     },
 }
 
@@ -118,9 +134,40 @@ AUTHORING_GRAPH_WIRE_SCHEMA: dict[str, Any] = {
                 "title": {"type": "string"},
                 "description": {"type": ["string", "null"]},
                 "category": {"type": ["string", "null"]},
-                "estimated_time": {"type": ["integer", "null"]},
+                "estimated_time": {
+                    "type": ["integer", "null"],
+                    "description": "Estimated completion time in minutes.",
+                },
+                "effective_date": {
+                    "type": ["string", "null"],
+                    "format": "date",
+                    "description": "ISO 8601 date when the encoded rules became effective.",
+                },
+                "review_by": {
+                    "type": ["string", "null"],
+                    "format": "date",
+                    "description": "ISO 8601 date by which the decision tree must be reviewed.",
+                },
                 "version": {"type": "string"},
                 "tags": {"type": "array", "items": {"type": "string"}},
+                "regression_fixtures": {
+                    "type": "array",
+                    "description": "Expected outcomes re-run as a blocking Deploy gate.",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "raw_answers", "expected_conclusion_id"],
+                        "additionalProperties": False,
+                        "properties": {
+                            "name": {"type": "string", "minLength": 1},
+                            "raw_answers": {
+                                "type": "object",
+                                "additionalProperties": {"type": "string"},
+                                "minProperties": 1,
+                            },
+                            "expected_conclusion_id": {"type": "string", "minLength": 1},
+                        },
+                    },
+                },
             },
         },
     },
@@ -284,7 +331,7 @@ async def create_draft_from_graph(
     if is_workflow_pick_required(user):
         return mcp_account_downgrade_pending_response(user=user)
 
-    result = validate_graph_for_editing(graph)
+    result = validate_graph_for_agent_authoring(graph)
     if not result["is_valid"]:
         return tool_error_json(
             "invalid_graph",
