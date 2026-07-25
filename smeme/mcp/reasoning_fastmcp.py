@@ -99,6 +99,7 @@ from smeme.mcp._generated_guidance import (
 from smeme.mcp.assistant_decision_tree_access import (
     assistant_tools_discoverability_violation,
     select_decision_trees_for_assistant_tools_list,
+    serialize_decision_trees_for_assistant_list,
 )
 from smeme.mcp.authoring_graph import (
     AUTHORING_GRAPH_WIRE_SCHEMA,
@@ -1023,32 +1024,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         bind_mcp_user(user, request=request)
 
-                        from smeme.billing.access_policy import (
-                            is_decision_tree_live,
-                            is_workflow_pick_required,
-                        )
-
                         result = await db.execute(
                             select_decision_trees_for_assistant_tools_list(user.id)
                         )
-                        decision_trees = result.scalars().all()
-
-                        decision_trees: list[dict[str, Any]] = []
-                        for q in decision_trees:
-                            entry: dict[str, Any] = {
-                                "id": str(q.id),
-                                "title": q.title,
-                                "is_public": q.is_public,
-                                "reasoning_status": q.reasoning_status,
-                                "intended_audience": q.intended_audience,
-                                "use_case": q.use_case,
-                            }
-                            if is_workflow_pick_required(user) or not is_decision_tree_live(
-                                user, q
-                            ):
-                                entry["accessible"] = False
-                                entry["status"] = "account_downgrade_pending"
-                            decision_trees.append(entry)
+                        listed_rows = result.scalars().all()
+                        decision_trees = serialize_decision_trees_for_assistant_list(
+                            user, listed_rows
+                        )
 
                     payload: dict[str, Any] = {
                         "decision_trees": decision_trees,
