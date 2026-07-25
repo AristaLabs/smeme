@@ -1033,8 +1033,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         result = await db.execute(
                             select_decision_trees_for_assistant_tools_list(user.id)
                         )
-                        rows = result.scalars().all()
-                        decision_trees = serialize_decision_trees_for_assistant_list(user, rows)
+                        listed_rows = result.scalars().all()
+                        decision_trees = serialize_decision_trees_for_assistant_list(
+                            user, listed_rows
+                        )
 
                     payload: dict[str, Any] = {
                         "decision_trees": decision_trees,

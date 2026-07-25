@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -104,6 +106,77 @@ def test_serialize_list_keeps_listed_rows(monkeypatch):
     assert entries[0]["review_by"] == "2020-12-31"
     assert entries[0]["warnings"][0]["code"] == "review_overdue"
     assert "accessible" not in entries[0]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reasoning_list_tool_returns_listed_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    test_session_factory,
+):
+    """Exercise the registered tool so the serializer cannot be disconnected again."""
+    uid = uuid4().hex[:8]
+    async with test_session_factory() as session:
+        user = User(
+            email=f"list_tool_{uid}@example.com",
+            hashed_password="x",
+            is_active=True,
+            is_verified=True,
+            is_superuser=False,
+            username=f"list_tool_{uid}",
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        from tests.unit.test_decision_tree_dashboard import _minimal_graph
+
+        decision_tree = DecisionTree(
+            author_id=user.id,
+            title="Listed through MCP",
+            graph_data=_minimal_graph(),
+            is_public=False,
+            is_current=True,
+            is_archived=False,
+            reasoning_status="compiled",
+            mcp_discoverable=True,
+        )
+        session.add(decision_tree)
+        await session.commit()
+        await session.refresh(decision_tree)
+        decision_tree_id = decision_tree.id
+
+    monkeypatch.setattr(
+        "smeme.mcp.reasoning_fastmcp.get_mcp_user",
+        AsyncMock(return_value=user),
+    )
+    monkeypatch.setattr(
+        "smeme.mcp.reasoning_fastmcp.AsyncSessionLocal",
+        test_session_factory,
+    )
+
+    from smeme.mcp.reasoning_fastmcp import (
+        get_or_create_fastmcp,
+        reset_mcp_runtime_for_tests,
+    )
+
+    reset_mcp_runtime_for_tests()
+    fm = get_or_create_fastmcp()
+    tool_fn = fm._tool_manager._tools["smeme_reasoning_list"].fn
+    with patch(
+        "smeme.mcp.reasoning_fastmcp.request_from_mcp_context",
+        return_value=MagicMock(),
+    ):
+        raw = await tool_fn(MagicMock())
+
+    payload = json.loads(raw)
+    assert payload["count"] == 1
+    assert payload["decision_trees"][0]["id"] == str(decision_tree_id)
+    assert payload["decision_trees"][0]["title"] == "Listed through MCP"
+
+    async with test_session_factory() as session:
+        await session.execute(delete(DecisionTree).where(DecisionTree.id == decision_tree_id))
+        await session.execute(delete(User).where(User.id == user.id))
+        await session.commit()
 
 
 def test_discoverability_violation_when_false():
