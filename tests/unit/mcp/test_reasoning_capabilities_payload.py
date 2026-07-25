@@ -45,6 +45,8 @@ def test_reasoning_capabilities_document_shape() -> None:
                 "smeme_authoring_design_guidance",
                 "smeme_authoring_validate_graph",
                 "smeme_authoring_create_draft",
+                "smeme_authoring_get_draft",
+                "smeme_authoring_update_draft",
             ]
         )
     assert doc["reasoning"]["tools"] == expected_tools
