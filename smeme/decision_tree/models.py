@@ -21,11 +21,17 @@ These models are used for:
 """
 
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
-from pydantic import BaseModel, ConfigDict, Discriminator, Field, Tag
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+)
 from sqlalchemy import Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped
@@ -86,6 +92,17 @@ class QuestionData(BaseModel):
     )
     help_text: str | None = Field(default=None, description="Help text for question")
 
+    @field_validator("options")
+    @classmethod
+    def _option_labels_within_limit(cls, value: list[str]) -> list[str]:
+        from smeme.reasoning.runtime.input_validation import MAX_RADIO_OR_OPTION_STR_LEN
+
+        for i, opt in enumerate(value):
+            if len(opt) > MAX_RADIO_OR_OPTION_STR_LEN:
+                msg = f"option at position {i + 1} exceeds {MAX_RADIO_OR_OPTION_STR_LEN} characters"
+                raise ValueError(msg)
+        return value
+
 
 class ConclusionData(BaseModel):
     """Conclusion-specific data for terminal outcome nodes.
@@ -120,27 +137,6 @@ class ConclusionData(BaseModel):
     )
 
 
-def _get_node_data_discriminator(v: dict | QuestionData | ConclusionData) -> str:
-    """Discriminator function to determine node data type.
-
-    Works for both raw dict (from JSON) and model instances.
-    Uses parent node's 'type' field when available via context,
-    otherwise infers from data structure.
-    """
-    if isinstance(v, QuestionData):
-        return "question"
-    if isinstance(v, ConclusionData):
-        return "conclusion"
-    # For raw dicts, check for distinguishing fields
-    if isinstance(v, dict):
-        # ConclusionData has 'title' and 'summary' but no 'text'
-        # QuestionData has 'text' and 'type' (question type like radio/text)
-        if "title" in v and "summary" in v and "text" not in v:
-            return "conclusion"
-        return "question"
-    return "question"
-
-
 class GraphNode(BaseModel):
     """Node in the DecisionTree graph - either a question or a conclusion.
 
@@ -156,6 +152,9 @@ class GraphNode(BaseModel):
         id: Unique identifier (must start with letter, alphanumeric + underscore/hyphen)
         type: Node type - "question" or "conclusion"
         data: QuestionData for questions, ConclusionData for conclusions
+
+    ``data`` is validated against ``type`` (not inferred from data shape). Incomplete
+    conclusion payloads must not be reported as question-model failures.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -165,10 +164,20 @@ class GraphNode(BaseModel):
         default="question",
         description="Node type: 'question' or 'conclusion'",
     )
-    data: Annotated[
-        Annotated[QuestionData, Tag("question")] | Annotated[ConclusionData, Tag("conclusion")],
-        Discriminator(_get_node_data_discriminator),
-    ] = Field(description="QuestionData for questions, ConclusionData for conclusions")
+    data: QuestionData | ConclusionData = Field(
+        description="QuestionData for questions, ConclusionData for conclusions"
+    )
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def _coerce_data_by_node_type(cls, value: Any, info: ValidationInfo) -> Any:
+        """Validate ``data`` using sibling ``type``, not data-shape heuristics."""
+        if isinstance(value, (QuestionData, ConclusionData)):
+            return value
+        node_type = (info.data or {}).get("type") or "question"
+        if node_type == "conclusion":
+            return ConclusionData.model_validate(value)
+        return QuestionData.model_validate(value)
 
     def is_question(self) -> bool:
         """Check if this node is a question node."""

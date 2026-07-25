@@ -99,9 +99,9 @@ from smeme.mcp._generated_guidance import (
 from smeme.mcp.assistant_decision_tree_access import (
     assistant_tools_discoverability_violation,
     select_decision_trees_for_assistant_tools_list,
-    serialize_decision_trees_for_assistant_list,
 )
 from smeme.mcp.authoring_graph import (
+    AUTHORING_GRAPH_WIRE_SCHEMA,
     create_draft_from_graph,
     editor_url_for_decision_tree,
     parse_authoring_graph_json,
@@ -174,7 +174,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.0.0"
+REASONING_CAPABILITIES_VERSION = "3.1.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -346,11 +346,13 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "Authoring helpers — not evaluation tools. "
                 "Fetch design guidance, validate a chat-built decision tree graph, then create a "
                 "dashboard draft (bypasses the generation wizard). Deploy still happens in "
-                "the SMEme editor."
+                "the SMEme editor. Prefer authoring_graph.schema + smeme_authoring_design_guidance "
+                "over smeme_reasoning_guidance_get when building trees."
             ),
             "design_guidance": "smeme_authoring_design_guidance",
             "validate": "smeme_authoring_validate_graph",
             "create_draft": "smeme_authoring_create_draft",
+            "schema": AUTHORING_GRAPH_WIRE_SCHEMA,
         }
         cap["authoring_design"] = {
             "content_version": DESIGN_GUIDANCE_VERSION,
@@ -1021,13 +1023,32 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         bind_mcp_user(user, request=request)
 
+                        from smeme.billing.access_policy import (
+                            is_decision_tree_live,
+                            is_workflow_pick_required,
+                        )
+
                         result = await db.execute(
                             select_decision_trees_for_assistant_tools_list(user.id)
                         )
-                        listed_rows = result.scalars().all()
-                        decision_trees = serialize_decision_trees_for_assistant_list(
-                            user, listed_rows
-                        )
+                        decision_trees = result.scalars().all()
+
+                        decision_trees: list[dict[str, Any]] = []
+                        for q in decision_trees:
+                            entry: dict[str, Any] = {
+                                "id": str(q.id),
+                                "title": q.title,
+                                "is_public": q.is_public,
+                                "reasoning_status": q.reasoning_status,
+                                "intended_audience": q.intended_audience,
+                                "use_case": q.use_case,
+                            }
+                            if is_workflow_pick_required(user) or not is_decision_tree_live(
+                                user, q
+                            ):
+                                entry["accessible"] = False
+                                entry["status"] = "account_downgrade_pending"
+                            decision_trees.append(entry)
 
                     payload: dict[str, Any] = {
                         "decision_trees": decision_trees,
@@ -1069,6 +1090,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             Same auth and load gates as ``smeme_reasoning_evaluate``. On success returns
             ``status``, ``warnings`` (deterministic order), and ``harness_next`` (see capabilities).
+
+            ``harness_next: phase_2_ok`` means the envelope is structurally valid **and**
+            answers ground into canonical facts (same Stage A path evaluate uses). It does
+            **not** run the solver or promise a conclusion.
             """
             try:
                 async with mcp_invocation_scope("smeme_reasoning_validate_answers", ctx) as rec:

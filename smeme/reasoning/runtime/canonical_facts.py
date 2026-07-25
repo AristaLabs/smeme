@@ -5,12 +5,32 @@ from __future__ import annotations
 import re
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from smeme.reasoning.ir.types import IR, IRNodeKind
+from smeme.reasoning.runtime.input_validation import (
+    MAX_RADIO_OR_OPTION_STR_LEN,
+    ReasoningInputValidationError,
+)
 from smeme.reasoning.runtime.schemas import EvidenceConfidence
 
 _RADIO_FACT_ATOM_RE = re.compile(r"^fact:radio:([^:]+):(.+)$")
+
+# Audit projection only — must not constrain author-controlled option labels.
+SOURCE_SPAN_MAX_LEN = 120
+
+
+def _grounding_error_message(question_id: str, exc: ValidationError) -> str:
+    """Stable, actionable message: question + field + constraint + detail."""
+    err = exc.errors()[0] if exc.errors() else {}
+    loc = err.get("loc") or ()
+    field = ".".join(str(p) for p in loc) if loc else "record"
+    constraint = str(err.get("type") or "validation_error")
+    detail = str(err.get("msg") or exc)
+    return (
+        f"Answer grounding failed for question {question_id!r} "
+        f"(field={field}, constraint={constraint}): {detail}"
+    )
 
 
 class CanonicalFactRecord(BaseModel):
@@ -22,8 +42,8 @@ class CanonicalFactRecord(BaseModel):
     question_id: str = Field(max_length=256)
     value: bool
     confidence: EvidenceConfidence
-    source_span: str = Field(default="", max_length=120)
-    option_label: str | None = Field(default=None, max_length=512)
+    source_span: str = Field(default="", max_length=SOURCE_SPAN_MAX_LEN)
+    option_label: str | None = Field(default=None, max_length=MAX_RADIO_OR_OPTION_STR_LEN)
     """Radio: option label exactly as in :class:`~smeme.reasoning.ir.types.IRQuestionShape`."""
 
     bridge_rule_id: str | None = Field(default=None, max_length=256)
@@ -86,22 +106,28 @@ def raw_answers_to_canonical_facts(
         conf = EvidenceConfidence.EXPLICIT if answered else EvidenceConfidence.ABSENT
         for opt in n.question.options:
             value = opt.strip().lower() == opt_str
-            out.append(
-                CanonicalFactRecord(
-                    kind="radio",
-                    question_id=qid,
-                    value=value,
-                    confidence=conf,
-                    source_span=opt_str if value else "",
-                    option_label=opt,
+            # Truncate audit projection; full label stays on option_label.
+            span = opt_str[:SOURCE_SPAN_MAX_LEN] if value else ""
+            try:
+                out.append(
+                    CanonicalFactRecord(
+                        kind="radio",
+                        question_id=qid,
+                        value=value,
+                        confidence=conf,
+                        source_span=span,
+                        option_label=opt,
+                    )
                 )
-            )
+            except ValidationError as exc:
+                raise ReasoningInputValidationError(_grounding_error_message(qid, exc)) from exc
 
     return out
 
 
 __all__ = [
     "CanonicalFactRecord",
+    "SOURCE_SPAN_MAX_LEN",
     "raw_answers_to_canonical_facts",
     "validate_fact_atom_id",
 ]

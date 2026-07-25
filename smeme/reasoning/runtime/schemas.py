@@ -23,7 +23,10 @@ class BlobEvidenceItem(BaseModel):
         description="Symbol name tied to IR/Z3 bool",
     )
     value: bool
-    source_span: str = Field(max_length=120, description="Verbatim excerpt or empty if absent")
+    source_span: str = Field(
+        max_length=120,
+        description="Verbatim excerpt or empty if absent (truncated audit projection)",
+    )
     confidence: EvidenceConfidence
 
 

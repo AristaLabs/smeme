@@ -96,6 +96,71 @@ class TestAuthoringGraphHelpers:
         assert isinstance(err, str)
         assert json.loads(err)["error"]["code"] == "payload_too_large"
 
+    def test_parse_schema_errors_are_aggregated(self) -> None:
+        bad = {
+            "nodes": [
+                {
+                    "id": "q1",
+                    "type": "question",
+                    "data": {
+                        "text": "Q?",
+                        "type": "radio",
+                        "options": ["A"],
+                        "required": True,
+                        "bogus": 1,
+                    },
+                },
+                {
+                    "id": "c1",
+                    "type": "conclusion",
+                    "data": {"title": "Only title"},
+                },
+            ],
+            "edges": [{"source": "q1", "target": "c1", "condition": "A", "id": "e1"}],
+            "metadata": {"title": "X"},
+        }
+        err = parse_authoring_graph_json(json.dumps(bad))
+        assert isinstance(err, str)
+        payload = json.loads(err)
+        assert payload["error"]["code"] == "invalid_graph"
+        errors = payload["error"]["errors"]
+        assert isinstance(errors, list)
+        assert len(errors) >= 2
+        joined = "\n".join(errors)
+        assert "nodes.0.data.bogus" in joined
+        assert "nodes.1.data.summary" in joined
+        assert "nodes.1.data.question" not in joined
+        assert "edges.0.id" in joined
+
+    def test_conclusion_schema_errors_use_conclusion_fields(self) -> None:
+        bad = {
+            "nodes": [
+                {
+                    "id": "q1",
+                    "type": "question",
+                    "data": {
+                        "text": "Q?",
+                        "type": "radio",
+                        "options": ["A"],
+                        "required": True,
+                    },
+                },
+                {
+                    "id": "c1",
+                    "type": "conclusion",
+                    "data": {"title": "Approve"},  # missing summary
+                },
+            ],
+            "edges": [],
+            "metadata": {"title": "X"},
+        }
+        err = parse_authoring_graph_json(json.dumps(bad))
+        payload = json.loads(err)
+        joined = "\n".join(payload["error"]["errors"])
+        assert "nodes.1.data.summary" in joined
+        assert "nodes.1.data.question" not in joined
+        assert "nodes.1.data.options" not in joined
+
     def test_validation_payload_draft_ready(self) -> None:
         graph = DTGraph.model_validate(_minimal_graph())
         result = validate_graph_for_editing(graph)
@@ -106,16 +171,7 @@ class TestAuthoringGraphHelpers:
 
 
 class TestAuthoringGraphCapabilities:
-    def test_tools_present_by_default(self) -> None:
-        doc = reasoning_capabilities_document()
-        tools = doc["reasoning"]["tools"]
-        assert "smeme_authoring_validate_graph" in tools
-        assert "smeme_authoring_create_draft" in tools
-        assert "smeme_authoring_design_guidance" in tools
-        assert "authoring_graph" in doc
-        assert "authoring_design" in doc
-
-    def test_tools_absent_when_opted_out(self) -> None:
+    def test_tools_absent_when_disabled(self) -> None:
         from smeme.core.config import Settings
 
         mock_settings = MagicMock(spec=Settings)
@@ -140,6 +196,12 @@ class TestAuthoringGraphCapabilities:
         assert "smeme_authoring_design_guidance" in tools
         assert doc["authoring_graph"]["validate"] == "smeme_authoring_validate_graph"
         assert doc["authoring_graph"]["design_guidance"] == "smeme_authoring_design_guidance"
+        assert "schema" in doc["authoring_graph"]
+        assert doc["authoring_graph"]["schema"]["required"] == ["nodes", "edges", "metadata"]
+        node_items = doc["authoring_graph"]["schema"]["properties"]["nodes"]["items"]
+        assert "oneOf" in node_items
+        titles = {variant.get("title") for variant in node_items["oneOf"]}
+        assert titles == {"QuestionNode", "ConclusionNode"}
         assert "authoring_design" in doc
 
 

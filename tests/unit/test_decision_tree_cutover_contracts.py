@@ -145,9 +145,9 @@ def test_authoring_accepts_v2_and_raw_rejects_v1_and_legacy_envelopes() -> None:
 
 
 def test_mcp_contract_versions_and_error_codes() -> None:
-    assert REASONING_CAPABILITIES_VERSION == "3.0.0"
-    assert GUIDANCE_CONTENT_VERSION == "2.0.0"
-    assert DESIGN_GUIDANCE_CONTENT_VERSION == "2.0.0"
+    assert REASONING_CAPABILITIES_VERSION == "3.1.0"
+    assert GUIDANCE_CONTENT_VERSION == "2.1.0"
+    assert DESIGN_GUIDANCE_CONTENT_VERSION == "2.2.0"
     assert "invalid_decision_tree_id" in REASONING_TOOL_ERROR_CODES
     assert f"invalid_{LEGACY}_id" not in REASONING_TOOL_ERROR_CODES
 

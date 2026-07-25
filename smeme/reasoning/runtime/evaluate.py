@@ -28,6 +28,8 @@ from smeme.reasoning.theory.compile_to_z3 import compile_ir_to_z3
 
 OutcomeLiteral = Literal["SAT_UNIQUE", "SAT_AMBIGUOUS", "UNSAT", "UNDER_DETERMINED"]
 
+TriggeredEdge = dict[str, str]
+
 
 @dataclass
 class EvaluationResult:
@@ -35,7 +37,7 @@ class EvaluationResult:
     true_conclusion_id: str | None = None
     model_atoms: dict[str, bool] | None = None
     explanation: dict[str, Any] = field(default_factory=dict)
-    triggered_edges: list[str] = field(default_factory=list)
+    triggered_edges: list[TriggeredEdge] = field(default_factory=list)
     minimal_repairs: list[Any] | None = None
 
 
@@ -62,21 +64,25 @@ def _model_bool_assignments(
 
 def _triggered_edges_ir(
     ir: IR, model: Any, reach: dict[str, BoolRef], guards: dict[str, BoolRef]
-) -> list[str]:
-    guards_by_id = {g.id: g for g in ir.guards}
-    fired: list[str] = []
+) -> list[TriggeredEdge]:
+    """Return fired edges with ``guard_id`` so parallel (source, target) pairs stay distinct."""
+    fired: list[TriggeredEdge] = []
     for e in ir.edges:
         gr = guards.get(e.guard_id)
         if gr is None or e.source not in reach or e.target not in reach:
             continue
-        # skip structural default guards as free — still evaluate model
-        _ = guards_by_id[e.guard_id]
         rs = model.eval(reach[e.source], model_completion=True)
         rt = model.eval(reach[e.target], model_completion=True)
         rg = model.eval(gr, model_completion=True)
         if is_true(rs) and is_true(rg) and is_true(rt):
-            fired.append(f"{e.source}->{e.target}")
-    fired.sort()
+            fired.append(
+                {
+                    "source": e.source,
+                    "target": e.target,
+                    "guard_id": e.guard_id,
+                }
+            )
+    fired.sort(key=lambda row: (row["source"], row["target"], row["guard_id"]))
     return fired
 
 
@@ -232,6 +238,8 @@ def evaluate_reasoning(
             raise IRValidationError(rep)
 
     validate_raw_answers_for_ir(ir, raw_answers)
+    # Stage A raises ReasoningInputValidationError with question/field/constraint —
+    # MCP maps that to invalid_answers (never internal_error).
     canonical = raw_answers_to_canonical_facts(ir, raw_answers)
     return evaluate_with_canonical_facts(
         ir,
@@ -248,6 +256,7 @@ __all__ = [
     "OutcomeLiteral",
     "ReasoningAssumptions",
     "ReasoningInputValidationError",
+    "TriggeredEdge",
     "evaluate_reasoning",
     "evaluate_with_canonical_facts",
 ]
