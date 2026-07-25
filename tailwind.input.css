@@ -23,6 +23,11 @@
     --ui-ink-subtle: #9ca3af;
     --ui-line: #e5e7eb;
     --ui-line-strong: #d1d5db;
+    --ui-action-primary: #002868;
+    --ui-action-primary-hover: #001f50;
+    --ui-action-primary-active: #00163d;
+    --ui-action-primary-ink: #ffffff;
+    --ui-action-focus: #2d5a94;
     --ui-graph-node: #f3f4f6;
     --ui-graph-node-stroke: #9ca3af;
     --ui-graph-edge: #6b7280;
@@ -38,12 +43,21 @@
     --ui-ink-subtle: #6b7280;
     --ui-line: #374151;
     --ui-line-strong: #4b5563;
+    /* Both the control boundary and its white label meet WCAG contrast. */
+    --ui-action-primary: #4a76b0;
+    --ui-action-primary-hover: #4278bd;
+    --ui-action-primary-active: #5674a2;
+    --ui-action-primary-ink: #ffffff;
+    --ui-action-focus: #7d9fd4;
     --ui-graph-node: #374151;
     --ui-graph-node-stroke: #6b7280;
     --ui-graph-edge: #9ca3af;
   }
   html {
     -webkit-text-size-adjust: 100%;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   /* Preserve the prior body defaults (system font stack, not the Inter heading font). */
   body {
@@ -58,9 +72,74 @@
   [hidden] {
     display: none !important;
   }
+  /*
+   * Safety net for one-off fields. Geometry stays local, while browser-default
+   * white controls cannot clash with dark-mode ink.
+   */
+  :where(
+      html.dark input[type="text"],
+      html.dark input[type="email"],
+      html.dark input[type="password"],
+      html.dark input[type="search"],
+      html.dark input[type="url"],
+      html.dark input[type="tel"],
+      html.dark input[type="number"],
+      html.dark textarea,
+      html.dark select
+    ) {
+    background-color: var(--ui-surface);
+    border-color: var(--ui-line-strong);
+    color: var(--ui-ink);
+  }
+  :where(html.dark input, html.dark textarea)::placeholder {
+    color: var(--ui-ink-subtle);
+  }
 }
 
 @layer components {
+  /*
+   * Semantic primitives for controls that cannot use a Jinja macro.
+   * Keep layout/size utilities at the call site.
+   */
+  .ui-action-primary {
+    background-color: var(--ui-action-primary);
+    color: var(--ui-action-primary-ink);
+  }
+  .ui-action-primary:hover {
+    background-color: var(--ui-action-primary-hover);
+  }
+  .ui-action-primary:active {
+    background-color: var(--ui-action-primary-active);
+  }
+  .ui-action-primary:focus-visible {
+    outline: 2px solid var(--ui-action-focus);
+    outline-offset: 2px;
+  }
+  .ui-action-primary:disabled,
+  .ui-action-primary[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .ui-field {
+    width: 100%;
+    border: 1px solid var(--ui-line-strong);
+    border-radius: 0.5rem;
+    background-color: var(--ui-surface);
+    color: var(--ui-ink);
+    padding: 0.5rem 0.75rem;
+  }
+  .ui-field::placeholder {
+    color: var(--ui-ink-subtle);
+  }
+  .ui-field:focus {
+    border-color: var(--ui-action-focus);
+    outline: 2px solid var(--ui-action-focus);
+    outline-offset: 1px;
+  }
+  /* Matching veil for loading overlays on primary actions. */
+  .ui-action-primary-veil {
+    background-color: color-mix(in srgb, var(--ui-action-primary) 90%, transparent);
+  }
   #app-layout-shift {
     min-height: 100vh;
     display: flex;

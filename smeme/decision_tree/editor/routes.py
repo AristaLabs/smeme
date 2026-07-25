@@ -108,7 +108,7 @@ def render_edit_blocked_error(decision_tree_id: UUID, error_detail: str) -> HTML
             f'<p class="mb-3">{error_detail}</p>'
             f'<div class="flex gap-2">'
             f'<a href="/decision-trees/editor/{decision_tree_id}/create_version" '
-            f'class="inline-flex items-center px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded">'
+            f'class="inline-flex items-center px-3 py-2 ui-action-primary text-sm font-medium rounded">'
             f"Create New Version</a></div>"
         ),
         type="error",
@@ -1725,8 +1725,7 @@ async def create_edge_form(
 
         <div class="flex gap-2">
             <button type="submit"
-                    class="px-3 py-2 text-sm font-medium text-white bg-brand-600
-                           rounded-md hover:bg-brand-700">
+                    class="px-3 py-2 text-sm font-medium ui-action-primary rounded-md">
                 Create Edge
             </button>
             <button type="button"
@@ -1836,8 +1835,7 @@ async def update_edge_form(
 
         <div class="flex gap-2">
             <button type="submit"
-                    class="px-3 py-2 text-sm font-medium text-white bg-brand-600
-                           rounded-md hover:bg-brand-700">
+                    class="px-3 py-2 text-sm font-medium ui-action-primary rounded-md">
                 Save
             </button>
             <button type="button"
