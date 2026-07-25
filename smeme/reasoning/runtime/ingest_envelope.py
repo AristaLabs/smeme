@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Any
 
 from smeme.reasoning.ir.types import IR, IRNodeKind
+from smeme.reasoning.runtime.canonical_facts import raw_answers_to_canonical_facts
 from smeme.reasoning.runtime.ingest_codes import (
     HarnessNext,
     IngestErrorCode,
@@ -365,9 +366,19 @@ def prepare_evaluate_ingest(
     ir: IR,
     payload: dict[str, Any],
 ) -> tuple[dict[str, Any], ParsedIngestEnvelope, list[dict[str, Any]], HarnessNext]:
-    """Parse + validate ingest; return ``(answers, envelope, warnings, harness_next)``."""
+    """Parse + validate ingest; return ``(answers, envelope, warnings, harness_next)``.
+
+    ``harness_next=phase_2_ok`` means the envelope is structurally valid **and**
+    answers can be grounded into canonical facts (same Stage A path evaluate uses).
+    It does not run the solver or promise a conclusion.
+    """
     env = parse_ingest_envelope_dict(payload)
     warnings, hn = validate_reasoning_ingest_envelope(ir, env)
+    # Ensure grounding succeeds before advertising phase_2_ok.
+    try:
+        raw_answers_to_canonical_facts(ir, env.answers)
+    except ReasoningInputValidationError as exc:
+        raise ReasoningIngestError(IngestErrorCode.ingest_malformed, str(exc)) from exc
     return env.answers, env, warnings, hn
 
 

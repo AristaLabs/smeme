@@ -79,6 +79,10 @@ Preflight before structuring (also in the design guidance):
 
 ## Graph shape (wire)
 
+Authoritative copy lives in **`smeme_authoring_design_guidance`** (from
+`DESIGN.md`). Connector-only agents never see this skill file — keep the MCP
+artifact complete.
+
 ```json
 {
   "nodes": [
@@ -88,14 +92,20 @@ Preflight before structuring (also in the design guidance):
       "data": {
         "text": "Is the vendor financially sound?",
         "type": "radio",
-        "options": ["Yes", "No"],
-        "required": true
+        "options": ["Yes", "No", "Unsure"],
+        "required": true,
+        "help_text": "Use the latest audited statements when available."
       }
     },
     {
       "id": "c_approve",
       "type": "conclusion",
-      "data": { "title": "Approve", "summary": "Vendor may proceed." }
+      "data": {
+        "title": "Approve",
+        "summary": "Vendor may proceed.",
+        "recommendations": ["Record the review date."],
+        "severity": "info"
+      }
     }
   ],
   "edges": [
@@ -109,10 +119,15 @@ Also accepted: a SMEme `.smeme.json` export envelope (`decision_tree.graph`).
 
 Rules agents miss most often:
 
-- Question `data.type` is always `radio`.
-- Edge `condition` must match an option string exactly (or be empty only when
-  the server allows a default edge — prefer explicit conditions).
-- Conclusions have **no** outgoing edges.
+- Question `data.type` is always `radio`; always set `required: true`.
+- Short stem in `text`; clarifiers / citations in `help_text` (long `text`
+  warns above ~500 characters).
+- `data`, nodes, edges, and metadata **forbid unknown keys**.
+- Edges are `{ source, target, condition }` only — **no** `id`.
+- Edge `condition` must match an option string exactly (prefer explicit
+  conditions over empty defaults).
+- Conclusions have **no** outgoing edges; include `title` + `summary`
+  (optional `recommendations`, `severity`).
 - `metadata.title` required (or pass `title` to create_draft).
 
 ## Tool errors

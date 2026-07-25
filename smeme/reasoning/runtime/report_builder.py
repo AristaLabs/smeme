@@ -89,10 +89,21 @@ def _format_answer(val: Any) -> str:
     return str(val)
 
 
-def _topological_node_order(triggered_edges: list[str]) -> list[str]:
+def _topological_node_order(triggered_edges: list[Any]) -> list[str]:
+    """Order nodes from fired edges.
+
+    Accepts structured ``{source, target, guard_id}`` rows (current) and legacy
+    ``\"source->target\"`` strings (persisted runs / older tests).
+    """
     edges: list[tuple[str, str]] = []
     for te in triggered_edges:
-        if "->" not in te:
+        if isinstance(te, dict):
+            src = te.get("source")
+            tgt = te.get("target")
+            if isinstance(src, str) and isinstance(tgt, str) and src and tgt:
+                edges.append((src, tgt))
+            continue
+        if not isinstance(te, str) or "->" not in te:
             continue
         src, tgt = te.split("->", 1)
         edges.append((src.strip(), tgt.strip()))

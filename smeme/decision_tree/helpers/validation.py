@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import NotRequired, TypedDict
 
 from smeme.decision_tree.models import DTGraph, GraphEdge, GraphNode
+from smeme.reasoning.runtime.input_validation import MAX_RADIO_OR_OPTION_STR_LEN
 
 logger = logging.getLogger(__name__)
 
@@ -602,12 +603,22 @@ def _validate_question_nodes(nodes: list[GraphNode], ctx: _ValidationContext) ->
             else:
                 MAX_QUESTION_LENGTH = 500
                 if len(qdata.text) > MAX_QUESTION_LENGTH:
-                    ctx.warning(
-                        f"⚠️ Question '{node.id}' has very long text "
-                        f"({len(qdata.text)} characters). "
-                        f"Consider breaking into multiple questions.",
-                        "Split this into two or more shorter questions so users can answer step by step.",
-                    )
+                    if not (qdata.help_text and str(qdata.help_text).strip()):
+                        ctx.warning(
+                            f"⚠️ Question '{node.id}' has very long text "
+                            f"({len(qdata.text)} characters) and empty help_text. "
+                            f"Move definitions and citations into help_text; keep text as a short stem.",
+                            "Relocate the long definitional content into help_text rather than "
+                            "splitting into more questions (unless the stem itself asks multiple decisions).",
+                        )
+                    else:
+                        ctx.warning(
+                            f"⚠️ Question '{node.id}' has very long text "
+                            f"({len(qdata.text)} characters). "
+                            f"Consider shortening the stem further.",
+                            "Keep text as the short decision stem; leave detail in help_text. "
+                            "Split into multiple questions only when the stem asks more than one decision.",
+                        )
         elif node.type == "conclusion":
             cdata = node.conclusion_data
             if not cdata:
@@ -661,6 +672,14 @@ def _validate_question_options(nodes: list[GraphNode], ctx: _ValidationContext) 
                         ctx.error(
                             f"Question '{node.id}' has empty option at position {i + 1}",
                             "Remove the blank option or enter label text for every choice.",
+                        )
+                    elif len(opt) > MAX_RADIO_OR_OPTION_STR_LEN:
+                        ctx.error(
+                            f"Question '{node.id}' option at position {i + 1} exceeds "
+                            f"{MAX_RADIO_OR_OPTION_STR_LEN} characters "
+                            f"({len(opt)} characters).",
+                            "Shorten the option label; put citations and definitions "
+                            "in help_text instead.",
                         )
 
                 # BLOCK: Duplicate option labels

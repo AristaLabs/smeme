@@ -18,11 +18,117 @@ from smeme.core.models import DecisionTree, User
 from smeme.decision_tree.helpers.validation import ValidationResult, validate_graph_for_editing
 from smeme.decision_tree.models import DTGraph
 from smeme.mcp.tool_contract import tool_error_json
+from smeme.reasoning.runtime.input_validation import MAX_RADIO_OR_OPTION_STR_LEN
 
 AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES = 512 * 1024
 
+# Terse machine-readable wire contract advertised in ``smeme_reasoning_capabilities``
+# (``authoring_graph.schema``). Keep aligned with ``QuestionData`` / ``ConclusionData`` /
+# ``GraphEdge`` / ``DTGraphMetadata`` (extra=forbid).
+# Nodes use a type-discriminated oneOf so clients can validate locally without
+# round-tripping (question vs conclusion data shapes are not interchangeable).
+_QUESTION_DATA_SCHEMA: dict[str, Any] = {
+    "title": "QuestionData",
+    "type": "object",
+    "required": ["text", "type", "options", "required"],
+    "additionalProperties": False,
+    "properties": {
+        "text": {"type": "string"},
+        "type": {"const": "radio"},
+        "options": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_RADIO_OR_OPTION_STR_LEN},
+            "minItems": 1,
+        },
+        "required": {"type": "boolean"},
+        "help_text": {"type": ["string", "null"]},
+    },
+}
+
+_CONCLUSION_DATA_SCHEMA: dict[str, Any] = {
+    "title": "ConclusionData",
+    "type": "object",
+    "required": ["title", "summary"],
+    "additionalProperties": False,
+    "properties": {
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "recommendations": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+        "severity": {
+            "enum": ["info", "warning", "critical", None],
+        },
+    },
+}
+
+AUTHORING_GRAPH_WIRE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["nodes", "edges", "metadata"],
+    "additionalProperties": False,
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    {
+                        "title": "QuestionNode",
+                        "type": "object",
+                        "required": ["id", "type", "data"],
+                        "additionalProperties": False,
+                        "properties": {
+                            "id": {"type": "string"},
+                            "type": {"const": "question"},
+                            "data": _QUESTION_DATA_SCHEMA,
+                        },
+                    },
+                    {
+                        "title": "ConclusionNode",
+                        "type": "object",
+                        "required": ["id", "type", "data"],
+                        "additionalProperties": False,
+                        "properties": {
+                            "id": {"type": "string"},
+                            "type": {"const": "conclusion"},
+                            "data": _CONCLUSION_DATA_SCHEMA,
+                        },
+                    },
+                ]
+            },
+        },
+        "edges": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["source", "target"],
+                "additionalProperties": False,
+                "properties": {
+                    "source": {"type": "string"},
+                    "target": {"type": "string"},
+                    "condition": {"type": ["string", "null"]},
+                },
+            },
+        },
+        "metadata": {
+            "type": "object",
+            "required": ["title"],
+            "additionalProperties": False,
+            "properties": {
+                "title": {"type": "string"},
+                "description": {"type": ["string", "null"]},
+                "category": {"type": ["string", "null"]},
+                "estimated_time": {"type": ["integer", "null"]},
+                "version": {"type": "string"},
+                "tags": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+    },
+}
+
 __all__ = [
     "AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES",
+    "AUTHORING_GRAPH_WIRE_SCHEMA",
     "create_draft_from_graph",
     "editor_url_for_decision_tree",
     "extract_graph_dict",
@@ -97,6 +203,27 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
     )
 
 
+def _format_schema_error_loc(loc: tuple[Any, ...]) -> str:
+    """Dot-path for agents; drop pydantic union tags if any remain."""
+    parts: list[str] = []
+    for part in loc:
+        if part in ("question", "conclusion") and parts and parts[-1] == "data":
+            # Legacy discriminator tags — keep path as nodes.N.data.<field>
+            continue
+        parts.append(str(part))
+    return ".".join(parts)
+
+
+def _schema_errors_from_validation(exc: ValidationError) -> list[str]:
+    """All pydantic issues as short ``path: message`` strings."""
+    out: list[str] = []
+    for err in exc.errors():
+        loc = _format_schema_error_loc(tuple(err.get("loc", ())))
+        detail = err.get("msg", "validation failed")
+        out.append(f"{loc}: {detail}" if loc else str(detail))
+    return out or ["Graph schema invalid."]
+
+
 def parse_authoring_graph_json(dt_graph_json: str) -> DTGraph | str:
     """Parse agent JSON into ``DTGraph``, or return tool-error JSON."""
     graph_dict = extract_graph_dict(dt_graph_json)
@@ -105,19 +232,12 @@ def parse_authoring_graph_json(dt_graph_json: str) -> DTGraph | str:
     try:
         return DTGraph.model_validate(graph_dict)
     except ValidationError as exc:
-        # Keep message short — full Pydantic dump is noisy for agents.
-        first = exc.errors()[0] if exc.errors() else None
-        if first:
-            loc = ".".join(str(p) for p in first.get("loc", ()))
-            detail = first.get("msg", "validation failed")
-            msg = (
-                f"Graph schema invalid at {loc}: {detail}"
-                if loc
-                else f"Graph schema invalid: {detail}"
-            )
+        errors = _schema_errors_from_validation(exc)
+        if len(errors) == 1:
+            msg = f"Graph schema invalid: {errors[0]}"
         else:
-            msg = "Graph schema invalid."
-        return tool_error_json("invalid_graph", msg)
+            msg = f"Graph schema invalid ({len(errors)} issues). See errors."
+        return tool_error_json("invalid_graph", msg, errors=errors)
 
 
 def validation_payload(graph: DTGraph, result: ValidationResult) -> dict[str, Any]:

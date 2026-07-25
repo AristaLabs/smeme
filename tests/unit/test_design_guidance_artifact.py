@@ -48,6 +48,11 @@ def test_generated_markdown_content() -> None:
     assert "Product constraints" in DESIGN_GUIDANCE_MARKDOWN
     assert "Conclusion-driven" in DESIGN_GUIDANCE_MARKDOWN or "conclusions" in DESIGN_GUIDANCE_MARKDOWN
     assert "smeme_authoring_validate_graph" in DESIGN_GUIDANCE_MARKDOWN
+    assert "help_text" in DESIGN_GUIDANCE_MARKDOWN
+    assert "extra=forbid" in DESIGN_GUIDANCE_MARKDOWN
+    assert 'required: true' in DESIGN_GUIDANCE_MARKDOWN or '"required": true' in DESIGN_GUIDANCE_MARKDOWN
+    assert "conjunctive" in DESIGN_GUIDANCE_MARKDOWN.lower()
+    assert "q7a" in DESIGN_GUIDANCE_MARKDOWN or "duplicate" in DESIGN_GUIDANCE_MARKDOWN.lower()
     assert_blind_protocol_safe(DESIGN_GUIDANCE_MARKDOWN)
 
 
