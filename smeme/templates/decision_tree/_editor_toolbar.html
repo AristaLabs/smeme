@@ -70,7 +70,7 @@
         {% if tr != 'live' %}
         {% set deploy_decision_tree_id = decision_tree_id %}
         {% set deploy_label = 'Redeploy' if tr == 'stale' else 'Deploy' %}
-        {% set deploy_extra_class = 'px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 border border-transparent rounded-lg hover:bg-brand-700 shadow-sm' %}
+        {% set deploy_extra_class = 'ui-action-primary px-4 py-2.5 text-sm font-semibold border border-transparent rounded-lg shadow-sm' %}
         {% include 'decision_tree/_deploy_tools_trigger.html' %}
         {% endif %}
       {% endif %}

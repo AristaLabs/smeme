@@ -313,7 +313,7 @@ async def start_decision_tree(
                         f"that must be fixed before it can be answered.</p>"
                         f'<div class="flex gap-3">'
                         f'<a href="/decision-trees/{decision_tree_id}/editor" '
-                        f'class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg">'
+                        f'class="px-4 py-2 ui-action-primary font-medium rounded-lg">'
                         f"Open in Editor</a>"
                         f'<a href="/decision-trees/dashboard" '
                         f'class="px-4 py-2 bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium rounded-lg">'

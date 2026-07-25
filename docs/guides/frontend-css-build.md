@@ -51,6 +51,21 @@ TAILWIND_VERSION=v3.4.17 make css  # override the pinned CLI version
 
 ---
 
+## Theme-safe control contracts
+
+Use semantic control primitives for interactive UI; do not choose a fixed palette shade for a
+control:
+
+- **Primary action:** add `ui-action-primary`, then keep only layout, size, typography, and
+  transition utilities at the call site. The `btn` macro primary variant already does this.
+- **Text-like field:** add `ui-field` (or use `form_input` / `form_select`). It owns surface, ink,
+  border, placeholder, and focus colors.
+- **Neutral action:** use `bg-ui-surface*`, `text-ui-ink*`, and `border-ui-line*`.
+- Keep `brand-*` utilities for decorative accents (progress bars, stepper chips, gradients). Their
+  fixed shades are not guaranteed to contrast against both light and dark surfaces.
+
+---
+
 ## When to rebuild
 
 Rebuild whenever the set of Tailwind classes used in templates changes:

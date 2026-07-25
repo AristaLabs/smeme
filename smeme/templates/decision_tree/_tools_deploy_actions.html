@@ -15,14 +15,14 @@
       hx-indicator="find .deploy-direct-spinner">
   <input type="hidden" name="return_next" value="tools" />
   <div class="relative inline-flex">
-    <span class="deploy-direct-spinner htmx-indicator pointer-events-none absolute inset-0 z-[1] flex items-center justify-center rounded-lg bg-brand-600/90" aria-hidden="true">
+    <span class="deploy-direct-spinner htmx-indicator pointer-events-none absolute inset-0 z-[1] flex items-center justify-center rounded-lg ui-action-primary-veil" aria-hidden="true">
       <svg class="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
     </span>
     <button type="submit"
-            class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition px-4 py-2.5 text-sm bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white shadow-sm{% if tr == 'stale' %} ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-amber-950/50{% endif %}">
+            class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition px-4 py-2.5 text-sm ui-action-primary shadow-sm{% if tr == 'stale' %} ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-amber-950/50{% endif %}">
       {{ deploy_label }}
     </button>
   </div>
@@ -31,7 +31,7 @@
 {# Checks not yet run or failed — open the modal so the user can see/run checks first. #}
 {% set deploy_decision_tree_id = decision_tree_id %}
 {% set deploy_label = 'Redeploy' if tr == 'stale' else 'Deploy' %}
-{% set deploy_extra_class = 'px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm' %}
+{% set deploy_extra_class = 'ui-action-primary px-4 py-2.5 text-sm font-semibold rounded-lg shadow-sm' %}
 {% set return_next = 'tools' %}
 {% include 'decision_tree/_deploy_tools_trigger.html' %}
 {% endif %}
