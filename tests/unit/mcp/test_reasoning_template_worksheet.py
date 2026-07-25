@@ -9,6 +9,7 @@ from uuid import UUID
 import pytest
 
 from smeme.decision_tree.models import (
+    AuthorityReference,
     ConclusionData,
     DTGraph,
     DTGraphMetadata,
@@ -47,7 +48,7 @@ def _golden_radio_graph() -> DTGraph:
 
 
 _GOLDEN_DECISION_TREE_ID = UUID("00000000-0000-4000-8000-000000000001")
-_GOLDEN_DIGEST = "5dd33e91672b9330759953694e853a154bd9279cbfc1bfef21daca2082e58e5e"
+_GOLDEN_DIGEST = "2777e8190a910d4eaf489ee815e825f1299fb5a61e817ecafcd9d622e0ac8ce0"
 
 
 def test_manifest_core_digest_golden_matches_fixture() -> None:
@@ -169,6 +170,40 @@ def test_markdown_blind_audit_no_topology_leaks() -> None:
     assert '"schema_version"' not in md
     assert "Checkbox" not in md
     assert "OPERATOR_HINTS" not in md
+
+
+def test_structured_authorities_are_in_manifest_and_worksheet() -> None:
+    graph = _golden_radio_graph()
+    question = graph.nodes[0]
+    assert question.question_data is not None
+    question_data = question.question_data.model_copy(
+        update={
+            "authorities": [
+                AuthorityReference(
+                    citation="31 CFR § 800.401(c)",
+                    title="Mandatory declarations",
+                )
+            ]
+        }
+    )
+    nodes = [GraphNode(id=question.id, type=question.type, data=question_data), *graph.nodes[1:]]
+    graph = DTGraph(nodes=nodes, edges=graph.edges, metadata=graph.metadata)
+
+    manifest = build_manifest_core(graph, _GOLDEN_DECISION_TREE_ID)
+    assert manifest["schema_version"] == 2
+    assert manifest["questions"][0]["authorities"] == [
+        {
+            "citation": "31 CFR § 800.401(c)",
+            "title": "Mandatory declarations",
+        }
+    ]
+    markdown = render_manifest_markdown(
+        manifest_core=manifest,
+        title="T",
+        decision_tree_id=_GOLDEN_DECISION_TREE_ID,
+        slug="t",
+    )
+    assert "Authorities: 31 CFR § 800.401(c)" in markdown
 
 
 def test_worksheet_payload_too_large_detects_oversize(monkeypatch: pytest.MonkeyPatch) -> None:

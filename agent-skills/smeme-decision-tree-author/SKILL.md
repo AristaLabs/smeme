@@ -53,7 +53,11 @@ repeatable). Offer a clear fork when both paths exist:
 2. Design **with the user in readable form** — lock conclusions first, then
    questions, options, and “if X → …”. Keep a running outline they can correct.
 3. Apply the design standard: radio-only, anti-funnel branching, Unsure
-   forward-only, every path reaches a conclusion.
+   forward-only, every path reaches a conclusion. For independently sufficient
+   overlapping triggers, agree a priority and use first-hit-wins routing to one
+   shared conclusion.
+4. For time-sensitive rules, capture structured per-question `authorities`,
+   graph `effective_date` / `review_by`, and expected-outcome regression fixtures.
 
 **Do not** emit wire `dt_graph` JSON until the user says they are ready (or
 explicitly asks to push / validate).
@@ -94,7 +98,8 @@ artifact complete.
         "type": "radio",
         "options": ["Yes", "No", "Unsure"],
         "required": true,
-        "help_text": "Use the latest audited statements when available."
+        "help_text": "Use the latest audited statements when available.",
+        "authorities": [{ "citation": "Vendor Policy § 4.2" }]
       }
     },
     {
@@ -111,7 +116,19 @@ artifact complete.
   "edges": [
     { "source": "q1", "target": "c_approve", "condition": "Yes" }
   ],
-  "metadata": { "title": "Vendor Approval Assessment" }
+  "metadata": {
+    "title": "Vendor Approval Assessment",
+    "estimated_time": 5,
+    "effective_date": "2026-07-01",
+    "review_by": "2027-07-01",
+    "regression_fixtures": [
+      {
+        "name": "sound vendor is approved",
+        "raw_answers": { "q1": "Yes" },
+        "expected_conclusion_id": "c_approve"
+      }
+    ]
+  }
 }
 ```
 
@@ -120,8 +137,11 @@ Also accepted: a SMEme `.smeme.json` export envelope (`decision_tree.graph`).
 Rules agents miss most often:
 
 - Question `data.type` is always `radio`; always set `required: true`.
-- Short stem in `text`; clarifiers / citations in `help_text` (long `text`
-  warns above ~500 characters).
+- Short stem in `text`; clarifiers in `help_text`; citations in structured
+  `authorities` (long `text` warns above ~500 characters).
+- `metadata.estimated_time` is in minutes. Use ISO `effective_date` and
+  `review_by` for time-sensitive rules.
+- `regression_fixtures` are Deploy-time assertions, not `what_if` exploration.
 - `data`, nodes, edges, and metadata **forbid unknown keys**.
 - Edges are `{ source, target, condition }` only — **no** `id`.
 - Edge `condition` must match an option string exactly (prefer explicit

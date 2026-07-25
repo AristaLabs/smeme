@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = ROOT / "agent-skills"
 GENERATED_PATH = Path(__file__).resolve().parent / "_generated_guidance.py"
 
-GUIDANCE_CONTENT_VERSION = "2.1.0"
+GUIDANCE_CONTENT_VERSION = "2.2.0"
 
 _SKILL_ORDER: tuple[tuple[str, str], ...] = (
     ("smeme-reasoning", "Core (from smeme-reasoning)"),

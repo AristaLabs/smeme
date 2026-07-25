@@ -55,10 +55,17 @@ class ParsedIngestEnvelope:
 class ReasoningIngestError(Exception):
     """Blocking ingest validation failure."""
 
-    def __init__(self, code: IngestErrorCode, message: str) -> None:
+    def __init__(
+        self,
+        code: IngestErrorCode,
+        message: str,
+        *,
+        details: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
+        self.details = dict(details or {})
 
 
 def _iso8601_utc_z_ok(s: str) -> bool:
@@ -322,7 +329,11 @@ def validate_reasoning_ingest_envelope(
     except ReasoningInputValidationError as exc:
         msg = str(exc)
         if exc.ingest_error_code:
-            raise ReasoningIngestError(IngestErrorCode(exc.ingest_error_code), msg) from exc
+            raise ReasoningIngestError(
+                IngestErrorCode(exc.ingest_error_code),
+                msg,
+                details=exc.details,
+            ) from exc
         if "Unknown question id" in msg:
             raise ReasoningIngestError(IngestErrorCode.ingest_unknown_question_id, msg) from exc
         raise ReasoningIngestError(IngestErrorCode.ingest_malformed, msg) from exc
@@ -378,7 +389,12 @@ def prepare_evaluate_ingest(
     try:
         raw_answers_to_canonical_facts(ir, env.answers)
     except ReasoningInputValidationError as exc:
-        raise ReasoningIngestError(IngestErrorCode.ingest_malformed, str(exc)) from exc
+        code = (
+            IngestErrorCode(exc.ingest_error_code)
+            if exc.ingest_error_code
+            else IngestErrorCode.ingest_malformed
+        )
+        raise ReasoningIngestError(code, str(exc), details=exc.details) from exc
     return env.answers, env, warnings, hn
 
 

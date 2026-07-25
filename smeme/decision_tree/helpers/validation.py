@@ -1271,6 +1271,104 @@ def validate_graph_for_editing(graph: DTGraph) -> ValidationResult:
     return ctx.to_result(is_valid=True)
 
 
+_EXPLICIT_UNKNOWN_OPTION_RE = re.compile(
+    r"\b(?:unsure|unknown|unclear|not sure|do not know|don'?t know|"
+    r"not enough information|insufficient information|cannot determine|unable to determine)\b",
+    re.IGNORECASE,
+)
+
+
+def validate_graph_for_agent_authoring(graph: DTGraph) -> ValidationResult:
+    """Editing validation plus the stricter connector authoring contract.
+
+    Chat-authored graphs must not force the eventual user to guess: every
+    question is required and carries an explicit unknown/insufficient-information
+    choice. Identically routed options are also surfaced because they cannot
+    affect the selected conclusion.
+    """
+    result = validate_graph_for_editing(graph)
+    errors = list(result["errors"])
+    warnings = list(result["warnings"])
+    suggestions = dict(result.get("suggestions") or {})
+
+    for node in graph.get_question_nodes():
+        qdata = node.question_data
+        if qdata is None:
+            continue
+        if not qdata.required:
+            message = (
+                f"Question '{node.id}' must set required=true for agent-authored decision trees"
+            )
+            errors.append(message)
+            suggestions[message] = (
+                "Set data.required to true and add an explicit Unsure or "
+                "Not enough information option instead of relying on skip."
+            )
+        if not any(_EXPLICIT_UNKNOWN_OPTION_RE.search(option.strip()) for option in qdata.options):
+            message = (
+                f"Question '{node.id}' must include an explicit unknown option "
+                "(for example, 'Unsure' or 'Not enough information')"
+            )
+            errors.append(message)
+            suggestions[message] = (
+                "Add an explicit unknown/insufficient-information option and route it forward "
+                "to a conservative conclusion or diagnostic follow-up."
+            )
+
+        labels_by_target: dict[str, list[str]] = {}
+        for edge in graph.get_outgoing_edges(node.id):
+            condition = (edge.condition or "").strip()
+            if condition:
+                labels_by_target.setdefault(edge.target, []).append(condition)
+        for target, labels in sorted(labels_by_target.items()):
+            if len(labels) < 2:
+                continue
+            rendered = ", ".join(repr(label) for label in sorted(labels))
+            message = (
+                f"⚠️ Question '{node.id}' options {rendered} route identically to '{target}' "
+                "and cannot change the selected conclusion."
+            )
+            warnings.append(message)
+            suggestions[message] = (
+                "Consolidate outcome-equivalent options, route them differently, or confirm "
+                "that this is an intentional collect-only question."
+            )
+
+    for fixture in graph.metadata.regression_fixtures:
+        expected = graph.get_node(fixture.expected_conclusion_id)
+        if expected is None or not expected.is_conclusion():
+            message = (
+                f"Regression fixture {fixture.name!r} expected_conclusion_id "
+                f"{fixture.expected_conclusion_id!r} is not a conclusion node"
+            )
+            errors.append(message)
+            suggestions[message] = "Use the id of an existing conclusion node."
+        for question_id, answer in fixture.raw_answers.items():
+            question = graph.get_node(question_id)
+            qdata = question.question_data if question is not None else None
+            if qdata is None:
+                message = (
+                    f"Regression fixture {fixture.name!r} references unknown question "
+                    f"{question_id!r}"
+                )
+                errors.append(message)
+                suggestions[message] = "Use an existing question id or remove this answer."
+            elif answer not in qdata.options:
+                message = (
+                    f"Regression fixture {fixture.name!r} answer {answer!r} does not match "
+                    f"an option on question {question_id!r}"
+                )
+                errors.append(message)
+                suggestions[message] = "Use one of the question's exact option labels."
+
+    return ValidationResult(
+        is_valid=result["is_valid"] and not errors,
+        errors=errors,
+        warnings=warnings,
+        suggestions=suggestions,
+    )
+
+
 def validate_graph_for_publication(graph: DTGraph) -> tuple[bool, list[str]]:
     """
     Tier-3 validation: Strict validation before preview/publish.

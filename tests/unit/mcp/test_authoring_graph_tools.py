@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from smeme.core.models import User
-from smeme.decision_tree.helpers.validation import validate_graph_for_editing
+from smeme.decision_tree.helpers.validation import validate_graph_for_agent_authoring
 from smeme.decision_tree.models import (
     ConclusionData,
     DTGraph,
@@ -44,7 +44,7 @@ def _minimal_graph(title: str = "Vendor Check") -> dict:
                 data=QuestionData(
                     text="Is the vendor sound?",
                     type="radio",
-                    options=["Yes", "No"],
+                    options=["Yes", "No", "Unsure"],
                     required=True,
                 ),
             ),
@@ -62,6 +62,7 @@ def _minimal_graph(title: str = "Vendor Check") -> dict:
         edges=[
             GraphEdge(source="q1", target="c1", condition="Yes"),
             GraphEdge(source="q1", target="c2", condition="No"),
+            GraphEdge(source="q1", target="c2", condition="Unsure"),
         ],
         metadata=DTGraphMetadata(title=title),
     )
@@ -163,11 +164,19 @@ class TestAuthoringGraphHelpers:
 
     def test_validation_payload_draft_ready(self) -> None:
         graph = DTGraph.model_validate(_minimal_graph())
-        result = validate_graph_for_editing(graph)
+        result = validate_graph_for_agent_authoring(graph)
         body = validation_payload(graph, result)
         assert body["draft_ready"] is True
         assert body["deploy_ready"] is False
         assert body["is_valid"] is True
+
+    def test_agent_authoring_requires_unknown_option(self) -> None:
+        graph_dict = _minimal_graph()
+        graph_dict["nodes"][0]["data"]["options"] = ["Yes", "No"]
+        graph_dict["edges"] = graph_dict["edges"][:2]
+        result = validate_graph_for_agent_authoring(DTGraph.model_validate(graph_dict))
+        assert result["is_valid"] is False
+        assert any("explicit unknown option" in error for error in result["errors"])
 
 
 class TestAuthoringGraphCapabilities:
@@ -202,6 +211,17 @@ class TestAuthoringGraphCapabilities:
         assert "oneOf" in node_items
         titles = {variant.get("title") for variant in node_items["oneOf"]}
         assert titles == {"QuestionNode", "ConclusionNode"}
+        metadata = doc["authoring_graph"]["schema"]["properties"]["metadata"]["properties"]
+        assert metadata["estimated_time"]["description"].endswith("minutes.")
+        assert metadata["effective_date"]["format"] == "date"
+        assert metadata["review_by"]["format"] == "date"
+        assert "regression_fixtures" in metadata
+        question_schema = next(
+            item["properties"]["data"]
+            for item in node_items["oneOf"]
+            if item["title"] == "QuestionNode"
+        )
+        assert "authorities" in question_schema["properties"]
         assert "authoring_design" in doc
 
 

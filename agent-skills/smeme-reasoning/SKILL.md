@@ -9,7 +9,7 @@ description: >-
   Slot-fill: smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.1.0 -->
+<!-- installed_plugin_version: 3.2.0 -->
 
 # SMEme reasoning
 
@@ -40,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.1.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.2.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.1.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.2.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
@@ -70,7 +70,7 @@ When the user asks **what these tools let them do**, call **`smeme_reasoning_cap
    | **`user_input_needed`** | Needs the human (commonly **`missing_evidence_ref`** only) | Ask the user for sources; re-validate; **do not** evaluate yet |
    | **`phase_1_continue`** | Other ingest warnings | Stay in gather/validate; fix warnings; re-validate |
 
-6. **`smeme_reasoning_evaluate`** — same envelope. Use **`persist=false`** only for dry runs. Success also returns **`harness_next`** / **`warnings`** from the same ingest gate.
+6. **`smeme_reasoning_evaluate`** — same envelope. Use **`persist=false`** only for dry runs. Success also returns **`harness_next`** / **`warnings`** from the same ingest gate. If `decision_tree_warnings` contains `review_overdue`, tell the user the result came from a tree past its author-set review date; do not silently present it as current.
 7. Read the **`report`** — present **`brief_memo`**, **`reasoning_path`**, **`candidates`**, and **`answer_sheet`** to the user. Branch on **`report.result_kind` only**. The conclusion **title** names the **terminal outcome**, not the previous question's wording — follow **`reasoning_path`** order; do not infer branch logic from headlines alone.
 
 ### Provenance envelope (`raw_answers_json`)
@@ -265,7 +265,7 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 | `quota_exceeded` | Monthly reasoning allowance reached | Tell the user plainly. The allowance resets at the start of their next billing period — they can see the exact date on the **SMEme billing page**. Suggest upgrading if they need access sooner. Do not retry. |
 | `concurrency_limit` | Another MCP tool call is already in flight for this account | Wait a moment and retry once. This is transient coordination, not a monthly cap hit — do not suggest upgrading. |
 | `invalid_answers_json` | `raw_answers_json` is not a valid provenance envelope | Rebuild the envelope (see `smeme-reasoning-slot-fill`); pass a bare JSON object, not double-encoded. |
-| `invalid_answers` / `ingest_*` | Keys, option strings, or evidence refs don't match the worksheet | Re-open the worksheet; fix question ids and exact option strings; ensure every answered question has an evidence ref. |
+| `invalid_answers` / `ingest_*` | Keys, option strings, evidence refs, or deployed grounding metadata don't match the worksheet | Re-open the worksheet; fix question ids and exact option strings; ensure every answered question has an evidence ref. For `ingest_grounding_failed`, quote `question_id`, `field`, `constraint`, and `remedy`; the owner may need to fix and redeploy the tree. |
 | `payload_too_large` | Ingest exceeds caps | Trim excerpts; keep evidence bounded (locator + short quote, not full documents). |
 | `internal_error` | Unexpected server error | Retry **once**. If it persists, tell the user and include the approximate time. |
 | `persist_not_implemented` | v1 logical analysis tools do not write audit rows | Retry with `persist=false`. Do not block the user. |

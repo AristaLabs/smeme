@@ -14,7 +14,7 @@ SKILLS_ROOT = ROOT / "agent-skills"
 DESIGN_SOURCE_PATH = SKILLS_ROOT / "smeme-decision-tree-author" / "DESIGN.md"
 GENERATED_PATH = Path(__file__).resolve().parent / "_generated_design_guidance.py"
 
-DESIGN_GUIDANCE_CONTENT_VERSION = "2.2.0"
+DESIGN_GUIDANCE_CONTENT_VERSION = "2.3.0"
 
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
 
