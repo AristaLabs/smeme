@@ -63,6 +63,8 @@ jobs:
           docker build -f Dockerfile.core -t smeme:ci .
           uv run python scripts/check_core_no_saas_imports.py --image smeme:ci
           uv run python scripts/check_no_qnr_product_refs.py --image smeme:ci
+          docker run --rm --entrypoint /bin/sh smeme:ci -c \
+            'test -f /app/legal/LICENSE.md && test -f /app/legal/THIRD_PARTY_NOTICES.md'
 
       - name: Core self-host artifacts present
         run: |
@@ -74,6 +76,10 @@ jobs:
           test ! -f smeme/saas_overlay.py
           test -f CONTRIBUTING.md
           test -f LICENSE.md
+          test -f THIRD_PARTY_NOTICES.md
+          test -f LICENSING.md
+          ! grep -q 'private monorepo' LICENSE.md
+          ! grep -q 'SaaS-only / private overlay' LICENSE.md
 
       - name: Run linter
         run: uv run ruff check smeme

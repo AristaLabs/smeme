@@ -4,29 +4,12 @@ Copyright (c) 2026 Arista Labs, LLC
 
 ## Scope
 
-**SMEme Core** software published by Arista Labs, LLC — including the public
-SMEme source repository (`AristaLabs/smeme`) and the official Core container
-images (`ghcr.io/AristaLabs/smeme`) — is available under the SMEme Sustainable
-Use License as defined below.
+This software — the SMEme Core source repository (`AristaLabs/smeme`) and the
+official Core container images (`ghcr.io/AristaLabs/smeme`) — is available under
+the SMEme Sustainable Use License as defined below.
 
 Third-party components incorporated into SMEme remain under the original
 licenses provided by their owners. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-**SaaS-only / private overlay material** for the hosted service at `smeme.ai`
-(marketing and landing surfaces, Stripe Checkout and subscription adapters,
-Arista Labs branded hosted legal pages, hosted-service analytics, the hosted
-entrypoint and overlay, and private deploy configuration) is **not** licensed
-under these terms and remains proprietary to Arista Labs, LLC unless a separate
-written agreement says otherwise.
-
-**Internal strategy, business, IP-draft, and counsel work-product materials**
-are not licensed under these terms.
-
-When this file appears in a private monorepo that still contains both Core and
-SaaS-only code, the SMEme Sustainable Use License applies only to Core product
-material — not to every file in that checkout. When this file appears in the
-public Core repository or Core container image, it applies to that entire
-Core distribution.
 
 Commercial hosting, white-label, and related use may require a separate
 agreement with Arista Labs, LLC. See [`LICENSING.md`](LICENSING.md) for
