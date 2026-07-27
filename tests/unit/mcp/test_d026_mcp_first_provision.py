@@ -75,6 +75,19 @@ def test_normalize_clerk_profile_verified_and_legal():
     assert profile.legal_accepted_at == datetime.fromtimestamp(1_720_000_000, tz=UTC)
 
 
+def test_normalize_clerk_profile_legal_accepted_at_milliseconds():
+    """Live Clerk Backend may return ms; seconds path must not 500."""
+    profile = normalize_clerk_profile(
+        "user_abc", _clerk_user(legal_ts=1_720_000_000_000)
+    )
+    assert profile.legal_accepted_at == datetime.fromtimestamp(1_720_000_000, tz=UTC)
+
+
+def test_normalize_clerk_profile_legal_accepted_at_invalid_numeric_is_none():
+    profile = normalize_clerk_profile("user_abc", _clerk_user(legal_ts=-1))
+    assert profile.legal_accepted_at is None
+
+
 def test_normalize_clerk_profile_unverified():
     profile = normalize_clerk_profile("user_abc", _clerk_user(verified=False))
     assert profile.email_verified is False

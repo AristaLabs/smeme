@@ -142,18 +142,30 @@ def _verification_status_value(verification: Any) -> str | None:
 
 
 def _legal_accepted_at_utc(raw: Any) -> datetime | None:
-    """Clerk ``legal_accepted_at`` is Unix seconds (nullable int)."""
+    """Normalize Clerk ``legal_accepted_at`` to UTC.
+
+    Spike docs describe Unix **seconds**, but live Clerk Backend responses can
+    return **milliseconds** (staging 500: ``year 58539 is out of range`` when
+    ms are passed to ``fromtimestamp`` as seconds). Values ``>= 1e12`` are
+    treated as milliseconds.
+    """
     if raw is None or isinstance(raw, bool):
         return None
-    if isinstance(raw, (int, float)):
-        ts = int(raw)
-        if ts <= 0:
-            return None
-        return datetime.fromtimestamp(ts, tz=UTC)
     if isinstance(raw, datetime):
         if raw.tzinfo is None:
             return raw.replace(tzinfo=UTC)
         return raw.astimezone(UTC)
+    if isinstance(raw, (int, float)):
+        ts = float(raw)
+        if ts <= 0:
+            return None
+        # 1e12 ms ≈ 2001-09-09; Unix seconds stay below ~2e9 until year 2033.
+        if ts >= 1_000_000_000_000:
+            ts /= 1000.0
+        try:
+            return datetime.fromtimestamp(ts, tz=UTC)
+        except (OverflowError, OSError, ValueError):
+            return None
     return None
 
 
