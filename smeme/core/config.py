@@ -324,6 +324,57 @@ class Settings(BaseSettings):
     lenient (may persist intermediate graphs) and never Deploy or List.
     """
 
+    # D026 — MCP-first local User provision (temporary operational rollout switch; not licensing).
+    mcp_first_provisioning_enabled: bool = Field(
+        default=False,
+        alias="MCP_FIRST_PROVISIONING_ENABLED",
+    )
+    """When true, a valid MCP Bearer with no local ``users`` row may provision after Clerk
+    verified-email + express legal-acceptance gates (D026). Default false for safe rollout.
+    Incomplete legal config fails only the first-provision path (``legal_config_incomplete``),
+    not unrelated MCP startup.
+    """
+
+    mcp_first_provision_rate_limit_per_ip_per_minute: int = Field(
+        default=10,
+        alias="SMEME_MCP_FIRST_PROVISION_RATE_LIMIT_PER_IP_PER_MINUTE",
+        ge=0,
+        description=(
+            "Max first-provision attempts per minute per client IP when MCP-first "
+            "provisioning is enabled. Set 0 to disable the IP dimension."
+        ),
+    )
+    mcp_first_provision_rate_limit_per_sub_per_minute: int = Field(
+        default=5,
+        alias="SMEME_MCP_FIRST_PROVISION_RATE_LIMIT_PER_SUB_PER_MINUTE",
+        ge=0,
+        description=(
+            "Max first-provision attempts per minute per Clerk ``sub`` when MCP-first "
+            "provisioning is enabled. Set 0 to disable the subject dimension."
+        ),
+    )
+
+    legal_terms_url: str | None = Field(default=None, alias="SMEME_LEGAL_TERMS_URL")
+    """Public Terms URL recorded at provision and shown in gated auth_error details (D026)."""
+
+    legal_privacy_url: str | None = Field(default=None, alias="SMEME_LEGAL_PRIVACY_URL")
+    """Public Privacy URL recorded at provision and shown in gated auth_error details (D026)."""
+
+    legal_terms_version: str | None = Field(default=None, alias="SMEME_LEGAL_TERMS_VERSION")
+    """Operator version label for Terms (e.g. ``2026-07-20``). Config constant only — never scrape HTML."""
+
+    legal_privacy_version: str | None = Field(default=None, alias="SMEME_LEGAL_PRIVACY_VERSION")
+    """Operator version label for Privacy (e.g. ``2026-07-20``). Config constant only — never scrape HTML."""
+
+    def mcp_first_legal_config_complete(self) -> bool:
+        """True when Terms/Privacy URL + version constants are all non-empty."""
+        return bool(
+            (self.legal_terms_url or "").strip()
+            and (self.legal_privacy_url or "").strip()
+            and (self.legal_terms_version or "").strip()
+            and (self.legal_privacy_version or "").strip()
+        )
+
     # Clerk (hosted auth). When ``clerk_secret_key`` and ``clerk_sign_in_url`` are set, the app uses
     # Clerk session JWTs (``__session`` cookie or ``Authorization: Bearer``) instead of FastAPI-Users cookies.
     clerk_secret_key: str | None = Field(default=None, alias="CLERK_SECRET_KEY")

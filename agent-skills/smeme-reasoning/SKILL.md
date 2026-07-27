@@ -256,7 +256,7 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 
 | `error.code` | What it means | What to do |
 |--------------|---------------|------------|
-| `auth_error` | Not connected, or no linked SMEme account | Read `error.message` to the user. If `auth_reason` is `no_local_user_for_clerk_sub` (or `signup_url` is present), they need a SMEme account first: open **`signup_url`** (or **`sign_in_url`** if they already registered) and complete web sign-in, then **reconnect** the MCP connector in your client. Quote the URLs from the error — do **not** retry in a loop. |
+| `auth_error` | Not connected, or first-time signup gates failed | Read `error.message` and `auth_reason` to the user. Locked reasons: `no_local_user_for_clerk_sub` (flag off / complete web sign-in once), `email_not_verified`, `primary_email_missing`, `legal_consent_required`, `legal_config_incomplete`, `clerk_lookup_failed`, `provision_rate_limited`. Complete Clerk verify/consent (or web signup when URLs are present), **reconnect** the MCP connector, then retry once. Quote URLs from the error — do **not** retry in a loop. |
 | `not_found` | Decision tree id unknown, or not owned by this user | Call `smeme_reasoning_list` and use an `id` from there. Do not invent ids. |
 | `not_discoverable` | Decision tree exists but is hidden from MCP | Ask the user to go to their **SMEme dashboard**, find the decision tree, and turn on the **Listed** toggle. Then retry. |
 | `no_reasoning_artifact` | Decision tree not published/deployed for reasoning | Ask the user to **publish** the decision tree from the SMEme editor, then retry. |

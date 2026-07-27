@@ -183,7 +183,7 @@ Rules agents miss most often:
 
 | `error.code` | What to do |
 |--------------|------------|
-| `auth_error` | Reconnect MCP once; if `no_local_user_for_clerk_sub`, user must sign in on SMEme web first. |
+| `auth_error` | Reconnect MCP once. Honor locked `auth_reason`: `no_local_user_for_clerk_sub` (web sign-in when flag off), `email_not_verified`, `primary_email_missing`, `legal_consent_required`, `legal_config_incomplete`, `clerk_lookup_failed`, `provision_rate_limited`. |
 | `invalid_graph` | Show `error.message` (and `errors` if present). Stay in Phase B/C/D; fix; re-validate. |
 | `graph_conflict` | Someone else changed the draft. `get_draft` again; re-apply; validate; update. |
 | `draft_not_editable` | Archived or public-version lock — user must restore or create a new version in the web editor. |

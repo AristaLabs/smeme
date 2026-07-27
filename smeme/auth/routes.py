@@ -64,26 +64,43 @@ async def clerk_callback(
     Configure Clerk Dashboard → Paths → "After Sign-In URL" and
     "After Sign-Up URL" to point here (relative path: ``/auth/clerk-callback``).
 
-    This route is the canonical re-entry point from Clerk's hosted pages.
-    Using a dedicated callback eliminates the dependency on the ``redirect_url``
-    query parameter, which Clerk ignores for already-signed-in users and
-    redirects them to ``/user`` instead.
-
     Flow:
     1. Clerk authenticates the user and redirects here.
-    2. We call ``clerk_authenticated_user`` which validates the JWT and runs
-       ``get_or_create_user_for_clerk`` — creating the local User row on first
-       visit.
+    2. We validate the session JWT and resolve/create the local User (D026 gates
+       for *new* create/link: verified primary email + legal acceptance).
     3. On success, redirect to the dashboard.
-    4. On failure (session not yet propagated, clock skew, etc.), fall back to
-       the login page so the user can try again.
+    4. On gate failure, show a recovery page (not a silent anonymous session).
+    5. On missing server session (cookie lag), serve client sync HTML.
     """
-    from smeme.auth.clerk_auth import clerk_authenticated_user
+    from smeme.auth.clerk_auth import ProvisionFailureReason, clerk_authenticated_provision
 
-    user = await clerk_authenticated_user(request, db, user_manager)
-    if user is not None:
-        logger.info("Clerk callback: authenticated user %s (%s)", user.id, user.email)
+    outcome = await clerk_authenticated_provision(request, db, user_manager)
+    if outcome.user is not None:
+        logger.info(
+            "Clerk callback: authenticated user %s (%s)", outcome.user.id, outcome.user.email
+        )
         return RedirectResponse(url="/decision-trees/dashboard", status_code=302)
+
+    if outcome.failure_reason is not None:
+        logger.warning(
+            "Clerk callback: provision blocked auth_reason=%s",
+            outcome.failure_reason.value,
+        )
+        return templates.TemplateResponse(
+            "auth/clerk_provision_blocked.html",
+            {
+                "request": request,
+                "auth_reason": outcome.failure_reason.value,
+                "terms_url": (settings.legal_terms_url or "").strip() or "/legal/terms",
+                "privacy_url": (settings.legal_privacy_url or "").strip() or "/legal/privacy",
+                "sign_in_url": settings.clerk_login_redirect_url(),
+                "sign_up_url": settings.clerk_register_redirect_url(),
+                "is_legal_config": (
+                    outcome.failure_reason == ProvisionFailureReason.LEGAL_CONFIG_INCOMPLETE
+                ),
+            },
+            status_code=403,
+        )
 
     # Client may have Clerk.session before __session is visible to the server (modal
     # sign-in + custom FAPI domain). Serve HTML so clerk-js can sync cookies here,

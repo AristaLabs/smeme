@@ -1,0 +1,41 @@
+{% extends "layouts/base.html" %}
+{% block title %}Finish account setup — SMEme{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-xl px-4 py-16">
+  <h1 class="text-2xl font-semibold text-ui-ink">Finish account setup</h1>
+  <p class="mt-3 text-ui-ink-muted">
+    Your identity-provider session is valid, but SMEme could not create or link a local account yet.
+  </p>
+
+  {% if auth_reason == "email_not_verified" %}
+  <p class="mt-4">Verify your primary email address with the identity provider, then try again.</p>
+  {% elif auth_reason == "primary_email_missing" %}
+  <p class="mt-4">Add a primary email address to your identity-provider account, verify it, then try again.</p>
+  {% elif auth_reason == "legal_consent_required" %}
+  <p class="mt-4">
+    Accept the
+    <a class="underline" href="{{ terms_url }}">Terms of Use</a>
+    and
+    <a class="underline" href="{{ privacy_url }}">Privacy Policy</a>
+    in the sign-up flow, then try again.
+  </p>
+  {% elif auth_reason == "legal_config_incomplete" %}
+  <p class="mt-4">
+    This server is missing legal document URL or version configuration required for signup.
+    Ask the operator to set <code>SMEME_LEGAL_*</code> environment values, then retry.
+  </p>
+  {% else %}
+  <p class="mt-4">
+    Temporary problem loading your identity-provider profile. Wait a moment and try again.
+  </p>
+  {% endif %}
+
+  <p class="mt-2 text-sm text-ui-ink-muted">Reason code: <code>{{ auth_reason }}</code></p>
+
+  <div class="mt-8 flex flex-wrap gap-3">
+    <a class="underline font-medium" href="{{ sign_up_url }}">Return to sign-up</a>
+    <a class="underline font-medium" href="{{ sign_in_url }}">Sign in again</a>
+    <a class="underline font-medium" href="/auth/clerk-callback">Retry</a>
+  </div>
+</section>
+{% endblock %}

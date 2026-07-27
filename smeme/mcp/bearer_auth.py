@@ -22,10 +22,10 @@ P2 auth contract + transport challenge (D016)
   ``RequireAuthMiddleware``) so missing/invalid Bearer fails at **HTTP 401**
   with ``WWW-Authenticate`` + ``resource_metadata``; see
   ``decode_clerk_oauth_access_token`` (JWT only, no DB).
-- ``get_mcp_user`` maps ``sub`` → ``User.clerk_user_id`` (populated at first web
-  login via ``get_or_create_user_for_clerk``; users **must** log into the SMEme
-  web UI at least once before MCP tools return success — the web login creates
-  the ``users`` row).
+- ``get_mcp_user`` maps ``sub`` → ``User.clerk_user_id``. When
+  ``MCP_FIRST_PROVISIONING_ENABLED`` is on (D026), a missing local row may be
+  created after Clerk verified-email + express legal-acceptance gates. When the
+  flag is off, tools return the legacy ``no_local_user_for_clerk_sub`` error.
 - OAuth client binding (P3): optional comma-separated
   ``SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS`` — after JWKS verification, require
   ``client_id`` or ``azp`` on the access JWT to match an allowed Clerk OAuth app.
@@ -41,6 +41,8 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections import defaultdict, deque
+from threading import Lock
 from typing import Any
 
 import httpx
@@ -253,7 +255,7 @@ def mcp_web_auth_urls() -> tuple[str, str]:
 
 
 def unlinked_account_mcp_auth_error() -> MCPAuthError:
-    """MCP-first callers: valid Clerk token, no ``users`` row yet."""
+    """Flag-off path: valid Clerk token, no ``users`` row yet (D026 rollback)."""
     signup_url, sign_in_url = mcp_web_auth_urls()
     host = signup_url.split("/")[2] if "://" in signup_url else "the SMEme website"
     message = (
@@ -278,6 +280,101 @@ def unlinked_account_mcp_auth_error() -> MCPAuthError:
             ],
         },
     )
+
+
+def provision_gate_mcp_auth_error(reason: str) -> MCPAuthError:
+    """Structured D026 gate failure for MCP-first callers (locked ``auth_reason`` values)."""
+    signup_url, sign_in_url = mcp_web_auth_urls()
+    terms_url = (settings.legal_terms_url or "").strip() or None
+    privacy_url = (settings.legal_privacy_url or "").strip() or None
+
+    messages = {
+        "email_not_verified": (
+            "Your email is not verified with the identity provider yet. "
+            "Complete email verification in the sign-in/sign-up flow, reconnect this MCP "
+            "connector, and try again."
+        ),
+        "primary_email_missing": (
+            "Your identity provider account has no primary email address. "
+            "Add and verify a primary email, reconnect this MCP connector, and try again."
+        ),
+        "legal_consent_required": (
+            "You must accept the Terms of Use and Privacy Policy before a SMEme account "
+            "can be created. Complete legal acceptance in the sign-up flow, reconnect this "
+            "MCP connector, and try again."
+        ),
+        "legal_config_incomplete": (
+            "This server is not fully configured for MCP-first signup (legal document URLs "
+            "or version labels are missing). Ask the operator to set Terms/Privacy URLs and "
+            "version constants, then reconnect."
+        ),
+        "clerk_lookup_failed": (
+            "Could not load your identity-provider profile to finish signup. "
+            "Wait a moment, reconnect this MCP connector, and try again."
+        ),
+        "provision_rate_limited": (
+            "Too many signup attempts from this network or account. "
+            "Wait a minute, then reconnect this MCP connector and try again."
+        ),
+    }
+    message = messages.get(reason, messages["clerk_lookup_failed"])
+    next_steps = [
+        "Complete email verification and legal acceptance in your identity-provider sign-up flow.",
+        "In your MCP client, disconnect and reconnect the SMEme connector.",
+        "Retry the SMEme tool.",
+    ]
+    if reason == "legal_config_incomplete":
+        next_steps = [
+            "Ask the operator to configure SMEME_LEGAL_* URLs and version constants.",
+            "Reconnect the MCP connector and retry.",
+        ]
+    details: dict[str, Any] = {
+        "signup_url": signup_url,
+        "sign_in_url": sign_in_url,
+        "next_steps": next_steps,
+    }
+    if terms_url:
+        details["terms_url"] = terms_url
+    if privacy_url:
+        details["privacy_url"] = privacy_url
+    return MCPAuthError(message, reason_code=reason, details=details)
+
+
+class _FirstProvisionRateLimit:
+    """In-process IP + sub limiter for first-provision attempts only (before User write)."""
+
+    _LOCK = Lock()
+    _TIMES: dict[str, deque[float]] = defaultdict(deque)
+    _WINDOW = 60.0
+
+    @classmethod
+    def reset_for_tests(cls) -> None:
+        with cls._LOCK:
+            cls._TIMES.clear()
+
+    @classmethod
+    def allow(cls, *, ip: str, sub: str) -> bool:
+        ip_limit = settings.mcp_first_provision_rate_limit_per_ip_per_minute
+        sub_limit = settings.mcp_first_provision_rate_limit_per_sub_per_minute
+        now = time.monotonic()
+        with cls._LOCK:
+            for key, limit in ((f"ip:{ip}", ip_limit), (f"sub:{sub}", sub_limit)):
+                if limit <= 0:
+                    continue
+                bucket = cls._TIMES[key]
+                cutoff = now - cls._WINDOW
+                while bucket and bucket[0] <= cutoff:
+                    bucket.popleft()
+                if len(bucket) >= limit:
+                    return False
+            for key, limit in ((f"ip:{ip}", ip_limit), (f"sub:{sub}", sub_limit)):
+                if limit <= 0:
+                    continue
+                cls._TIMES[key].append(now)
+            return True
+
+
+_first_provision_limiter = _FirstProvisionRateLimit
 
 
 def auth_error_tool_json(exc: MCPAuthError) -> str:
@@ -582,27 +679,77 @@ async def get_mcp_user(request: Request | None, db: AsyncSession) -> User:
     clerk_user_id: str = payload["sub"]
     assert isinstance(clerk_user_id, str)
 
-    # Resolve Clerk sub → local users row.
-    # The clerk_user_id column is populated in get_or_create_user_for_clerk()
-    # (smeme/auth/clerk_auth.py) the first time this user logs into the SMEme web UI.
-    # If a user authenticates an MCP connector before ever logging into SMEme, their
-    # sub will not match any row — this is the expected "sign in first" requirement.
+    # Resolve Clerk sub → local users row (D026: optional MCP-first provision).
     result = await db.execute(select(User).where(User.clerk_user_id == clerk_user_id))
     user = result.scalar_one_or_none()
     if user is None:
-        logger.info(
-            "MCP tool auth telemetry %s",
-            json.dumps(
-                {
-                    "stage": "tool_auth",
-                    "outcome": "reject",
-                    "reason": "no_local_user_for_clerk_sub",
-                    "bearer_token_length": len(token),
-                },
-                separators=(",", ":"),
-            ),
+        # Use ``is True`` so test ``MagicMock`` settings do not treat nested mocks as enabled.
+        if getattr(settings, "mcp_first_provisioning_enabled", False) is not True:
+            logger.info(
+                "MCP tool auth telemetry %s",
+                json.dumps(
+                    {
+                        "stage": "tool_auth",
+                        "outcome": "reject",
+                        "reason": "no_local_user_for_clerk_sub",
+                        "bearer_token_length": len(token),
+                    },
+                    separators=(",", ":"),
+                ),
+            )
+            raise unlinked_account_mcp_auth_error()
+
+        ip = request.client.host if request.client else "unknown"
+        if not _first_provision_limiter.allow(ip=ip, sub=clerk_user_id):
+            from smeme.auth.clerk_auth import emit_provision_telemetry
+
+            emit_provision_telemetry(
+                "rate_limited",
+                clerk_user_id=clerk_user_id,
+                auth_reason="provision_rate_limited",
+            )
+            logger.info(
+                "MCP tool auth telemetry %s",
+                json.dumps(
+                    {
+                        "stage": "tool_auth",
+                        "outcome": "reject",
+                        "reason": "provision_rate_limited",
+                        "bearer_token_length": len(token),
+                    },
+                    separators=(",", ":"),
+                ),
+            )
+            raise provision_gate_mcp_auth_error("provision_rate_limited")
+
+        from smeme.auth.clerk_auth import resolve_local_user_for_clerk
+
+        outcome = await resolve_local_user_for_clerk(
+            db,
+            clerk_user_id,
+            enforce_new_user_gates=True,
         )
-        raise unlinked_account_mcp_auth_error()
+        if outcome.user is None:
+            reason = (
+                outcome.failure_reason.value
+                if outcome.failure_reason is not None
+                else "clerk_lookup_failed"
+            )
+            logger.info(
+                "MCP tool auth telemetry %s",
+                json.dumps(
+                    {
+                        "stage": "tool_auth",
+                        "outcome": "reject",
+                        "reason": reason,
+                        "bearer_token_length": len(token),
+                    },
+                    separators=(",", ":"),
+                ),
+            )
+            raise provision_gate_mcp_auth_error(reason)
+        user = outcome.user
+
     if not user.is_active:
         logger.info(
             "MCP tool auth telemetry %s",
