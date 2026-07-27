@@ -41,7 +41,9 @@ async def load_current_compiled_artifacts_for_trees(
 ) -> dict[UUID, ReasoningCompiledArtifact]:
     if not decision_trees:
         return {}
-    pointer_ids = [t.current_artifact_id for t in decision_trees if t.current_artifact_id is not None]
+    pointer_ids = [
+        t.current_artifact_id for t in decision_trees if t.current_artifact_id is not None
+    ]
     if not pointer_ids:
         return {}
     result = await db.execute(
