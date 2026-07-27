@@ -9,7 +9,7 @@ description: >-
   Slot-fill: smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.3.0 -->
+<!-- installed_plugin_version: 3.4.0 -->
 
 # SMEme reasoning
 
@@ -40,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.3.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.4.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.3.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.4.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 

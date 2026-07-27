@@ -393,14 +393,11 @@ def _sync_metadata_title(graph: DTGraph, title: str) -> DTGraph:
 
 
 async def _load_artifact(
-    db: AsyncSession, decision_tree_id: UUID
+    db: AsyncSession, decision_tree: DecisionTree
 ) -> ReasoningCompiledArtifact | None:
-    result = await db.execute(
-        select(ReasoningCompiledArtifact).where(
-            ReasoningCompiledArtifact.decision_tree_id == decision_tree_id
-        )
-    )
-    return result.scalar_one_or_none()
+    from smeme.reasoning.artifact_deploy import load_current_compiled_artifact
+
+    return await load_current_compiled_artifact(db, decision_tree)
 
 
 def draft_read_payload(
@@ -477,7 +474,7 @@ async def get_owner_draft(
             "Open the SMEme editor to repair the decision tree.",
         )
 
-    artifact = await _load_artifact(db, decision_tree.id)
+    artifact = await _load_artifact(db, decision_tree)
     editable = draft_edit_blocked_reason(decision_tree) is None
     return draft_read_payload(
         decision_tree,
@@ -641,7 +638,7 @@ async def update_draft_from_graph(
     await db.refresh(decision_tree)
     await invalidate_graph_cache(decision_tree.id)
 
-    artifact = await _load_artifact(db, decision_tree.id)
+    artifact = await _load_artifact(db, decision_tree)
     deployment_sync = reasoning_tools_row_state(decision_tree, artifact)
     deployed = decision_tree.reasoning_status == "compiled" and artifact is not None
     body = validation_payload(graph, validation)

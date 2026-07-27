@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import ValidationError
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import DecisionTree, ReasoningCompiledArtifact
@@ -34,11 +33,8 @@ def reasoning_tools_row_state(
 async def reasoning_tools_row_state_for_decision_tree(
     db: AsyncSession, decision_tree: DecisionTree
 ) -> ToolsRowState:
-    """Load artifact (if any) and return Live / Stale / Not built for one DecisionTree."""
-    result = await db.execute(
-        select(ReasoningCompiledArtifact).where(
-            ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
-        )
-    )
-    artifact = result.scalar_one_or_none()
+    """Load current artifact (if any) and return Live / Stale / Not built for one DecisionTree."""
+    from smeme.reasoning.artifact_deploy import load_current_compiled_artifact
+
+    artifact = await load_current_compiled_artifact(db, decision_tree)
     return reasoning_tools_row_state(decision_tree, artifact)

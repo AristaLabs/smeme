@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from smeme.core.models import DecisionTree, ReasoningCompiledArtifact, User
+from smeme.core.models import DecisionTree, User
 from smeme.core.templates import templates
 from smeme.decision_tree.helpers.db_queries import parse_graph_data
 from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state_for_decision_tree
@@ -40,13 +40,9 @@ async def _tools_panel_context(
     graph = parse_graph_data(decision_tree)
     if readiness is None:
         readiness = await assess_publish_readiness(graph)
-    artifact = (
-        await db.execute(
-            select(ReasoningCompiledArtifact).where(
-                ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
-            )
-        )
-    ).scalar_one_or_none()
+    from smeme.reasoning.artifact_deploy import load_current_compiled_artifact
+
+    artifact = await load_current_compiled_artifact(db, decision_tree)
     mcp_lines = build_mcp_deployment_layer_lines(
         readiness=readiness,
         artifact=artifact,

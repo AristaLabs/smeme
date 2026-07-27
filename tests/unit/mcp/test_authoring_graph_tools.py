@@ -469,15 +469,24 @@ async def _seed_user_and_draft(
         session.add(decision_tree)
         await session.flush()
         if artifact_hash is not None:
-            session.add(
-                ReasoningCompiledArtifact(
-                    decision_tree_id=decision_tree.id,
-                    ir_json={"nodes": [], "edges": []},
-                    graph_hash=artifact_hash,
-                    compiler_version="test",
-                    ir_format_version=1,
-                )
+            from smeme.reasoning.artifact_identity import (
+                compute_identity_fields_from_stored_artifact,
             )
+
+            artifact = ReasoningCompiledArtifact(
+                decision_tree_id=decision_tree.id,
+                ir_json={"nodes": [], "edges": []},
+                graph_hash=artifact_hash,
+                compiler_version="test",
+                ir_format_version=1,
+                artifact_version=1,
+            )
+            artifact.ir_hash, artifact.artifact_hash = (
+                compute_identity_fields_from_stored_artifact(artifact)
+            )
+            session.add(artifact)
+            await session.flush()
+            decision_tree.current_artifact_id = artifact.id
         await session.commit()
         await session.refresh(decision_tree)
         await session.refresh(user)
@@ -774,28 +783,21 @@ class TestAuthoringUpdateDraftTool:
         self, monkeypatch: pytest.MonkeyPatch, test_session_factory
     ) -> None:
         reset_mcp_runtime_for_tests()
-        user, tree_id, live_hash, graph = await _seed_user_and_draft(
-            test_session_factory,
-            mcp_discoverable=True,
-            reasoning_status="compiled",
-            artifact_hash="b" * 64,  # deliberately different so already stale after create
-        )
-        # Re-seed with matching artifact hash so start state is live.
         from sqlalchemy import select
 
         from smeme.core.models import DecisionTree, ReasoningCompiledArtifact
         from smeme.reasoning.graph_hash import canonical_graph_hash
 
-        async with test_session_factory() as session:
-            art = (
-                await session.execute(
-                    select(ReasoningCompiledArtifact).where(
-                        ReasoningCompiledArtifact.decision_tree_id == tree_id
-                    )
-                )
-            ).scalar_one()
-            art.graph_hash = live_hash
-            await session.commit()
+        title = "Seed Draft"
+        initial_graph_hash = canonical_graph_hash(DTGraph.model_validate(_minimal_graph(title)))
+        user, tree_id, live_hash, graph = await _seed_user_and_draft(
+            test_session_factory,
+            title=title,
+            mcp_discoverable=True,
+            reasoning_status="compiled",
+            artifact_hash=initial_graph_hash,
+        )
+        assert live_hash == initial_graph_hash
 
         revised = json.loads(json.dumps(graph))
         revised["nodes"][0]["data"]["text"] = "Post-deploy revision?"

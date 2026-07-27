@@ -10,6 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from smeme.app_factory import create_core_app as create_app
 from smeme.core.database import get_db
 from smeme.core.models import (
     DecisionTree,
@@ -17,15 +18,18 @@ from smeme.core.models import (
     ReasoningCompiledArtifact,
     User,
 )
-from smeme.app_factory import create_core_app as create_app
 from smeme.decision_tree.helpers.db_queries import parse_graph_data
 from smeme.decision_tree.models import (
     ConclusionData,
-    GraphEdge,
-    GraphNode,
     DTGraph,
     DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
     QuestionData,
+)
+from smeme.reasoning.artifact_deploy import (
+    PublishGraphChangedError,
+    persist_compiled_artifact_append_only,
 )
 from smeme.reasoning.cevi.induction import induce_published_evidence_contract_at_publish
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION
@@ -40,6 +44,7 @@ from smeme.reasoning.published_evidence_contract import (
     contract_to_stored_json,
     validated_contract_with_ir_json,
 )
+from smeme.reasoning.version import REASONING_COMPILER_VERSION
 from tests.conftest import auth_as
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
@@ -281,6 +286,80 @@ async def test_publish_happy_path_persists_contract_and_hash(
         )
         assert corpus_snap.sha256_hex is None
         assert contract_to_stored_json(expected) == art.cevi_contract_json
+        assert art.artifact_version == 1
+        assert art.artifact_hash is not None
+        assert len(art.artifact_hash) == 64
+        assert art.ir_hash is not None
+        assert decision_tree.current_artifact_id == art.id
+
+
+@pytest.mark.golden_matrix
+async def test_publish_idempotent_redeploy_same_version(
+    app_for_publish, premium_owner_publishable_decision_tree, test_session_factory
+):
+    """Identical redeploy returns the same artifact version and row (D025)."""
+    data = premium_owner_publishable_decision_tree
+    transport = ASGITransport(app=app_for_publish)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        with auth_as(app_for_publish, data["user"]):
+            first = await client.post(
+                f"/decision-trees/editor/{data['decision_tree_id']}/publish",
+                follow_redirects=False,
+            )
+            assert first.status_code == 303
+            second = await client.post(
+                f"/decision-trees/editor/{data['decision_tree_id']}/publish",
+                follow_redirects=False,
+            )
+            assert second.status_code == 303
+
+    async with test_session_factory() as session:
+        assert await _count_artifacts(session, data["decision_tree_id"]) == 1
+        art = (
+            await session.execute(
+                select(ReasoningCompiledArtifact).where(
+                    ReasoningCompiledArtifact.decision_tree_id == data["decision_tree_id"]
+                )
+            )
+        ).scalar_one()
+        decision_tree = (
+            await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))
+        ).scalar_one()
+        assert art.artifact_version == 1
+        assert decision_tree.current_artifact_id == art.id
+
+
+@pytest.mark.golden_matrix
+async def test_publish_rejects_candidate_when_saved_graph_changed(
+    premium_owner_publishable_decision_tree, test_session_factory
+):
+    """Deploy never switches current artifact to a graph compiled before the lock."""
+    data = premium_owner_publishable_decision_tree
+    async with test_session_factory() as session:
+        decision_tree = (
+            await session.execute(
+                select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"])
+            )
+        ).scalar_one()
+        readiness = await assess_publish_readiness(parse_graph_data(decision_tree))
+        assert readiness.ready
+        assert readiness.ir_json is not None
+
+        with pytest.raises(PublishGraphChangedError):
+            await persist_compiled_artifact_append_only(
+                session,
+                decision_tree=decision_tree,
+                ir_json=readiness.ir_json,
+                graph_hash="0" * 64,
+                ir_format_version=IR_FORMAT_VERSION,
+                compiler_version=REASONING_COMPILER_VERSION,
+                cevi_contract_json=None,
+                cevi_contract_hash=None,
+                research_corpus_hash=None,
+            )
+
+        assert await _count_artifacts(session, data["decision_tree_id"]) == 0
+        assert decision_tree.current_artifact_id is None
 
 
 @pytest.mark.golden_matrix

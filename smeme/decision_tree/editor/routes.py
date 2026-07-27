@@ -21,7 +21,6 @@ from smeme.core.database import get_db
 from smeme.core.models import (
     DecisionTree,
     DecisionTreeResearchCorpus,
-    ReasoningCompiledArtifact,
     User,
 )
 from smeme.core.templates import templates  # Shared templates with custom filters
@@ -1558,29 +1557,27 @@ async def publish_decision_tree(
     cevi_contract_hash = cevi_fingerprint(cev_contract)
     research_corpus_hash = corpus_snapshot.sha256_hex
 
-    await db.execute(
-        delete(ReasoningCompiledArtifact).where(
-            ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
-        )
+    from smeme.reasoning.artifact_deploy import (
+        PublishGraphChangedError,
+        persist_compiled_artifact_append_only,
     )
 
-    decision_tree.reasoning_status = "compiled"
-    db.add(decision_tree)
-    artifact = ReasoningCompiledArtifact(
-        decision_tree_id=decision_tree.id,
-        ir_json=ir_json,
-        graph_hash=graph_hash,
-        compiler_version=REASONING_COMPILER_VERSION,
-        ir_format_version=IR_FORMAT_VERSION,
-        cevi_contract_json=cevi_contract_json,
-        cevi_contract_hash=cevi_contract_hash,
-        research_corpus_hash=research_corpus_hash,
-        cevi_legal_validation_status="not_required",
-        cevi_legal_validation_started_at=None,
-        cevi_legal_validation_completed_at=None,
-        cevi_legal_validation_error=None,
-    )
-    db.add(artifact)
+    try:
+        artifact = await persist_compiled_artifact_append_only(
+            db,
+            decision_tree=decision_tree,
+            ir_json=ir_json,
+            graph_hash=graph_hash,
+            ir_format_version=IR_FORMAT_VERSION,
+            cevi_contract_json=cevi_contract_json,
+            cevi_contract_hash=cevi_contract_hash,
+            research_corpus_hash=research_corpus_hash,
+            compiler_version=REASONING_COMPILER_VERSION,
+            cevi_legal_validation_status="not_required",
+        )
+    except PublishGraphChangedError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     await db.flush()
 
     await db.commit()
@@ -1591,6 +1588,8 @@ async def publish_decision_tree(
         extra={
             "decision_tree_id": str(decision_tree.id),
             "version_number": decision_tree.version_number,
+            "artifact_version": artifact.artifact_version,
+            "artifact_hash": artifact.artifact_hash,
             "user_id": str(user.id),
         },
     )

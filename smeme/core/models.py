@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from fastapi_users_db_sqlmodel import SQLModelBaseUserDB
-from sqlalchemy import Column, DateTime, ForeignKey, Index, MetaData, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, MetaData, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
@@ -268,6 +268,20 @@ class DecisionTree(BaseSQLModel, table=True):
         default=None,
         sa_column=Column(String(20), nullable=True, index=True),
         description="null | pending | compiled | failed (CHECK in DB)",
+    )
+    current_artifact_id: UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey(
+                "reasoning_compiled_artifacts.id",
+                ondelete="SET NULL",
+                use_alter=True,
+                name="fk_decision_trees_current_artifact_id",
+            ),
+            nullable=True,
+            index=True,
+        ),
+        description="Current ReasoningCompiledArtifact id; append-only history (D025).",
     )
 
     # MCP tools: opt-in list + evaluate by decision_tree_id (default off)
@@ -541,21 +555,38 @@ class AccountDeletionFailure(BaseSQLModel, table=True):
 
 
 class ReasoningCompiledArtifact(BaseSQLModel, table=True):
-    """Persisted validated IR artifact for one DecisionTree row (one published version)."""
+    """Persisted validated IR artifact; append-only history per DecisionTree (D025)."""
 
     model_config = {"arbitrary_types_allowed": True}
 
     __tablename__ = "reasoning_compiled_artifacts"
+    __table_args__ = (
+        UniqueConstraint("id", "decision_tree_id", name="uq_reasoning_compiled_artifacts_id_tree"),
+        Index(
+            "uq_reasoning_compiled_artifacts_tree_version",
+            "decision_tree_id",
+            "artifact_version",
+            unique=True,
+            postgresql_where=sa.text("artifact_version IS NOT NULL"),
+            sqlite_where=sa.text("artifact_version IS NOT NULL"),
+        ),
+        Index(
+            "uq_reasoning_compiled_artifacts_tree_orphan",
+            "decision_tree_id",
+            unique=True,
+            postgresql_where=sa.text("artifact_version IS NULL"),
+            sqlite_where=sa.text("artifact_version IS NULL"),
+        ),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     decision_tree_id: UUID = Field(
         sa_column=Column(
             ForeignKey("decision_trees.id", ondelete="CASCADE"),
             nullable=False,
-            unique=True,
             index=True,
         ),
-        description="One active compiled artifact per DecisionTree primary key",
+        description="Owning DecisionTree; multiple immutable rows allowed (D025).",
     )
     ir_json: dict[str, Any] = Field(sa_column=Column(JSONB, nullable=False))
     graph_hash: str = Field(sa_column=Column(String(64), nullable=False))
@@ -564,22 +595,37 @@ class ReasoningCompiledArtifact(BaseSQLModel, table=True):
     cevi_contract_json: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
-        description="PublishedEvidenceContract JSON; written on successful publish (nullable for legacy or incomplete rows).",
+        description="PublishedEvidenceContract JSON; written on successful publish.",
     )
     cevi_contract_hash: str | None = Field(
         default=None,
         sa_column=Column(String(64), nullable=True),
-        description="SHA-256 hex over canonical cevi_contract_json; null only when contract JSON is null.",
+        description="SHA-256 hex over canonical cevi_contract_json.",
     )
     research_corpus_hash: str | None = Field(
         default=None,
         sa_column=Column(String(64), nullable=True),
-        description="SHA-256 hex of UTF-8 corpus bytes used for this compile; null when no corpus was fed.",
+        description="SHA-256 hex of UTF-8 corpus bytes used for this compile.",
+    )
+    ir_hash: str | None = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True),
+        description="SHA-256 of canonical ir_json; null only for unadoptable pre-D025 orphans.",
+    )
+    artifact_hash: str | None = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True),
+        description="D025 v1 content identity digest; null only for unadoptable orphans.",
+    )
+    artifact_version: int | None = Field(
+        default=None,
+        sa_column=Column(sa.BigInteger(), nullable=True),
+        description="Per-tree deploy vintage (starts at 1); null only for unadoptable orphans.",
     )
     cevi_legal_validation_status: str = Field(
         default="not_required",
         sa_column=Column(String(20), nullable=False),
-        description="not_required | pending | passed | failed — legal ontology enrichment status.",
+        description="not_required | pending | passed | failed",
     )
     cevi_legal_validation_started_at: datetime | None = Field(
         default=None,
@@ -758,6 +804,32 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
         default=None,
         sa_column=Column(JSONB, nullable=True),
         description="Provenance ingest snapshot (answers + evidence) at evaluate time.",
+    )
+
+    artifact_id: UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey("reasoning_compiled_artifacts.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+        description="Compiled artifact used for this evaluation.",
+    )
+    artifact_version: int | None = Field(
+        default=None,
+        sa_column=Column(sa.BigInteger(), nullable=True),
+    )
+    artifact_hash: str | None = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True),
+    )
+    artifact_graph_hash: str | None = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True),
+    )
+    compiled_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
     )
 
     created_at: Mapped[datetime] = Field(
