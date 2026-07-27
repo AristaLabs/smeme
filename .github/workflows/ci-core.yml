@@ -2,7 +2,15 @@ name: Core CI / GHCR
 
 # Public AristaLabs/smeme pipeline:
 # - PRs / main pushes → CI + Core boundary checks
-# - Version tags v*.*.* → publish ghcr.io/AristaLabs/smeme
+# - main pushes → publish staging Core image (sha-… + staging-latest; never :latest)
+# - Version tags v*.*.* → publish release Core image (semver + :latest)
+#
+# Image identity (both tracks):
+#   io.smeme.core.version  — last release lineage (vMAJOR.MINOR.PATCH)
+#   io.smeme.core.ref      — published tag (v… or sha-<fullsha>)
+#   io.smeme.core.channel  — release | staging
+# Digest is always authoritative; channel=staging means post-release tip for
+# Cloud staging pins, not a Core hosted environment.
 #
 # Intentionally omits SaaS dual-stage / Render deploy jobs.
 
@@ -161,8 +169,85 @@ jobs:
       - name: Full Core test suite
         run: uv run pytest -q
 
+  publish-staging:
+    name: Publish staging Core image to GHCR
+    runs-on: ubuntu-latest
+    needs: [ci, alembic-drift]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: core-ghcr-publish
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Resolve staging identity
+        id: identity
+        run: |
+          set -euo pipefail
+          LINEAGE=$(git describe --tags --match 'v*.*.*' --abbrev=0 2>/dev/null || true)
+          if [[ ! "$LINEAGE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Cannot resolve Core release lineage (need an ancestor vMAJOR.MINOR.PATCH tag)"
+            exit 1
+          fi
+          REF="sha-${GITHUB_SHA}"
+          echo "version=$LINEAGE" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "channel=staging" >> "$GITHUB_OUTPUT"
+          echo "Core staging identity: version=$LINEAGE ref=$REF channel=staging"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=sha-${{ github.sha }}
+            type=raw,value=staging-latest
+          labels: |
+            io.smeme.core.version=${{ steps.identity.outputs.version }}
+            io.smeme.core.ref=${{ steps.identity.outputs.ref }}
+            io.smeme.core.channel=${{ steps.identity.outputs.channel }}
+
+      - name: Build and push Core staging image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.core
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Record digest
+        run: |
+          echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.identity.outputs.ref }}"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "Lineage: ${{ steps.identity.outputs.version }}"
+          echo "Channel: ${{ steps.identity.outputs.channel }}"
+          echo "::notice::Core staging ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.identity.outputs.ref }}@${{ steps.build.outputs.digest }} (lineage ${{ steps.identity.outputs.version }})"
+
   publish:
-    name: Publish Core image to GHCR
+    name: Publish release Core image to GHCR
     runs-on: ubuntu-latest
     needs: [ci, alembic-drift]
     if: startsWith(github.ref, 'refs/tags/v')
@@ -189,8 +274,16 @@ jobs:
       - name: Extract version tag
         id: tag
         run: |
+          set -euo pipefail
           VERSION=${GITHUB_REF#refs/tags/}
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tags must be vMAJOR.MINOR.PATCH (got $VERSION)"
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "ref=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "channel=release" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
 
       - name: Extract metadata
         id: meta
@@ -203,6 +296,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
             type=raw,value=sha-${{ github.sha }}
+          labels: |
+            io.smeme.core.version=${{ steps.tag.outputs.version }}
+            io.smeme.core.ref=${{ steps.tag.outputs.ref }}
+            io.smeme.core.channel=${{ steps.tag.outputs.channel }}
 
       - name: Build and push Core image
         id: build
@@ -223,4 +320,5 @@ jobs:
         run: |
           echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}"
           echo "Digest: ${{ steps.build.outputs.digest }}"
-          echo "::notice::Core image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}@${{ steps.build.outputs.digest }}"
+          echo "Channel: ${{ steps.tag.outputs.channel }}"
+          echo "::notice::Core release ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}@${{ steps.build.outputs.digest }}"
