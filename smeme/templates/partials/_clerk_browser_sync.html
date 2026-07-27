@@ -76,8 +76,13 @@
 
     // Callback sync: client-side Clerk.session can exist before the __session cookie
     // is readable by the server (common with custom FAPI domains on production).
-    // Stay on this page, nudge clerk-js to persist the cookie, then reload once.
-    if (window.location.pathname === "/auth/clerk-callback") {
+    // Only the dedicated sync page opts in via __clerkCallbackNeedsCookieSync.
+    // Running this on clerk_provision_blocked (or any other callback HTML) would
+    // overwrite the clear gate error with /auth/login?clerk_sync_failed=1.
+    if (
+      window.location.pathname === "/auth/clerk-callback" &&
+      window.__clerkCallbackNeedsCookieSync
+    ) {
       if (!Clerk.session) {
         window.location.assign("/auth/login");
         return;
