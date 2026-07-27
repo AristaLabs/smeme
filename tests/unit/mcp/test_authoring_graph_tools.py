@@ -469,15 +469,24 @@ async def _seed_user_and_draft(
         session.add(decision_tree)
         await session.flush()
         if artifact_hash is not None:
-            session.add(
-                ReasoningCompiledArtifact(
-                    decision_tree_id=decision_tree.id,
-                    ir_json={"nodes": [], "edges": []},
-                    graph_hash=artifact_hash,
-                    compiler_version="test",
-                    ir_format_version=1,
-                )
+            from smeme.reasoning.artifact_identity import (
+                compute_identity_fields_from_stored_artifact,
             )
+
+            artifact = ReasoningCompiledArtifact(
+                decision_tree_id=decision_tree.id,
+                ir_json={"nodes": [], "edges": []},
+                graph_hash=artifact_hash,
+                compiler_version="test",
+                ir_format_version=1,
+                artifact_version=1,
+            )
+            artifact.ir_hash, artifact.artifact_hash = (
+                compute_identity_fields_from_stored_artifact(artifact)
+            )
+            session.add(artifact)
+            await session.flush()
+            decision_tree.current_artifact_id = artifact.id
         await session.commit()
         await session.refresh(decision_tree)
         await session.refresh(user)
