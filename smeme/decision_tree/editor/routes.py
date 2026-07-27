@@ -21,7 +21,6 @@ from smeme.core.database import get_db
 from smeme.core.models import (
     DecisionTree,
     DecisionTreeResearchCorpus,
-    ReasoningCompiledArtifact,
     User,
 )
 from smeme.core.templates import templates  # Shared templates with custom filters
@@ -1558,20 +1557,27 @@ async def publish_decision_tree(
     cevi_contract_hash = cevi_fingerprint(cev_contract)
     research_corpus_hash = corpus_snapshot.sha256_hex
 
-    from smeme.reasoning.artifact_deploy import persist_compiled_artifact_append_only
-
-    artifact = await persist_compiled_artifact_append_only(
-        db,
-        decision_tree=decision_tree,
-        ir_json=ir_json,
-        graph_hash=graph_hash,
-        ir_format_version=IR_FORMAT_VERSION,
-        cevi_contract_json=cevi_contract_json,
-        cevi_contract_hash=cevi_contract_hash,
-        research_corpus_hash=research_corpus_hash,
-        compiler_version=REASONING_COMPILER_VERSION,
-        cevi_legal_validation_status="not_required",
+    from smeme.reasoning.artifact_deploy import (
+        PublishGraphChangedError,
+        persist_compiled_artifact_append_only,
     )
+
+    try:
+        artifact = await persist_compiled_artifact_append_only(
+            db,
+            decision_tree=decision_tree,
+            ir_json=ir_json,
+            graph_hash=graph_hash,
+            ir_format_version=IR_FORMAT_VERSION,
+            cevi_contract_json=cevi_contract_json,
+            cevi_contract_hash=cevi_contract_hash,
+            research_corpus_hash=research_corpus_hash,
+            compiler_version=REASONING_COMPILER_VERSION,
+            cevi_legal_validation_status="not_required",
+        )
+    except PublishGraphChangedError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     await db.flush()
 
     await db.commit()

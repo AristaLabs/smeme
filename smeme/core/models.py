@@ -577,7 +577,6 @@ class ReasoningCompiledArtifact(BaseSQLModel, table=True):
             postgresql_where=sa.text("artifact_version IS NULL"),
             sqlite_where=sa.text("artifact_version IS NULL"),
         ),
-        Index("ix_reasoning_compiled_artifacts_decision_tree_id", "decision_tree_id"),
     )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)

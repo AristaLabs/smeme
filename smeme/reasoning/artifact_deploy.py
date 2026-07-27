@@ -9,7 +9,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.models import DecisionTree, ReasoningCompiledArtifact
+from smeme.decision_tree.helpers.db_queries import parse_graph_data
 from smeme.reasoning.artifact_identity import compute_identity_fields_from_stored_artifact
+from smeme.reasoning.graph_hash import canonical_graph_hash
+
+
+class PublishGraphChangedError(RuntimeError):
+    """A saved graph changed while a Deploy candidate was being compiled."""
 
 
 async def load_current_compiled_artifact(
@@ -71,9 +77,16 @@ async def persist_compiled_artifact_append_only(
     """Insert a new immutable artifact or return the current row when identity matches."""
     locked = (
         await db.execute(
-            select(DecisionTree).where(DecisionTree.id == decision_tree.id).with_for_update()
+            select(DecisionTree)
+            .where(DecisionTree.id == decision_tree.id)
+            .execution_options(populate_existing=True)
+            .with_for_update()
         )
     ).scalar_one()
+    if canonical_graph_hash(parse_graph_data(locked)) != graph_hash:
+        raise PublishGraphChangedError(
+            "The saved decision tree changed while Deploy was preparing. Retry Deploy."
+        )
 
     candidate = ReasoningCompiledArtifact(
         decision_tree_id=locked.id,
