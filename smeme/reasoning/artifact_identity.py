@@ -35,7 +35,8 @@ def _require_hex64(name: str, value: str | None) -> str | None:
     if value is None:
         return None
     if not _HEX64.fullmatch(value):
-        raise ArtifactIntegrityError(f"{name} must be 64 lower-case hex digits")
+        message = f"{name} must be 64 lower-case hex digits"
+        raise ArtifactIntegrityError(message)
     return value
 
 
