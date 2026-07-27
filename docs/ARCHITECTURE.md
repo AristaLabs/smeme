@@ -82,3 +82,17 @@ comparison, DTGraph shape, flags, and egress.
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)
 - [Contribution paths](CONTRIBUTION_PATHS.md)
 - [Agent Skills source](../agent-skills/README.md)
+
+## GHCR publish tracks
+
+Core publishes `ghcr.io/aristalabs/smeme` on two tracks (same vocabulary as Cloud):
+
+| Channel | Trigger | Tags | Moves `:latest`? |
+|---------|---------|------|------------------|
+| **staging** | push to `main` | `sha-<fullsha>`, `staging-latest` | No |
+| **release** | `v*.*.*` tag | semver + `latest` + `sha-…` | Yes |
+
+OCI labels: `io.smeme.core.version` (release lineage), `io.smeme.core.ref`,
+`io.smeme.core.channel` (`release` \| `staging`). Digest is authoritative.
+Cloud may pin staging Core digests for hosted staging only; production Cloud
+builds require `channel=release`.
