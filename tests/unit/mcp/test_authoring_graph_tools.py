@@ -774,28 +774,19 @@ class TestAuthoringUpdateDraftTool:
         self, monkeypatch: pytest.MonkeyPatch, test_session_factory
     ) -> None:
         reset_mcp_runtime_for_tests()
-        user, tree_id, live_hash, graph = await _seed_user_and_draft(
-            test_session_factory,
-            mcp_discoverable=True,
-            reasoning_status="compiled",
-            artifact_hash="b" * 64,  # deliberately different so already stale after create
-        )
-        # Re-seed with matching artifact hash so start state is live.
         from sqlalchemy import select
 
         from smeme.core.models import DecisionTree, ReasoningCompiledArtifact
         from smeme.reasoning.graph_hash import canonical_graph_hash
 
-        async with test_session_factory() as session:
-            art = (
-                await session.execute(
-                    select(ReasoningCompiledArtifact).where(
-                        ReasoningCompiledArtifact.decision_tree_id == tree_id
-                    )
-                )
-            ).scalar_one()
-            art.graph_hash = live_hash
-            await session.commit()
+        initial_graph_hash = canonical_graph_hash(DTGraph.model_validate(_minimal_graph()))
+        user, tree_id, live_hash, graph = await _seed_user_and_draft(
+            test_session_factory,
+            mcp_discoverable=True,
+            reasoning_status="compiled",
+            artifact_hash=initial_graph_hash,
+        )
+        assert live_hash == initial_graph_hash
 
         revised = json.loads(json.dumps(graph))
         revised["nodes"][0]["data"]["text"] = "Post-deploy revision?"
