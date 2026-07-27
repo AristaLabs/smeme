@@ -562,10 +562,6 @@ def reset_mcp_runtime_for_tests() -> None:
     global _holder, _starlette_mcp
     _holder = None
     _starlette_mcp = None
-    from smeme.mcp.bearer_auth import _FirstProvisionRateLimit, _jwks_cache
-
-    _jwks_cache.invalidate()
-    _FirstProvisionRateLimit.reset_for_tests()
 
 
 def _build_transport_security(s: Settings) -> TransportSecuritySettings | None:

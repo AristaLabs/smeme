@@ -8,19 +8,20 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
 
-from smeme.core.models import DecisionTree, ReasoningCompiledArtifact, User
 from smeme.app_factory import create_core_app as create_app
+from smeme.core.models import DecisionTree, ReasoningCompiledArtifact, User
 from smeme.decision_tree.models import (
     ConclusionData,
-    GraphEdge,
-    GraphNode,
     DTGraph,
     DTGraphMetadata,
+    GraphEdge,
+    GraphNode,
     QuestionData,
 )
+from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
+from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.publish_readiness import PublishReadiness
-from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from tests.conftest import auth_as
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
@@ -52,7 +53,7 @@ def _mock_ready_readiness() -> PublishReadiness:
     return PublishReadiness(
         ready=True,
         ir_json=ir_to_json(ir),
-        graph_hash="a" * 64,
+        graph_hash=canonical_graph_hash(graph),
     )
 
 
