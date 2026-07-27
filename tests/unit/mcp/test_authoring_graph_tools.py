@@ -779,9 +779,11 @@ class TestAuthoringUpdateDraftTool:
         from smeme.core.models import DecisionTree, ReasoningCompiledArtifact
         from smeme.reasoning.graph_hash import canonical_graph_hash
 
-        initial_graph_hash = canonical_graph_hash(DTGraph.model_validate(_minimal_graph()))
+        title = "Seed Draft"
+        initial_graph_hash = canonical_graph_hash(DTGraph.model_validate(_minimal_graph(title)))
         user, tree_id, live_hash, graph = await _seed_user_and_draft(
             test_session_factory,
+            title=title,
             mcp_discoverable=True,
             reasoning_status="compiled",
             artifact_hash=initial_graph_hash,
