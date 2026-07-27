@@ -19,6 +19,11 @@
     <a class="underline" href="{{ privacy_url }}">Privacy Policy</a>
     in the sign-up flow, then try again.
   </p>
+  <p class="mt-2 text-sm text-ui-ink-muted">
+    Existing Clerk accounts created before Legal Compliance was enabled usually need a fresh
+    sign-up acceptance (or sign out, then create account / re-accept). Logging in alone will not
+    set consent.
+  </p>
   {% elif auth_reason == "legal_config_incomplete" %}
   <p class="mt-4">
     This server is missing legal document URL or version configuration required for signup.
@@ -33,6 +38,8 @@
   <p class="mt-2 text-sm text-ui-ink-muted">Reason code: <code>{{ auth_reason }}</code></p>
 
   <div class="mt-8 flex flex-wrap gap-3">
+    <a class="underline font-medium" href="/auth/register">Create account</a>
+    <a class="underline font-medium" href="/auth/logout">Sign out</a>
     <a class="underline font-medium" href="{{ sign_up_url }}">Return to sign-up</a>
     <a class="underline font-medium" href="{{ sign_in_url }}">Sign in again</a>
     <a class="underline font-medium" href="/auth/clerk-callback">Retry</a>
