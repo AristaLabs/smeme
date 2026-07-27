@@ -227,7 +227,9 @@ class TestDeleteUserAccount:
                 result = await delete_user_account(session, user, actor="clerk_webhook")
         assert result.status == DeleteAccountStatus.ALREADY_DELETED
 
-    async def test_resignup_same_email_creates_fresh_user(self, test_session_factory, account_user):
+    async def test_resignup_same_email_creates_fresh_user(
+        self, test_session_factory, account_user, monkeypatch
+    ):
         user = account_user["user"]
         email = account_user["email"]
         old_id = user.id
@@ -241,8 +243,25 @@ class TestDeleteUserAccount:
                 ).scalar_one()
                 await delete_user_account(session, db_user, actor="profile")
 
-        mock_clerk_user = MagicMock()
-        mock_clerk_user.email_addresses = [MagicMock(email_address=email)]
+        mock_email = MagicMock(
+            id="idn_resignup",
+            email_address=email,
+            verification=MagicMock(status="verified"),
+        )
+        mock_clerk_user = MagicMock(
+            primary_email_address_id="idn_resignup",
+            email_addresses=[mock_email],
+            legal_accepted_at=1_720_000_000,
+        )
+        d026_settings = MagicMock(
+            clerk_secret_key="sk_test",
+            legal_terms_url="https://example.test/legal/terms",
+            legal_privacy_url="https://example.test/legal/privacy",
+            legal_terms_version="2026-07-20",
+            legal_privacy_version="2026-07-20",
+        )
+        d026_settings.mcp_first_legal_config_complete.return_value = True
+        monkeypatch.setattr("smeme.auth.clerk_auth.settings", d026_settings)
 
         async with test_session_factory() as session:
             manager = UserManager(SQLAlchemyUserDatabase(session, User))
