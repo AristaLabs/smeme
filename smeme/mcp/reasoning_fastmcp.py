@@ -182,7 +182,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.3.0"
+REASONING_CAPABILITIES_VERSION = "3.4.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -312,6 +312,7 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
             },
             "evaluate_response": {
                 "report_v1": True,
+                "report_theory_v1": True,
                 "decision_tree_warnings_review_v1": True,
             },
             "list_response": {"review_metadata_v1": True},
@@ -424,12 +425,9 @@ async def _mcp_load_owner_reasoning_context(
         code, msg = disc_violation
         return tool_error_json(code, msg)
 
-    artifact_result = await db.execute(
-        select(ReasoningCompiledArtifact).where(
-            ReasoningCompiledArtifact.decision_tree_id == decision_tree_uuid
-        )
-    )
-    artifact = artifact_result.scalar_one_or_none()
+    from smeme.reasoning.artifact_deploy import load_current_compiled_artifact
+
+    artifact = await load_current_compiled_artifact(db, decision_tree)
     if artifact is None:
         return tool_error_json(
             "no_reasoning_artifact",
@@ -564,6 +562,10 @@ def reset_mcp_runtime_for_tests() -> None:
     global _holder, _starlette_mcp
     _holder = None
     _starlette_mcp = None
+    from smeme.mcp.bearer_auth import _FirstProvisionRateLimit, _jwks_cache
+
+    _jwks_cache.invalidate()
+    _FirstProvisionRateLimit.reset_for_tests()
 
 
 def _build_transport_security(s: Settings) -> TransportSecuritySettings | None:
@@ -1577,6 +1579,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     envelope=ingest_env,
                     eval_result=eval_result,
                 )
+                from smeme.reasoning.artifact_identity import theory_stamp_from_artifact
+
+                report["theory"] = theory_stamp_from_artifact(artifact)
 
                 run_id: UUID | None = None
                 if persist:
@@ -1589,6 +1594,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         ingest_warnings=ingest_warnings,
                         report=report,
                         ingest_envelope=ingest_wire,
+                        artifact=artifact,
                     )
                     run_id = row.id
 

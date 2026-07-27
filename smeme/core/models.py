@@ -79,6 +79,23 @@ class User(BaseSQLModel, SQLModelBaseUserDB, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
 
+    # D026 local legal-acceptance audit (nullable; grandfathered users stay null)
+    legal_accepted_at: Mapped[datetime | None] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="Clerk legal_accepted_at (UTC) recorded at local provision; null for grandfathered users.",
+    )
+    terms_version: str | None = Field(
+        default=None,
+        sa_column=Column(sa.String(64), nullable=True),
+        description="SMEME_LEGAL_TERMS_VERSION at provision time (config constant; not HTML scrape).",
+    )
+    privacy_version: str | None = Field(
+        default=None,
+        sa_column=Column(sa.String(64), nullable=True),
+        description="SMEME_LEGAL_PRIVACY_VERSION at provision time (config constant; not HTML scrape).",
+    )
+
     # Creator profile fields (Sprint 6)
     bio: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     website_url: str | None = Field(default=None, sa_column=Column(sa.String(500), nullable=True))

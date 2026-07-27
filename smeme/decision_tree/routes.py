@@ -13,7 +13,7 @@ from smeme.auth.users import current_active_user
 from smeme.core.callout_html import render_callout_html
 from smeme.core.config import settings
 from smeme.core.database import get_db
-from smeme.core.models import DecisionTree, DecisionTreeSession, ReasoningCompiledArtifact, User
+from smeme.core.models import DecisionTree, DecisionTreeSession, User
 from smeme.core.templates import templates
 from smeme.decision_tree.helpers.db_queries import (
     get_decision_tree_by_id,
@@ -36,15 +36,12 @@ async def _assistant_tools_row_map(
     db: AsyncSession, decision_trees: list[DecisionTree]
 ) -> dict[UUID, str]:
     """Per-DecisionTree tools column: ``live`` | ``not_built`` | ``stale`` (hash vs artifact)."""
+    from smeme.reasoning.artifact_deploy import load_current_compiled_artifacts_for_trees
     from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state
 
     if not decision_trees:
         return {}
-    ids = [q.id for q in decision_trees]
-    result = await db.execute(
-        select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id.in_(ids))
-    )
-    by_q = {a.decision_tree_id: a for a in result.scalars().all()}
+    by_q = await load_current_compiled_artifacts_for_trees(db, decision_trees)
     return {q.id: reasoning_tools_row_state(q, by_q.get(q.id)) for q in decision_trees}
 
 
