@@ -1,11 +1,19 @@
-"""Clerk session verification and local ``User`` sync (see CLERK_* settings)."""
+"""Clerk session verification and local ``User`` sync (see CLERK_* settings).
+
+D026: first-time provision (web or MCP) requires verified primary email +
+Clerk ``legal_accepted_at``. Existing linked ``users.clerk_user_id`` rows are
+grandfathered (no re-fetch / no audit requirement).
+"""
 
 from __future__ import annotations
 
+import json
 import re
 import secrets
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 from clerk_backend_api import Clerk
 from clerk_backend_api.security import (
@@ -15,6 +23,7 @@ from clerk_backend_api.security import (
 )
 from fastapi import Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
@@ -28,22 +37,51 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def clear_clerk_browser_cookies(response: Response) -> None:
-    """Remove Clerk session cookies from the browser response.
+class ProvisionFailureReason(str, Enum):
+    """Locked D026 ``auth_reason`` values for failed *new* provision attempts."""
 
-    Expiration only works if ``Set-Cookie`` matches how Clerk originally set the cookie
-    (``Path``, ``Domain``, ``Secure``, ``HttpOnly``, ``SameSite``). Clerk often uses
-    ``SameSite=None; Secure``; Starlette's ``delete_cookie`` defaults to ``lax``, which
-    would leave ``__session`` in place so the user still looks signed in after "logout".
-    """
+    EMAIL_NOT_VERIFIED = "email_not_verified"
+    PRIMARY_EMAIL_MISSING = "primary_email_missing"
+    LEGAL_CONSENT_REQUIRED = "legal_consent_required"
+    LEGAL_CONFIG_INCOMPLETE = "legal_config_incomplete"
+    CLERK_LOOKUP_FAILED = "clerk_lookup_failed"
+
+
+@dataclass(frozen=True)
+class ClerkProfile:
+    """Normalized Clerk user fields needed for local provision gates."""
+
+    clerk_user_id: str
+    email: str
+    email_verified: bool
+    legal_accepted_at: datetime | None
+
+
+@dataclass(frozen=True)
+class ProvisionResult:
+    """Outcome of resolving Clerk ``sub`` → local ``User``."""
+
+    user: User | None = None
+    failure_reason: ProvisionFailureReason | None = None
+    telemetry_event: str | None = None
+
+
+class ProvisionError(Exception):
+    """Typed first-provision failure (maps to locked MCP ``auth_reason``)."""
+
+    def __init__(self, reason: ProvisionFailureReason, message: str | None = None) -> None:
+        self.reason = reason
+        super().__init__(message or reason.value)
+
+
+def clear_clerk_browser_cookies(response: Response) -> None:
+    """Remove Clerk session cookies from the browser response."""
     from urllib.parse import urlparse
 
-    # __session / __client_uat: auth; clerk_active_context: client hint (can leave user "active" UX if not cleared)
     keys = ("__session", "__client_uat", "clerk_active_context")
     host = urlparse(settings.effective_base_url).hostname
 
     for key in keys:
-        # Try httponly True and False — Clerk may expose some client-readable cookies.
         for httponly in (True, False):
             response.delete_cookie(key, path="/", secure=False, httponly=httponly, samesite="lax")
             response.delete_cookie(key, path="/", secure=True, httponly=httponly, samesite="lax")
@@ -58,7 +96,6 @@ def clear_clerk_browser_cookies(response: Response) -> None:
                     httponly=httponly,
                     samesite="lax",
                 )
-                # Treat localhost as a secure context for SameSite=None + Secure (common in dev).
                 response.delete_cookie(
                     key,
                     path="/",
@@ -83,17 +120,6 @@ def clear_clerk_browser_cookies(response: Response) -> None:
                     )
 
 
-def _primary_email_from_clerk_user(cu) -> str | None:
-    pid = getattr(cu, "primary_email_address_id", None)
-    addresses = getattr(cu, "email_addresses", None) or []
-    for ea in addresses:
-        if pid and getattr(ea, "id", None) == pid:
-            return getattr(ea, "email_address", None)
-    if addresses:
-        return getattr(addresses[0], "email_address", None)
-    return None
-
-
 def _slug_username(base: str) -> str:
     s = base.strip().lower()
     s = re.sub(r"[^a-z0-9_]+", "_", s)
@@ -101,56 +127,126 @@ def _slug_username(base: str) -> str:
     return (s[:32] or "user").lstrip("_") or "user"
 
 
-async def get_or_create_user_for_clerk(
-    db: AsyncSession,
-    user_manager: UserManager,
-    clerk_user_id: str,
-) -> User | None:
-    """Resolve Clerk ``sub`` to a local ``User``; create or link by email as needed."""
-    result = await db.execute(select(User).where(User.clerk_user_id == clerk_user_id))
-    row = result.scalar_one_or_none()
-    if row:
-        row.last_login_at = datetime.now(UTC)
-        db.add(row)
-        await db.commit()
-        await db.refresh(row)
-        return row
+def _verification_status_value(verification: Any) -> str | None:
+    if verification is None:
+        return None
+    status = getattr(verification, "status", None)
+    if status is None:
+        return None
+    if isinstance(status, str):
+        return status.strip().lower() or None
+    value = getattr(status, "value", None)
+    if isinstance(value, str):
+        return value.strip().lower() or None
+    return str(status).strip().lower() or None
 
+
+def _legal_accepted_at_utc(raw: Any) -> datetime | None:
+    """Clerk ``legal_accepted_at`` is Unix seconds (nullable int)."""
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, (int, float)):
+        ts = int(raw)
+        if ts <= 0:
+            return None
+        return datetime.fromtimestamp(ts, tz=UTC)
+    if isinstance(raw, datetime):
+        if raw.tzinfo is None:
+            return raw.replace(tzinfo=UTC)
+        return raw.astimezone(UTC)
+    return None
+
+
+def normalize_clerk_profile(clerk_user_id: str, cu: Any) -> ClerkProfile:
+    """Extract email + verification + legal acceptance from a Clerk User object."""
+    pid = getattr(cu, "primary_email_address_id", None)
+    addresses = list(getattr(cu, "email_addresses", None) or [])
+    primary = None
+    if pid:
+        for ea in addresses:
+            if getattr(ea, "id", None) == pid:
+                primary = ea
+                break
+
+    # D026 requires the Clerk-designated primary address.  Do not fall back to
+    # a secondary verified address: that would silently bypass the
+    # ``primary_email_missing`` gate when Clerk has no usable primary ID.
+    if primary is None:
+        return ClerkProfile(
+            clerk_user_id=clerk_user_id,
+            email="",
+            email_verified=False,
+            legal_accepted_at=_legal_accepted_at_utc(getattr(cu, "legal_accepted_at", None)),
+        )
+
+    email = (getattr(primary, "email_address", None) or "").strip().lower()
+    status = _verification_status_value(getattr(primary, "verification", None))
+    return ClerkProfile(
+        clerk_user_id=clerk_user_id,
+        email=email,
+        email_verified=status == "verified",
+        legal_accepted_at=_legal_accepted_at_utc(getattr(cu, "legal_accepted_at", None)),
+    )
+
+
+async def fetch_clerk_profile(clerk_user_id: str) -> ClerkProfile:
+    """Backend API lookup for MCP/web first-provision gates (JWT lacks these claims)."""
+    if not (settings.clerk_secret_key or "").strip():
+        raise ProvisionError(
+            ProvisionFailureReason.CLERK_LOOKUP_FAILED, "Clerk secret not configured"
+        )
     clerk_sdk = Clerk(bearer_auth=settings.clerk_secret_key)
     try:
         cu = await clerk_sdk.users.get_async(user_id=clerk_user_id)
     except Exception as e:
         logger.warning("Clerk users.get failed for %s: %s", clerk_user_id, e)
-        return None
+        raise ProvisionError(
+            ProvisionFailureReason.CLERK_LOOKUP_FAILED,
+            "Could not load Clerk user profile",
+        ) from e
+    if cu is None:
+        raise ProvisionError(ProvisionFailureReason.CLERK_LOOKUP_FAILED, "Clerk user not found")
+    return normalize_clerk_profile(clerk_user_id, cu)
 
-    email = (_primary_email_from_clerk_user(cu) or "").strip().lower()
-    if not email:
-        logger.warning("Clerk user %s has no email; cannot create local User", clerk_user_id)
-        return None
 
-    # Link existing row (pre-Clerk migration) by email only when that row still exists.
-    # Account hard-delete removes the row entirely — re-signup must create a fresh User
-    # (see docs/planning/account-deletion-flow.md identity invariants I1–I4).
-    result = await db.execute(select(User).where(User.email == email))
-    existing = result.scalar_one_or_none()
-    if existing:
-        # Link the pre-Clerk row to this Clerk user. Prefer keeping an existing SMEme
-        # username (stable /creator/{username} URLs until Business creator aliases ship).
-        existing.clerk_user_id = clerk_user_id
-        existing.is_verified = True
-        existing.is_active = True
-        existing.last_login_at = datetime.now(UTC)
-        db.add(existing)
-        await db.commit()
-        await db.refresh(existing)
-        return existing
+def assert_provision_gates(profile: ClerkProfile) -> None:
+    """Raise ``ProvisionError`` unless verified primary email + legal acceptance."""
+    if not settings.mcp_first_legal_config_complete():
+        raise ProvisionError(ProvisionFailureReason.LEGAL_CONFIG_INCOMPLETE)
+    if not profile.email:
+        raise ProvisionError(ProvisionFailureReason.PRIMARY_EMAIL_MISSING)
+    if not profile.email_verified:
+        raise ProvisionError(ProvisionFailureReason.EMAIL_NOT_VERIFIED)
+    if profile.legal_accepted_at is None:
+        raise ProvisionError(ProvisionFailureReason.LEGAL_CONSENT_REQUIRED)
 
+
+def _apply_legal_audit(user: User, profile: ClerkProfile) -> None:
+    user.legal_accepted_at = profile.legal_accepted_at
+    user.terms_version = (settings.legal_terms_version or "").strip() or None
+    user.privacy_version = (settings.legal_privacy_version or "").strip() or None
+
+
+def emit_provision_telemetry(
+    event: str,
+    *,
+    clerk_user_id: str | None = None,
+    auth_reason: str | None = None,
+) -> None:
+    payload: dict[str, Any] = {"stage": "local_user_provision", "event": event}
+    if clerk_user_id:
+        payload["clerk_user_id"] = clerk_user_id
+    if auth_reason:
+        payload["auth_reason"] = auth_reason
+    logger.info("MCP/local provision telemetry %s", json.dumps(payload, separators=(",", ":")))
+
+
+async def _create_user_from_profile(db: AsyncSession, profile: ClerkProfile) -> User:
     from fastapi_users.password import PasswordHelper
 
     from smeme.auth.constants import RESERVED_USERNAMES
 
-    # Internal slug from email local-part only (not Clerk username). User-facing handle
-    # is email until Business tier ships editable creator aliases on the profile page.
+    email = profile.email
     raw_name = email.split("@", 1)[0]
     username = _slug_username(raw_name)
     if username.lower() in RESERVED_USERNAMES:
@@ -172,14 +268,108 @@ async def get_or_create_user_for_clerk(
         is_verified=True,
         is_superuser=False,
         username=username,
-        clerk_user_id=clerk_user_id,
+        clerk_user_id=profile.clerk_user_id,
         last_login_at=datetime.now(UTC),
     )
+    _apply_legal_audit(user, profile)
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    logger.info("Created local User %s for Clerk id %s", user.id, clerk_user_id)
+    logger.info("Created local User %s for Clerk id %s", user.id, profile.clerk_user_id)
     return user
+
+
+async def _link_legacy_or_create(db: AsyncSession, profile: ClerkProfile) -> tuple[User, str]:
+    result = await db.execute(select(User).where(User.email == profile.email))
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.clerk_user_id = profile.clerk_user_id
+        existing.is_verified = True
+        existing.is_active = True
+        existing.last_login_at = datetime.now(UTC)
+        _apply_legal_audit(existing, profile)
+        db.add(existing)
+        await db.commit()
+        await db.refresh(existing)
+        return existing, "linked_legacy_user"
+
+    user = await _create_user_from_profile(db, profile)
+    return user, "created"
+
+
+async def resolve_local_user_for_clerk(
+    db: AsyncSession,
+    clerk_user_id: str,
+    *,
+    enforce_new_user_gates: bool,
+    user_manager: UserManager | None = None,
+) -> ProvisionResult:
+    """Resolve Clerk ``sub`` to local ``User``.
+
+    Existing linked rows are always returned (grandfathered) without Clerk fetch.
+    New create/link runs D026 gates when ``enforce_new_user_gates`` is True.
+    """
+    _ = user_manager
+
+    result = await db.execute(select(User).where(User.clerk_user_id == clerk_user_id))
+    row = result.scalar_one_or_none()
+    if row:
+        row.last_login_at = datetime.now(UTC)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+        # Do not emit ``grandfathered`` on every login — return the event name only.
+        return ProvisionResult(user=row, telemetry_event="grandfathered")
+
+    if not enforce_new_user_gates:
+        return ProvisionResult(user=None)
+
+    try:
+        profile = await fetch_clerk_profile(clerk_user_id)
+        assert_provision_gates(profile)
+        user, event = await _link_legacy_or_create(db, profile)
+        emit_provision_telemetry(event, clerk_user_id=clerk_user_id)
+        return ProvisionResult(user=user, telemetry_event=event)
+    except ProvisionError as exc:
+        event = (
+            "lookup_failed"
+            if exc.reason == ProvisionFailureReason.CLERK_LOOKUP_FAILED
+            else "blocked"
+        )
+        emit_provision_telemetry(
+            event,
+            clerk_user_id=clerk_user_id,
+            auth_reason=exc.reason.value,
+        )
+        return ProvisionResult(failure_reason=exc.reason)
+    except IntegrityError:
+        await db.rollback()
+        result = await db.execute(select(User).where(User.clerk_user_id == clerk_user_id))
+        winner = result.scalar_one_or_none()
+        if winner is not None:
+            emit_provision_telemetry("race_reused", clerk_user_id=clerk_user_id)
+            return ProvisionResult(user=winner, telemetry_event="race_reused")
+        emit_provision_telemetry(
+            "lookup_failed",
+            clerk_user_id=clerk_user_id,
+            auth_reason=ProvisionFailureReason.CLERK_LOOKUP_FAILED.value,
+        )
+        return ProvisionResult(failure_reason=ProvisionFailureReason.CLERK_LOOKUP_FAILED)
+
+
+async def get_or_create_user_for_clerk(
+    db: AsyncSession,
+    user_manager: UserManager,
+    clerk_user_id: str,
+) -> User | None:
+    """Resolve Clerk ``sub`` to a local ``User``; create or link by email as needed."""
+    outcome = await resolve_local_user_for_clerk(
+        db,
+        clerk_user_id,
+        enforce_new_user_gates=True,
+        user_manager=user_manager,
+    )
+    return outcome.user
 
 
 async def clerk_authenticated_user(
@@ -187,22 +377,7 @@ async def clerk_authenticated_user(
     db: AsyncSession,
     user_manager: UserManager,
 ) -> User | None:
-    """Return local ``User`` if the request carries a valid Clerk session JWT.
-
-    Uses ``clerk_backend_api.authenticate_request_async`` which validates the
-    ``__session`` cookie (or ``Authorization: Bearer`` header) against Clerk's
-    JWKS endpoint.
-
-    ``authorized_parties`` is passed from ``settings.clerk_authorized_parties()``,
-    which includes the app's own origin **and** the Clerk Account Portal host
-    (derived from ``CLERK_SIGN_IN_URL``).  This is necessary because sessions
-    created from the Account Portal set the JWT ``azp`` claim to the Account
-    Portal domain (``https://<instance>.accounts.dev``), not the SMEme origin.
-    Without the Account Portal host in ``authorized_parties``, first-time users
-    who sign in via the Account Portal are rejected here and never get a local
-    ``User`` row created.  See ``config.py::clerk_authorized_parties`` and
-    LESSONS_LEARNED §Clerk ``azp`` Claim.
-    """
+    """Return local ``User`` if the request carries a valid Clerk session JWT."""
     opts = AuthenticateRequestOptions(
         secret_key=settings.clerk_secret_key,
         authorized_parties=settings.clerk_authorized_parties(),
@@ -216,3 +391,29 @@ async def clerk_authenticated_user(
         return None
 
     return await get_or_create_user_for_clerk(db, user_manager, clerk_uid)
+
+
+async def clerk_authenticated_provision(
+    request: Request,
+    db: AsyncSession,
+    user_manager: UserManager,
+) -> ProvisionResult:
+    """Like ``clerk_authenticated_user`` but returns typed provision outcome."""
+    opts = AuthenticateRequestOptions(
+        secret_key=settings.clerk_secret_key,
+        authorized_parties=settings.clerk_authorized_parties(),
+    )
+    state = await authenticate_request_async(request, opts)
+    if state.status != AuthStatus.SIGNED_IN or not state.payload:
+        return ProvisionResult()
+
+    clerk_uid = state.payload.get("sub")
+    if not clerk_uid or not isinstance(clerk_uid, str):
+        return ProvisionResult()
+
+    return await resolve_local_user_for_clerk(
+        db,
+        clerk_uid,
+        enforce_new_user_gates=True,
+        user_manager=user_manager,
+    )
