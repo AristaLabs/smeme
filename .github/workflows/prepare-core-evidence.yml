@@ -44,7 +44,8 @@ jobs:
         run: |
           mkdir -p build/release-evidence
           bash scripts/prepare_core_release_evidence.sh "${{ inputs.image }}" build/release-evidence
-          ls -laR build/release-evidence | head -80
+          # Avoid SIGPIPE+pipefail from `ls | head` closing the pipe early.
+          find build/release-evidence -type f | sort | head -80 || true
 
       - name: Derive artifact name
         id: artifact
