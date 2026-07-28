@@ -12,6 +12,7 @@ Thin operator and contributor surface for the public Core tree.
 | [Engine promises](guides/engine-promises.md) | What Deploy and evaluate guarantee |
 | [Contribution paths](CONTRIBUTION_PATHS.md) | Themes welcome in public PRs |
 | [Contributing](../CONTRIBUTING.md) | PR / CLA process |
+| [GitHub Discussions](https://github.com/AristaLabs/smeme/discussions) | Community how-to / MCP / self-host help |
 
 ## Operator guides
 

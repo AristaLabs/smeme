@@ -12,7 +12,7 @@ It does **not** cover the hosted commercial product at [smeme.ai](https://smeme.
 
 ## Reporting a vulnerability
 
-Please **do not** open a public GitHub issue for security vulnerabilities.
+Please **do not** open a public GitHub issue **or** a [GitHub Discussion](https://github.com/AristaLabs/smeme/discussions) for security vulnerabilities. Discussions are for how-to and product Q&A only.
 
 Prefer one of:
 

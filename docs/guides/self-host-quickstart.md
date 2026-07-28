@@ -133,6 +133,13 @@ Notices and corresponding-source materials live in the image under `/app/legal/`
 scripts/prepare_core_release_evidence.sh smeme:local build/release-evidence
 ```
 
+## Stuck?
+
+Ask in [GitHub Discussions → Self-host / operators](https://github.com/AristaLabs/smeme/discussions/categories/self-host-operators)
+(or **Get started** for MCP connect questions). Include the image tag/digest if you
+can; never paste a full `.env` or secrets. Confirmed Core defects →
+[Issues](https://github.com/AristaLabs/smeme/issues).
+
 ## Contributor checks
 
 ```bash

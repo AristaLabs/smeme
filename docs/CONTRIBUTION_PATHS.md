@@ -9,6 +9,11 @@ maintaining a second stretch list.
 
 For how to open a PR and the CLA, see [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
+**Non-code feedback** (how-to questions, connector issues, example trees): use
+[GitHub Discussions](https://github.com/AristaLabs/smeme/discussions) — start with
+**Start here**. Product-idea threads may come later; until then, use Start here or
+open an Issue for a concrete Core feature request.
+
 ## How to use this list
 
 1. Pick a theme below (or propose a related Core improvement in an issue).
