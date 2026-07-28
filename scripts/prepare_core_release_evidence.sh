@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Prepare release evidence for an immutable Core image: SBOM + legal bundle +
-# optional cosign attestation commands (signing keys are operator-provided).
+# verification instructions for GitHub OIDC attestations (publish CI signs).
 #
 # Usage:
 #   scripts/prepare_core_release_evidence.sh [image] [output-directory]
@@ -10,6 +10,9 @@ set -euo pipefail
 # Example:
 #   docker build -f Dockerfile.core -t smeme:local .
 #   scripts/prepare_core_release_evidence.sh smeme:local build/release-evidence
+#
+# Release publishes also run this against the exact GHCR digest and attach
+# signed attestations via actions/attest.
 
 IMAGE="${1:-smeme:local}"
 OUTPUT_DIR="${2:-build/release-evidence}"
@@ -33,26 +36,51 @@ IMAGE_ID="$(docker image inspect "${IMAGE}" --format '{{.Id}}')"
 } >"${OUTPUT_DIR}/EVIDENCE.txt"
 
 cat >"${OUTPUT_DIR}/COSIGN.md" <<'EOF'
-# Attesting the Core SBOM (operator step)
+# Verifying Core image attestations
 
-After pushing an immutable digest to GHCR:
+Publish CI attaches GitHub OIDC–signed attestations to every pushed Core digest:
+
+- SLSA build provenance (`https://slsa.dev/provenance/v1`)
+- CycloneDX SBOM (`https://cyclonedx.org/bom`)
+
+Durable stores (not the 90-day workflow artifact):
+
+1. **GitHub Attestations API** — bound to `AristaLabs/smeme` for the digest
+2. **GitHub Release assets** — for each `vMAJOR.MINOR.PATCH` tag (SBOM + checksums)
+
+## Verify (preferred)
 
 ```bash
-# Resolve the registry digest for the tag you just pushed.
-DIGEST="$(crane digest ghcr.io/AristaLabs/smeme:vX.Y.Z)"
+DIGEST=sha256:…   # from the publish job notice
+gh attestation verify \
+  "oci://ghcr.io/aristalabs/smeme@${DIGEST}" \
+  --repo AristaLabs/smeme \
+  --predicate-type https://slsa.dev/provenance/v1
 
-# Attach the CycloneDX SBOM as a signed attestation (requires cosign key/OIDC).
-cosign attest --yes \
-  --predicate build/release-evidence/sbom/smeme.cdx.json \
-  --type cyclonedx \
-  "ghcr.io/AristaLabs/smeme@${DIGEST}"
+gh attestation verify \
+  "oci://ghcr.io/aristalabs/smeme@${DIGEST}" \
+  --repo AristaLabs/smeme \
+  --predicate-type https://cyclonedx.org/bom
 ```
 
-Retain `build/release-evidence/` (or the CI artifact) for the retention period
-described in `legal/SOURCE_OFFER.md`. Local `smeme:local` tags are not
-registry-immutable; regenerate this pack from the pushed digest before treating
-it as release evidence.
+Or use `scripts/verify_core_image_attestation.sh "${DIGEST}"`.
+
+## Optional Cosign
+
+Attestations are also pushed as OCI referrers when registry push succeeds.
+Cosign remains optional for operators who prefer Sigstore tooling:
+
+```bash
+cosign verify-attestation \
+  --type cyclonedx \
+  --certificate-identity-regexp 'https://github.com/AristaLabs/smeme/.github/workflows/ci-core.yml@.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "ghcr.io/aristalabs/smeme@${DIGEST}"
+```
+
+Retain this evidence pack (or the matching GitHub Release assets) for the
+period described in `legal/SOURCE_OFFER.md`.
 EOF
 
 printf 'Release evidence written to %s\n' "${OUTPUT_DIR}"
-printf 'Next: push an immutable GHCR digest, then follow %s/COSIGN.md\n' "${OUTPUT_DIR}"
+printf 'Next: CI attests the pushed digest; operators verify with scripts/verify_core_image_attestation.sh\n'

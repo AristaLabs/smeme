@@ -59,4 +59,6 @@ jobs:
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: build/release-evidence
+          # Ad-hoc packs only. Publish CI attests digests and attaches release
+          # assets for durable retention (see legal/SOURCE_OFFER.md).
           retention-days: 90

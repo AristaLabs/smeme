@@ -35,6 +35,11 @@ For each immutable public Core tag, Arista Labs retains:
 
 - The image digest and multi-arch manifests
 - CycloneDX + SPDX SBOMs generated with all-layer scope
+- GitHub OIDC–signed SLSA provenance and SBOM attestations for that digest
+  (GitHub Attestations API; also attached as OCI referrers when registry push
+  succeeds)
+- GitHub Release assets for the matching `vMAJOR.MINOR.PATCH` tag (SBOM +
+  `SHA256SUMS.txt` + evidence metadata) for the offer period
 - The `/app/legal/` notice bundle embedded in the image
 - This source offer
 - Build inputs needed to reconstruct Debian package source for the pinned base
