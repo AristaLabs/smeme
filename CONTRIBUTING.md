@@ -39,6 +39,7 @@ Self-host with Docker:
 
 ```bash
 cp .env.core.example .env.core
+# set SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD (required)
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 

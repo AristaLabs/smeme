@@ -15,19 +15,39 @@ pages.
 
 ```bash
 cp .env.core.example .env.core
-# edit secrets in .env.core
+# Required — Compose has no secret fallbacks:
+openssl rand -hex 32   # paste into SECRET_KEY
+openssl rand -hex 32   # paste into JWT_SECRET_KEY
+openssl rand -hex 24   # paste into POSTGRES_PASSWORD
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-- App: http://localhost:8000 (redirects to `/decision-trees/dashboard`)
-- Health: http://localhost:8000/api/v1/health
+- App: http://127.0.0.1:8000 (redirects to `/decision-trees/dashboard`)
+- Health: http://127.0.0.1:8000/api/v1/health
 
 Default Core image settings:
 
 - `SMEME_AI_GENERATION_ENABLED=false` — no `OPENAI_API_KEY` / `TAVILY_API_KEY` required to boot
 - `MCP_ENABLED=false` — set `true` and configure Clerk/OAuth when you want remote MCP
 
-**Network exposure:** do not publish port 8000 beyond localhost until Clerk (or a future OIDC profile) is configured and secrets are non-default. Product routes require auth (`/decision-trees/dashboard` → 401 without a session); `/api/docs` and `/api/v1/health` remain reachable. Compose ships placeholder secrets only as a local convenience — replace them for any shared host.
+**Network exposure (H-07):** Postgres is **not** published on the host. The web
+service binds **`127.0.0.1:8000` only** (not `0.0.0.0`). Product routes require
+auth (`/decision-trees/dashboard` → 401 without a session); `/api/docs` and
+`/api/v1/health` remain reachable on loopback. For internet-facing deploy, use
+the production overlay (TLS via Caddy) — do not widen the Compose publish ports.
+
+### Production overlay (TLS)
+
+```bash
+# Set BASE_URL / ALLOWED_ORIGINS to your https:// origin in .env.core
+# Place tls.crt + tls.key under deploy/caddy/certs/
+export SMEME_PUBLIC_HOST=app.example.com
+docker compose --env-file .env.core \
+  -f docker-compose.core.yml -f docker-compose.core.prod.yml up --build -d
+```
+
+Requires Docker Compose **v2.24+** (`!reset` for clearing the loopback port).
+See [`deploy/caddy/Caddyfile`](../../deploy/caddy/Caddyfile).
 
 Full operator knob list: [`.env.core.example`](../../.env.core.example).
 
@@ -98,13 +118,16 @@ SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR=true
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-Or one-shot:
+Or one-shot (still requires secrets in the environment or `.env.core`):
 
 ```bash
+export SECRET_KEY="$(openssl rand -hex 32)"
+export JWT_SECRET_KEY="$(openssl rand -hex 32)"
+export POSTGRES_PASSWORD="$(openssl rand -hex 24)"
 SMEME_AI_GENERATION_ENABLED=true \
 OPENAI_API_KEY=sk-... \
 TAVILY_API_KEY=tvly-... \
-docker compose -f docker-compose.core.yml up --build
+docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
 ## Enable MCP

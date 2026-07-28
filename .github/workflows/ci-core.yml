@@ -84,6 +84,8 @@ jobs:
           test -f Dockerfile.core
           test -f start-core.sh
           test -f docker-compose.core.yml
+          test -f docker-compose.core.prod.yml
+          test -f deploy/caddy/Caddyfile
           test -f smeme/core_entrypoint.py
           test ! -f smeme/main.py
           test ! -f smeme/saas_overlay.py

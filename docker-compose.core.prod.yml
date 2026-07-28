@@ -1,0 +1,41 @@
+# Hardened production overlay for Core self-host (H-07).
+#
+# Requires Docker Compose v2.24+ (`!reset` / `!override`).
+#
+#   cp .env.core.example .env.core   # HTTPS BASE_URL + generated secrets
+#   # Place TLS material under ./deploy/caddy/certs/ (see deploy/caddy/Caddyfile)
+#   docker compose --env-file .env.core \
+#     -f docker-compose.core.yml -f docker-compose.core.prod.yml up --build -d
+#
+# This overlay:
+# - Removes the loopback :8000 host publish (Caddy is the only ingress)
+# - Forces ENVIRONMENT=production and DEBUG=false
+# - Terminates TLS on Caddy and reverse-proxies to web:8000 on the compose network
+
+services:
+  web:
+    ports: !reset []
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      BASE_URL: ${BASE_URL:?Set BASE_URL to your public https:// origin}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?Set ALLOWED_ORIGINS to your public https:// origin JSON/list}
+
+  caddy:
+    image: caddy:2.9.1-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/certs:/etc/caddy/certs:ro
+      - smeme_core_caddy_data:/data
+      - smeme_core_caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  smeme_core_caddy_data:
+  smeme_core_caddy_config:

@@ -1,19 +1,26 @@
 # Self-host Core stack (D023). Build with Dockerfile.core.
 #
-#   cp .env.core.example .env.core   # then edit secrets
+# Local (loopback only; Postgres not published on the host):
+#   cp .env.core.example .env.core
+#   # set SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD (see .env.core.example)
 #   docker compose --env-file .env.core -f docker-compose.core.yml up --build
 #
-# This compose file runs the self-hosted Core image.
+# Production (TLS terminator; web not published on the host):
+#   docker compose --env-file .env.core \
+#     -f docker-compose.core.yml -f docker-compose.core.prod.yml up --build -d
+#
+# H-07: no predictable secret fallbacks; DB has no host port; web binds 127.0.0.1.
 
 services:
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: smeme
-      POSTGRES_PASSWORD: smeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.core (openssl rand -hex 24)}
       POSTGRES_DB: smeme
-    ports:
-      - "5432:5432"
+    # Intentionally not published on the host. Use:
+    #   docker compose --env-file .env.core -f docker-compose.core.yml exec db \
+    #     psql -U smeme -d smeme
     volumes:
       - smeme_core_pg:/var/lib/postgresql/data
     healthcheck:
@@ -27,16 +34,16 @@ services:
       context: .
       dockerfile: Dockerfile.core
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://smeme:smeme@db:5432/smeme
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me-in-production-32chars}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-change-me-in-production}
+      DATABASE_URL: postgresql+asyncpg://smeme:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.core}@db:5432/smeme
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env.core (openssl rand -hex 32)}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env.core (openssl rand -hex 32)}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      BASE_URL: ${BASE_URL:-http://localhost:8000}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://localhost:8000"]}
+      BASE_URL: ${BASE_URL:-http://127.0.0.1:8000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://127.0.0.1:8000","http://localhost:8000"]}
 
       # AI generation (optional)
       SMEME_AI_GENERATION_ENABLED: ${SMEME_AI_GENERATION_ENABLED:-false}
