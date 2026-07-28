@@ -4,6 +4,7 @@ Per docs/planning/decision_tree-generation-ux-refinement.md §9.3.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 
@@ -151,7 +152,17 @@ class TestCompleteGenerationCallsCheckpointCleanup:
                 "smeme.decision_tree.generation.agentic.services.checkpointer_manager",
                 checkpointer_manager,
             ):
-                await checkpoint_manager.complete_generation(mock_db, thread_id)
+                user_id = uuid4()
+                owned = MagicMock()
+                with patch.object(
+                    checkpoint_manager,
+                    "get_generation_by_thread_id",
+                    new_callable=AsyncMock,
+                    return_value=owned,
+                ):
+                    await checkpoint_manager.complete_generation(
+                        mock_db, thread_id, user_id=user_id
+                    )
 
             mock_del.assert_called_once_with(thread_id)
 

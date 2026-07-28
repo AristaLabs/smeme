@@ -173,7 +173,7 @@ async def test_sse_event_sequence(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.ownership.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
                 return_value=generation,
             ),
@@ -192,8 +192,6 @@ async def test_sse_event_sequence(app):
 async def test_sse_forbidden_non_owner(app):
     user = _mock_user()
     thread_id = str(uuid4())
-    generation = MagicMock()
-    generation.user_id = uuid4()
 
     await put_event(thread_id, "generation_started", {"goal": "g"})
 
@@ -202,14 +200,14 @@ async def test_sse_forbidden_non_owner(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.ownership.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
-                return_value=generation,
+                return_value=None,
             ),
         ):
             response = await client.get(f"/decision-trees/agentic/generate/{thread_id}/stream")
 
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 async def test_retry_research_returns_loading_shell(app):
@@ -237,7 +235,7 @@ async def test_retry_research_returns_loading_shell(app):
         with (
             auth_as(app, user),
             patch(
-                "smeme.decision_tree.generation.agentic.routes.phase1_research.checkpoint_manager.get_generation_by_thread_id",
+                "smeme.decision_tree.generation.agentic.ownership.checkpoint_manager.get_generation_by_thread_id",
                 new_callable=AsyncMock,
                 return_value=generation,
             ),

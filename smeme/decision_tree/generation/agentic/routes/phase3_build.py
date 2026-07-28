@@ -1,10 +1,14 @@
 """Phase 3 build routes: retry build generation."""
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from langgraph.types import Command
 
 from smeme.core.dependencies import AsyncSessionDep, CurrentUser, OpenAIClientDep
+from smeme.decision_tree.generation.agentic.ownership import (
+    OwnedGenerationByThreadFormDep,
+    assert_workflow_state_owned_by,
+)
 from smeme.decision_tree.generation.agentic.routes._helpers import logger, templates
 from smeme.decision_tree.generation.agentic.services import checkpoint_manager
 from smeme.decision_tree.generation.agentic.telemetry import (
@@ -35,9 +39,10 @@ async def retry_build_generation(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
 ):
     """Retry LLM generation if build failed previously."""
+    thread_id = generation.langgraph_thread_id
     logger.info(
         "Retrying build generation",
         extra={"user_id": str(user.id), "thread_id": thread_id},
@@ -58,6 +63,7 @@ async def retry_build_generation(
         workflow = await get_compiled_workflow()
         state_snapshot = await workflow.aget_state(config)
         state = state_snapshot.values
+        assert_workflow_state_owned_by(state, user.id)
 
         resume_state = {
             "generated_graph": {},
@@ -82,7 +88,9 @@ async def retry_build_generation(
         decision_tree_id = state.get("decision_tree_id")
 
         if decision_tree_id:
-            generation = await checkpoint_manager.get_generation_by_thread_id(db, thread_id)
+            generation = await checkpoint_manager.get_generation_by_thread_id(
+                db, thread_id, user_id=user.id
+            )
             await track_phase_submit(
                 db,
                 user_id=user.id,
@@ -101,7 +109,9 @@ async def retry_build_generation(
                 generation_id=generation.id if generation else None,
                 final_status=final_status,
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
             logger.info(
                 "Retry build saved workflow, redirecting to editor",
                 extra={
@@ -124,6 +134,8 @@ async def retry_build_generation(
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         await track_phase_error(
             db,

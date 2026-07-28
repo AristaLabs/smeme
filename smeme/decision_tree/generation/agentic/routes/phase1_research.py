@@ -28,6 +28,11 @@ from smeme.decision_tree.generation.agentic.ingestion import (
     prepare_research_corpus,
     validate_and_store_upload,
 )
+from smeme.decision_tree.generation.agentic.ownership import (
+    OwnedGenerationByThreadFormDep,
+    assert_workflow_state_owned_by,
+    require_owned_generation_for_thread,
+)
 from smeme.decision_tree.generation.agentic.routes._helpers import (
     _render_initial_form,
     logger,
@@ -220,9 +225,7 @@ async def get_research_edit_form(
     thread_id: str,
 ):
     """Render the research edit form for a given generation. Used by 'Back to Research' link."""
-    generation = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
-    if not generation or generation.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Generation not found")
+    generation = await require_owned_generation_for_thread(db, user, thread_id)
 
     config = {
         "configurable": {
@@ -267,9 +270,7 @@ async def retry_research_generation(
     thread_id: str = Form(...),
 ):
     """Re-run web search + factor analysis with streaming preview (same UX as initial generate)."""
-    generation = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
-    if not generation or generation.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Generation not found")
+    generation = await require_owned_generation_for_thread(db, user, thread_id)
 
     config = {
         "configurable": {
@@ -336,9 +337,7 @@ async def research_generation_stream(
     thread_id: str,
 ):
     """SSE stream of research preview events for an in-progress generation."""
-    generation = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
-    if not generation or generation.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    await require_owned_generation_for_thread(db, user, thread_id)
 
     bus = get_bus(thread_id)
     if not bus:
@@ -362,9 +361,7 @@ async def cancel_generation(
     thread_id: str,
 ):
     """Best-effort cancel for an in-progress research stream."""
-    generation = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
-    if not generation or generation.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Generation not found")
+    await require_owned_generation_for_thread(db, user, thread_id)
 
     bus = get_bus(thread_id)
     if not bus:
@@ -670,7 +667,7 @@ async def submit_research_context(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
     research_context_edited: str = Form(...),
     action: str = Form(default="continue"),
     augment_prompt: str = Form(default=""),
@@ -685,6 +682,7 @@ async def submit_research_context(
     - Augment with additional search (action="augment") - Loops back to research
     - Skip AI conclusions (action="skip_conclusions") - Show form to provide own conclusions
     """
+    thread_id = generation.langgraph_thread_id
     augment_include_list = []
     if augment_include_domains:
         augment_include_list = [d.strip() for d in augment_include_domains.split(",") if d.strip()]
@@ -710,6 +708,9 @@ async def submit_research_context(
                 "openai_client": openai_client,
             }
         }
+
+        state_snapshot = await workflow.aget_state(config)
+        assert_workflow_state_owned_by(state_snapshot.values, user.id)
 
         await workflow.aupdate_state(
             config,
@@ -774,6 +775,7 @@ async def submit_research_context(
             }
         }
         state_snapshot = await workflow.aget_state(temp_config)
+        assert_workflow_state_owned_by(state_snapshot.values, user.id)
         logger.info(
             "Current workflow state before resume",
             extra={
@@ -785,6 +787,8 @@ async def submit_research_context(
                 else False,
             },
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"Failed to get state snapshot: {e}")
 
@@ -830,6 +834,7 @@ async def submit_research_context(
                 db=db,
                 thread_id=thread_id,
                 phase="conclusions",
+                user_id=user.id,
             )
 
         workflow = await get_compiled_workflow()
@@ -908,7 +913,7 @@ async def submit_research_context(
                 )
 
                 gen = await checkpoint_manager.get_generation_by_thread_id(
-                    db=db, thread_id=thread_id
+                    db=db, thread_id=thread_id, user_id=user.id
                 )
                 return render_wizard_step_safe(
                     request=request,
@@ -962,7 +967,9 @@ async def submit_research_context(
                 source="continue",
             )
 
-            gen = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
+            gen = await checkpoint_manager.get_generation_by_thread_id(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
             return render_wizard_step_safe(
                 request=request,
@@ -998,6 +1005,8 @@ async def submit_research_context(
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         await track_phase_error(
             db,
@@ -1015,14 +1024,18 @@ async def submit_research_context(
         )
 
         is_recoverable = wizard_generation_error_recoverable(e)
-        gen = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
+        gen = await checkpoint_manager.get_generation_by_thread_id(
+            db=db, thread_id=thread_id, user_id=user.id
+        )
 
         if wizard_should_cleanup_generation(e):
             logger.info(
                 "Fatal error during research submission, cleaning up generation",
                 extra={"thread_id": thread_id, "error": str(e)},
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
         return templates.TemplateResponse(
             "decision_tree/generation/_error.html",

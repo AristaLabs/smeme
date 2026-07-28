@@ -103,7 +103,9 @@ async def view_generation(
                         "final_status": state.get("final_status"),
                     },
                 )
-                await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+                await checkpoint_manager.complete_generation(
+                    db=db, thread_id=thread_id, user_id=user.id
+                )
                 return _redirect_to_editor_response(request, str(decision_tree_id))
 
             phase_history = state.get("phase_history", [])
@@ -215,7 +217,9 @@ async def view_generation(
                     "final_status": state.get("final_status"),
                 },
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
             return _redirect_to_editor_response(request, str(decision_tree_id))
 
         return templates.TemplateResponse(
@@ -371,7 +375,9 @@ async def resume_generation(
                         "final_status": state.get("final_status"),
                     },
                 )
-                await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+                await checkpoint_manager.complete_generation(
+                    db=db, thread_id=thread_id, user_id=user.id
+                )
                 return _redirect_to_editor_response(request, str(decision_tree_id))
 
             logger.debug(
@@ -509,7 +515,9 @@ async def resume_generation(
                     "final_status": state.get("final_status"),
                 },
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
             return _redirect_to_editor_response(request, str(decision_tree_id))
 
         return templates.TemplateResponse(
