@@ -15,10 +15,10 @@ jobs:
   evidence:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -35,7 +35,10 @@ jobs:
           echo "Digest: $DIGEST"
 
       - name: Install uv
-        run: pip install uv
+        uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v6.1.0
+        with:
+          version: "0.8.2"
+          enable-cache: true
 
       - name: Prepare evidence pack
         run: |
@@ -52,7 +55,7 @@ jobs:
           echo "name=core-release-evidence-${SAFE_SUFFIX}" >> "$GITHUB_OUTPUT"
 
       - name: Upload evidence artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: build/release-evidence

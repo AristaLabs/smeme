@@ -1,3 +1,5 @@
+# Break-glass only: grant AristaLabs/smeme-cloud pull access to Core GHCR.
+# Prefer Package settings → Manage Actions access; delete after Core is public (H-06).
 name: One-shot — grant smeme-cloud GHCR pull access
 
 # Links private ghcr.io/aristalabs/smeme to AristaLabs/smeme-cloud so Cloud CI
