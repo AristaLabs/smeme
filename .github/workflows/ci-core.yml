@@ -4,6 +4,7 @@ name: Core CI / GHCR
 # - PRs / main pushes → CI + Core boundary checks
 # - main pushes → publish staging Core image (sha-… + staging-latest; never :latest)
 # - Version tags v*.*.* → publish release Core image (semver + :latest)
+# - Every publish attests the exact digest (SLSA + CycloneDX) via GitHub OIDC
 #
 # Image identity (both tracks):
 #   io.smeme.core.version  — last release lineage (vMAJOR.MINOR.PATCH)
@@ -186,6 +187,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     concurrency:
       group: core-ghcr-publish
       cancel-in-progress: false
@@ -240,12 +243,22 @@ jobs:
           context: .
           file: Dockerfile.core
           push: true
+          # Buildx OCI attestations previously 403'd on GHCR empty blobs.
+          # Signed SBOM + SLSA provenance are attached after push via
+          # actions/attest (GitHub OIDC / Sigstore) for the exact digest.
           provenance: false
           sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Attest published digest
+        uses: ./.github/actions/attest-published-image
+        with:
+          image-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          digest: ${{ steps.build.outputs.digest }}
+          evidence-name: core-release-evidence-${{ steps.identity.outputs.ref }}
 
       - name: Record digest
         run: |
@@ -254,6 +267,7 @@ jobs:
           echo "Lineage: ${{ steps.identity.outputs.version }}"
           echo "Channel: ${{ steps.identity.outputs.channel }}"
           echo "::notice::Core staging ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.identity.outputs.ref }}@${{ steps.build.outputs.digest }} (lineage ${{ steps.identity.outputs.version }})"
+          echo "::notice::Verify: gh attestation verify oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }} --repo ${{ github.repository }}"
 
   publish:
     name: Publish release Core image to GHCR
@@ -261,8 +275,10 @@ jobs:
     needs: [ci, alembic-drift]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
-      contents: read
+      contents: write
       packages: write
+      id-token: write
+      attestations: write
     concurrency:
       group: core-ghcr-publish
       cancel-in-progress: false
@@ -317,7 +333,9 @@ jobs:
           context: .
           file: Dockerfile.core
           push: true
-          # Avoid GHCR 403 on empty attestation blobs from buildx provenance.
+          # Buildx OCI attestations previously 403'd on GHCR empty blobs.
+          # Signed SBOM + SLSA provenance are attached after push via
+          # actions/attest (GitHub OIDC / Sigstore) for the exact digest.
           provenance: false
           sbom: false
           tags: ${{ steps.meta.outputs.tags }}
@@ -325,9 +343,46 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Attest published digest
+        id: evidence
+        uses: ./.github/actions/attest-published-image
+        with:
+          image-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          digest: ${{ steps.build.outputs.digest }}
+          evidence-name: core-release-evidence-${{ steps.tag.outputs.version }}
+
+      - name: Attach evidence to GitHub Release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8  # v2.3.2
+        with:
+          tag_name: ${{ steps.tag.outputs.version }}
+          generate_release_notes: true
+          body: |
+            ## Core image ${{ steps.tag.outputs.version }}
+
+            ```
+            Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}
+            Digest: ${{ steps.build.outputs.digest }}
+            Channel: ${{ steps.tag.outputs.channel }}
+            ```
+
+            ### Supply-chain evidence
+
+            - GitHub Attestations (SLSA provenance + CycloneDX SBOM) are bound to this digest
+            - Release assets below retain the evidence pack for the source-offer period
+            - Verify:
+              `gh attestation verify oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }} --repo ${{ github.repository }}`
+          files: |
+            ${{ steps.evidence.outputs.cdx-path }}
+            ${{ steps.evidence.outputs.evidence-dir }}/sbom/smeme.spdx.json
+            ${{ steps.evidence.outputs.evidence-dir }}/sbom/smeme.source.txt
+            ${{ steps.evidence.outputs.checksums-path }}
+            ${{ steps.evidence.outputs.evidence-dir }}/EVIDENCE.txt
+            ${{ steps.evidence.outputs.evidence-dir }}/COSIGN.md
+
       - name: Record digest
         run: |
           echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}"
           echo "Digest: ${{ steps.build.outputs.digest }}"
           echo "Channel: ${{ steps.tag.outputs.channel }}"
           echo "::notice::Core release ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}@${{ steps.build.outputs.digest }}"
+          echo "::notice::Verify: gh attestation verify oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }} --repo ${{ github.repository }}"

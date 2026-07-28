@@ -26,7 +26,12 @@ That runs:
 - `scripts/generate_core_sbom.sh` → CycloneDX + SPDX (Syft all-layer, pinned digest)
 - `scripts/bundle_core_notices.sh` → legal bundle bound to the scanned image id
 
-`build/` is gitignored. Publish the evidence directory beside each immutable GHCR digest. Treat SBOMs as an **inventory aid**, not a substitute for the embedded notices and source offer.
+`build/` is gitignored. Publish CI generates this pack from the **exact GHCR
+digest**, signs SLSA provenance + CycloneDX SBOM with GitHub OIDC
+(`actions/attest`), and for `v*.*.*` tags attaches SBOM/checksums to the GitHub
+Release (durable retention for the source-offer period). Workflow artifacts are
+a 90-day convenience copy only. Treat SBOMs as an **inventory aid**, not a
+substitute for the embedded notices and source offer.
 
 ### Current pre-release baseline (2026-07-20)
 
@@ -44,7 +49,7 @@ Publishing `ghcr.io/AristaLabs/smeme` redistributes:
 3. **Debian packages** from the pinned base plus `curl`, `libstdc++6`, and `libgomp1`. Copyright files under `/usr/share/doc/*/copyright` remain in the image; see `debian-copyright-index.txt`.
 4. **Copyleft / LGPL components** — covered by the written offer in [`legal/SOURCE_OFFER.md`](legal/SOURCE_OFFER.md). Retain the release-evidence pack (SBOM + legal bundle + digest) for the offer period.
 
-Cosign attestation of the CycloneDX SBOM is an operator step after push; see `build/release-evidence/COSIGN.md` from the prepare script. Retain the release-evidence pack for each public digest for the source-offer period.
+Publish CI attests each Core digest with GitHub OIDC (SLSA provenance + CycloneDX SBOM). Verify with [`scripts/verify_core_image_attestation.sh`](scripts/verify_core_image_attestation.sh) or the commands in `build/release-evidence/COSIGN.md`. Durable stores are the GitHub Attestations API and (for release tags) GitHub Release assets — not the 90-day workflow artifact alone.
 
 ## Direct Python dependencies
 

@@ -1,0 +1,102 @@
+name: Attest published Core image
+description: >
+  Generate Syft SBOM + legal evidence for an immutable GHCR digest, then create
+  GitHub OIDC-signed SLSA provenance and SBOM attestations for that digest.
+
+inputs:
+  image-name:
+    description: Fully-qualified image name without tag (e.g. ghcr.io/aristalabs/smeme)
+    required: true
+  digest:
+    description: Image digest (sha256:…)
+    required: true
+  evidence-name:
+    description: Upload-artifact name for the release-evidence pack
+    required: true
+  push-to-registry:
+    description: Also push Sigstore attestations as OCI referrers
+    required: false
+    default: "true"
+
+outputs:
+  evidence-dir:
+    description: Absolute path to the release-evidence directory
+    value: ${{ steps.pack.outputs.evidence-dir }}
+  cdx-path:
+    description: Path to CycloneDX SBOM
+    value: ${{ steps.pack.outputs.cdx-path }}
+  checksums-path:
+    description: Path to SHA-256 checksums for durable release assets
+    value: ${{ steps.pack.outputs.checksums-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Pull published digest
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image-name }}
+        DIGEST: ${{ inputs.digest }}
+      run: |
+        set -euo pipefail
+        if [[ ! "${DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "::error::digest must be sha256:<64 hex> (got ${DIGEST})"
+          exit 1
+        fi
+        docker pull "${IMAGE_NAME}@${DIGEST}"
+
+    - name: Prepare release evidence pack
+      id: pack
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image-name }}
+        DIGEST: ${{ inputs.digest }}
+      run: |
+        set -euo pipefail
+        EVIDENCE_DIR="${GITHUB_WORKSPACE}/build/release-evidence"
+        mkdir -p "${EVIDENCE_DIR}"
+        bash "${GITHUB_WORKSPACE}/scripts/prepare_core_release_evidence.sh" \
+          "${IMAGE_NAME}@${DIGEST}" \
+          "${EVIDENCE_DIR}"
+        (
+          cd "${EVIDENCE_DIR}"
+          find . -type f ! -name 'SHA256SUMS.txt' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum
+        ) >"${EVIDENCE_DIR}/SHA256SUMS.txt"
+        {
+          printf 'image=%s\n' "${IMAGE_NAME}"
+          printf 'digest=%s\n' "${DIGEST}"
+          printf 'attested_by=github-oidc-actions-attest\n'
+          printf 'generated_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        } >>"${EVIDENCE_DIR}/EVIDENCE.txt"
+        echo "evidence-dir=${EVIDENCE_DIR}" >> "$GITHUB_OUTPUT"
+        echo "cdx-path=${EVIDENCE_DIR}/sbom/smeme.cdx.json" >> "$GITHUB_OUTPUT"
+        echo "checksums-path=${EVIDENCE_DIR}/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
+        ls -laR "${EVIDENCE_DIR}" | head -80
+
+    - name: Attest SLSA build provenance
+      uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6  # v4.2.0
+      with:
+        subject-name: ${{ inputs.image-name }}
+        subject-digest: ${{ inputs.digest }}
+        push-to-registry: ${{ inputs.push-to-registry }}
+        create-storage-record: false
+
+    - name: Attest CycloneDX SBOM
+      uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6  # v4.2.0
+      with:
+        subject-name: ${{ inputs.image-name }}
+        subject-digest: ${{ inputs.digest }}
+        sbom-path: ${{ steps.pack.outputs.cdx-path }}
+        push-to-registry: ${{ inputs.push-to-registry }}
+        create-storage-record: false
+
+    - name: Upload release-evidence artifact
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      with:
+        name: ${{ inputs.evidence-name }}
+        path: ${{ steps.pack.outputs.evidence-dir }}
+        # Workflow artifacts expire; durable retention is GitHub Attestations
+        # plus (for release tags) GitHub Release assets.
+        retention-days: 90
