@@ -4,18 +4,19 @@ Supports both question nodes and conclusion nodes.
 Conclusion nodes are terminal endpoints that represent the outcome of a decision path.
 """
 
+import html
 import logging
 import time
 from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
-from jinja2 import Environment, FileSystemLoader
 from langgraph.graph import END, StateGraph
 from langgraph.types import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.core.callout_html import render_callout_html
+from smeme.core.templates import templates
 from smeme.decision_tree.helpers.cache import cache_graph, get_cached_graph
 from smeme.decision_tree.helpers.db_queries import (
     get_decision_tree_by_id,
@@ -37,8 +38,13 @@ from smeme.decision_tree.workflow_state import DecisionTreeSessionState, Session
 # Per-workflow structured logger
 logger = logging.getLogger("smeme.decision_tree.workflow")
 
-# Initialize Jinja2 template environment
-jinja_env = Environment(loader=FileSystemLoader("smeme/templates"))
+# Shared app Jinja env (autoescape enabled for HTML/XML).
+jinja_env = templates.env
+
+
+def _html_error(message: str) -> str:
+    """Safe HTML error fragment for runner ``rendered_output``."""
+    return f"<p>Error: {html.escape(message, quote=True)}</p>"
 
 
 # ============================================================================
@@ -104,7 +110,7 @@ async def load_decision_tree_node(
         )
         return {
             "error_message": f"DecisionTree {decision_tree_id} not found",
-            "rendered_output": "<p>Error: DecisionTree not found</p>",
+            "rendered_output": _html_error("DecisionTree not found"),
         }
 
     try:
@@ -124,7 +130,7 @@ async def load_decision_tree_node(
             )
             return {
                 "error_message": f"Invalid graph: {error}",
-                "rendered_output": f"<p>Error: {error}</p>",
+                "rendered_output": _html_error(str(error)),
             }
 
         # Cache for future requests
@@ -159,7 +165,7 @@ async def load_decision_tree_node(
         )
         return {
             "error_message": str(e),
-            "rendered_output": f"<p>Error loading decision tree: {e}</p>",
+            "rendered_output": _html_error(f"loading decision tree: {e}"),
         }
 
 
@@ -573,7 +579,7 @@ async def render_question_node(
             "No node_id to render",
             extra={"session_id": session_id, "user_id": user_id, "node": "render_question"},
         )
-        return {"rendered_output": "<p>Error: No question to display</p>"}
+        return {"rendered_output": _html_error("No question to display")}
 
     # Get node (question or conclusion)
     node = get_node_by_id(graph, node_id)
@@ -587,7 +593,7 @@ async def render_question_node(
                 "node": "render_question",
             },
         )
-        return {"rendered_output": f"<p>Error: Node {node_id} not found</p>"}
+        return {"rendered_output": _html_error(f"Node {node_id} not found")}
 
     # Update session.current_node_id
     session.current_node_id = node_id
@@ -610,7 +616,7 @@ async def render_question_node(
                 "node": "render_question",
             },
         )
-        return {"rendered_output": f"<p>Error: Invalid question node {node_id}</p>"}
+        return {"rendered_output": _html_error(f"Invalid question node {node_id}")}
 
     # Determine navigation context
     responses = session.user_responses or {}
@@ -688,7 +694,7 @@ async def _render_conclusion_node(
                 "node": "render_conclusion",
             },
         )
-        return {"rendered_output": f"<p>Error: Invalid conclusion node {conclusion_id}</p>"}
+        return {"rendered_output": _html_error(f"Invalid conclusion node {conclusion_id}")}
 
     # Update session with conclusion
     session.current_node_id = conclusion_id
@@ -771,6 +777,7 @@ async def render_completion_node(
         },
     )
 
+    safe_session_id = html.escape(session_id, quote=True)
     completion_html = f"""
     <div class="max-w-2xl mx-auto p-6">
         {
@@ -780,7 +787,7 @@ async def render_completion_node(
                 '<p class="mb-4">Thank you for completing the assessment. Your responses have been saved.</p>'
                 f'<div class="mt-6 flex items-center gap-3">'
                 f'<button type="button" hx-post="/decision-trees/navigate" '
-                f'hx-vals=\'{{"session_id": "{session_id}", "direction": "review"}}\' '
+                f'hx-vals=\'{{"session_id": "{safe_session_id}", "direction": "review"}}\' '
                 f'hx-target="#main-content" hx-swap="innerHTML" '
                 f'class="bg-ui-surface-hover hover:bg-ui-line text-ui-ink-secondary font-medium py-2 px-4 rounded-lg transition">'
                 f"← Review Answers</button>"
