@@ -212,18 +212,22 @@ class DecisionTreeGenerationCheckpointManager:
         self,
         db: AsyncSession,
         thread_id: str,
+        *,
+        user_id: UUID,
     ) -> InProgressDecisionTreeGeneration | None:
-        """Get an in-progress generation by LangGraph thread ID.
+        """Get an in-progress generation by LangGraph thread ID for a user.
 
         Args:
             db: Database session
             thread_id: LangGraph thread ID
+            user_id: Owner that must match the row
 
         Returns:
-            Generation record or None if not found
+            Generation record or None if not found / not owned by user
         """
         stmt = select(InProgressDecisionTreeGeneration).where(
-            InProgressDecisionTreeGeneration.langgraph_thread_id == thread_id
+            InProgressDecisionTreeGeneration.langgraph_thread_id == thread_id,
+            InProgressDecisionTreeGeneration.user_id == user_id,
         )
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
@@ -261,15 +265,18 @@ class DecisionTreeGenerationCheckpointManager:
         db: AsyncSession,
         thread_id: str,
         phase: str,
+        *,
+        user_id: UUID,
     ) -> None:
-        """Update the current phase and checkpoint time.
+        """Update the current phase and checkpoint time for an owned generation.
 
         Args:
             db: Database session
             thread_id: LangGraph thread ID
             phase: New phase (research|conclusions|design|build)
+            user_id: Owner that must match the row
         """
-        generation = await self.get_generation_by_thread_id(db, thread_id)
+        generation = await self.get_generation_by_thread_id(db, thread_id, user_id=user_id)
         if generation:
             generation.current_phase = phase
             generation.update_checkpoint_time()
@@ -280,6 +287,7 @@ class DecisionTreeGenerationCheckpointManager:
                 extra={
                     "thread_id": thread_id,
                     "phase": phase,
+                    "user_id": str(user_id),
                 },
             )
 
@@ -287,6 +295,8 @@ class DecisionTreeGenerationCheckpointManager:
         self,
         db: AsyncSession,
         thread_id: str,
+        *,
+        user_id: UUID,
     ) -> None:
         """Update last_checkpoint_at timestamp.
 
@@ -295,8 +305,9 @@ class DecisionTreeGenerationCheckpointManager:
         Args:
             db: Database session
             thread_id: LangGraph thread ID
+            user_id: Owner that must match the row
         """
-        generation = await self.get_generation_by_thread_id(db, thread_id)
+        generation = await self.get_generation_by_thread_id(db, thread_id, user_id=user_id)
         if generation:
             generation.update_checkpoint_time()
             await db.commit()
@@ -359,15 +370,27 @@ class DecisionTreeGenerationCheckpointManager:
         self,
         db: AsyncSession,
         thread_id: str,
+        *,
+        user_id: UUID,
     ) -> None:
         """Delete generation record and LangGraph checkpoints after successful completion.
 
         Args:
             db: Database session
             thread_id: LangGraph thread ID
+            user_id: Owner that must match the row (defense in depth)
         """
+        generation = await self.get_generation_by_thread_id(db, thread_id, user_id=user_id)
+        if generation is None:
+            logger.warning(
+                "Refusing to complete generation without ownership match",
+                extra={"thread_id": thread_id, "user_id": str(user_id)},
+            )
+            return
+
         stmt = delete(InProgressDecisionTreeGeneration).where(
-            InProgressDecisionTreeGeneration.langgraph_thread_id == thread_id
+            InProgressDecisionTreeGeneration.langgraph_thread_id == thread_id,
+            InProgressDecisionTreeGeneration.user_id == user_id,
         )
         await db.execute(stmt)
         await db.commit()
@@ -375,7 +398,11 @@ class DecisionTreeGenerationCheckpointManager:
         deleted = await checkpointer_manager.delete_checkpoints_for_thread(thread_id)
         logger.info(
             "Completed and cleaned up generation",
-            extra={"thread_id": thread_id, "checkpoint_rows_deleted": deleted},
+            extra={
+                "thread_id": thread_id,
+                "user_id": str(user_id),
+                "checkpoint_rows_deleted": deleted,
+            },
         )
 
     async def cleanup_expired_generations(

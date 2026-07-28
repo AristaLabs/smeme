@@ -197,8 +197,9 @@ async def test_dashboard_prunes_completed_generation_rows(monkeypatch, dashboard
     async def fake_get_compiled_workflow():
         return FakeWorkflow()
 
-    async def fake_complete_generation(db, thread_id):
+    async def fake_complete_generation(db, thread_id, *, user_id):
         cleaned_threads.append(thread_id)
+        assert user_id == dashboard_user["user"].id
 
     monkeypatch.setattr(workflow_module, "get_compiled_workflow", fake_get_compiled_workflow)
     monkeypatch.setattr(checkpoint_manager, "complete_generation", fake_complete_generation)

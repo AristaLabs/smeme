@@ -5,6 +5,10 @@ from fastapi.responses import HTMLResponse
 from langgraph.types import Command, Interrupt
 
 from smeme.core.dependencies import AsyncSessionDep, CurrentUser, OpenAIClientDep
+from smeme.decision_tree.generation.agentic.ownership import (
+    OwnedGenerationByThreadFormDep,
+    assert_workflow_state_owned_by,
+)
 from smeme.decision_tree.generation.agentic.routes._helpers import (
     logger,
     render_step_template,
@@ -41,7 +45,7 @@ async def submit_conclusions(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
     possible_conclusions_edited: str = Form(...),
     user_provided: str = Form(default="false"),
 ):
@@ -52,6 +56,7 @@ async def submit_conclusions(
     1. Normal: User edited AI-generated conclusions → Resume workflow with edits
     2. Skip AI: User provided own conclusions → Set state fields directly, skip subgraph
     """
+    thread_id = generation.langgraph_thread_id
     is_user_provided = user_provided == "true"
 
     phase_timer = WizardPhaseTimer()
@@ -77,6 +82,8 @@ async def submit_conclusions(
     }
 
     workflow = await get_compiled_workflow()
+    state_snapshot = await workflow.aget_state(config)
+    assert_workflow_state_owned_by(state_snapshot.values, user.id)
 
     if is_user_provided:
         logger.info(
@@ -94,14 +101,18 @@ async def submit_conclusions(
             },
         )
 
-        await checkpoint_manager.update_phase(db=db, thread_id=thread_id, phase="design")
+        await checkpoint_manager.update_phase(
+            db=db, thread_id=thread_id, phase="design", user_id=user.id
+        )
 
         result = await workflow.ainvoke(
             Command(resume=possible_conclusions_edited),
             config,
         )
     else:
-        await checkpoint_manager.update_phase(db=db, thread_id=thread_id, phase="design")
+        await checkpoint_manager.update_phase(
+            db=db, thread_id=thread_id, phase="design", user_id=user.id
+        )
 
         result = await workflow.ainvoke(
             Command(resume=possible_conclusions_edited),
@@ -170,7 +181,9 @@ async def submit_conclusions(
                 source="conclusions_submit",
             )
 
-            gen = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
+            gen = await checkpoint_manager.get_generation_by_thread_id(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
             return render_wizard_step_safe(
                 request=request,
@@ -229,9 +242,13 @@ async def submit_conclusions(
                 "Fatal error during conclusions submission, cleaning up generation",
                 extra={"thread_id": thread_id, "error": str(e)},
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
-        gen = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
+        gen = await checkpoint_manager.get_generation_by_thread_id(
+            db=db, thread_id=thread_id, user_id=user.id
+        )
 
         return templates.TemplateResponse(
             "decision_tree/generation/_error.html",
@@ -250,12 +267,10 @@ async def retry_conclusions_extraction(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
 ):
     """Re-run LLM conclusion extraction (same research factors, fresh AI output)."""
-    generation = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
-    if not generation or generation.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Generation not found")
+    thread_id = generation.langgraph_thread_id
 
     logger.info(
         "Retrying conclusions extraction",
@@ -275,8 +290,7 @@ async def retry_conclusions_extraction(
         workflow = await get_compiled_workflow()
         state_snapshot = await workflow.aget_state(config)
         state = state_snapshot.values or {}
-        if not state:
-            raise ValueError("No saved workflow state for this generation")
+        assert_workflow_state_owned_by(state, user.id)
 
         research_context = (
             state.get("research_context_edited") or state.get("research_context") or ""
@@ -313,6 +327,8 @@ async def retry_conclusions_extraction(
             user=user,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             "Failed to retry conclusions extraction",

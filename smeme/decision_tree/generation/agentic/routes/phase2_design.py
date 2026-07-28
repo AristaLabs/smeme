@@ -1,10 +1,14 @@
 """Phase 2 design routes: retry design generation, submit design."""
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from langgraph.types import Command
 
 from smeme.core.dependencies import AsyncSessionDep, CurrentUser, OpenAIClientDep
+from smeme.decision_tree.generation.agentic.ownership import (
+    OwnedGenerationByThreadFormDep,
+    assert_workflow_state_owned_by,
+)
 from smeme.decision_tree.generation.agentic.routes._helpers import (
     logger,
     render_wizard_step_safe,
@@ -42,9 +46,10 @@ async def retry_design_generation(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
 ):
     """Retry LLM generation if design failed previously."""
+    thread_id = generation.langgraph_thread_id
     logger.info(
         "Retrying design generation",
         extra={"user_id": str(user.id), "thread_id": thread_id},
@@ -63,6 +68,7 @@ async def retry_design_generation(
         workflow = await get_compiled_workflow()
         state_snapshot = await workflow.aget_state(config)
         state = state_snapshot.values
+        assert_workflow_state_owned_by(state, user.id)
 
         resume_state = {
             "decision_tree_design": "",
@@ -98,6 +104,8 @@ async def retry_design_generation(
             user=user,
             thread_id=thread_id,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             "Failed to retry design generation",
@@ -121,7 +129,7 @@ async def submit_design(
     user: CurrentUser,
     db: AsyncSessionDep,
     openai_client: OpenAIClientDep,
-    thread_id: str = Form(...),
+    generation: OwnedGenerationByThreadFormDep,
     decision_tree_design_edited: str = Form(...),
 ):
     """
@@ -130,6 +138,7 @@ async def submit_design(
     Passes the edited design text directly to interrupt() via Command(resume=...).
     Runs Phase 3 (build + validate + fix + save) to completion.
     """
+    thread_id = generation.langgraph_thread_id
     logger.info(
         "Resuming with edited design",
         extra={
@@ -149,12 +158,16 @@ async def submit_design(
         }
     }
 
-    await checkpoint_manager.update_phase(db=db, thread_id=thread_id, phase="build")
+    await checkpoint_manager.update_phase(
+        db=db, thread_id=thread_id, phase="build", user_id=user.id
+    )
 
     phase_timer = WizardPhaseTimer()
 
     try:
         workflow = await get_compiled_workflow()
+        state_snapshot = await workflow.aget_state(config)
+        assert_workflow_state_owned_by(state_snapshot.values, user.id)
 
         result = await workflow.ainvoke(
             Command(resume=decision_tree_design_edited),
@@ -187,7 +200,9 @@ async def submit_design(
         state = state_snapshot.values
         decision_tree_id = state.get("decision_tree_id")
 
-        generation = await checkpoint_manager.get_generation_by_thread_id(db, thread_id)
+        generation = await checkpoint_manager.get_generation_by_thread_id(
+            db, thread_id, user_id=user.id
+        )
 
         await track_phase_submit(
             db,
@@ -217,7 +232,9 @@ async def submit_design(
                 generation_id=generation.id if generation else None,
                 final_status=final_status,
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
             logger.info(
                 "DecisionTree generation saved, redirecting to editor",
@@ -243,6 +260,8 @@ async def submit_design(
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         await track_phase_error(
             db,
@@ -259,14 +278,18 @@ async def submit_design(
         )
 
         is_recoverable = wizard_generation_error_recoverable(e)
-        gen = await checkpoint_manager.get_generation_by_thread_id(db=db, thread_id=thread_id)
+        gen = await checkpoint_manager.get_generation_by_thread_id(
+            db=db, thread_id=thread_id, user_id=user.id
+        )
 
         if wizard_should_cleanup_generation(e):
             logger.info(
                 "Fatal error during design submission, cleaning up generation",
                 extra={"thread_id": thread_id, "error": str(e)},
             )
-            await checkpoint_manager.complete_generation(db=db, thread_id=thread_id)
+            await checkpoint_manager.complete_generation(
+                db=db, thread_id=thread_id, user_id=user.id
+            )
 
         return templates.TemplateResponse(
             "decision_tree/generation/_error.html",

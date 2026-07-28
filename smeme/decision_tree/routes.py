@@ -111,6 +111,7 @@ async def _prune_completed_dashboard_generations(
             await checkpoint_manager.complete_generation(
                 db=db,
                 thread_id=generation.langgraph_thread_id,
+                user_id=current_user.id,
             )
             continue
 
