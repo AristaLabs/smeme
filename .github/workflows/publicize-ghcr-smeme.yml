@@ -1,3 +1,5 @@
+# Break-glass only: make ghcr.io/aristalabs/smeme public.
+# Delete this workflow after the package is public (H-06).
 name: One-shot — publicize GHCR smeme package
 
 on:

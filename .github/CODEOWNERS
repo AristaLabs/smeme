@@ -1,0 +1,9 @@
+# H-06: require review on supply-chain and composition surfaces.
+# Solo operator: @darista. Replace with an org team when one exists.
+
+* @darista
+
+.github/workflows/ @darista
+.github/dependabot.yml @darista
+Dockerfile.core @darista
+scripts/build_css.sh @darista
