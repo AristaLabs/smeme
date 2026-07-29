@@ -58,15 +58,15 @@ Publish CI attests each Core digest with GitHub OIDC (SLSA provenance + CycloneD
 | aiocache | 0.12.3 | BSD-3-Clause |
 | Alembic | 1.16.5 | MIT |
 | asyncpg | 0.30.0 | Apache-2.0 |
-| Clerk Backend API | 5.0.6 | MIT |
-| FastAPI | 0.118.0 | MIT |
+| Clerk Backend API | 6.0.1 | MIT |
+| FastAPI | 0.140.13 | MIT |
 | FastAPI Users | 15.0.5 | MIT |
 | FastAPI Users DB SQLModel | 0.3.0 | MIT |
 | HTTPX | 0.28.1 | BSD-3-Clause |
 | Jinja2 | 3.1.6 | BSD-3-Clause |
-| LangGraph | 0.6.8 | MIT |
-| LangGraph Checkpoint Postgres | 2.0.24 | MIT |
-| MCP Python SDK | 1.26.0 | MIT |
+| LangGraph | 1.2.9 | MIT |
+| LangGraph Checkpoint Postgres | 3.1.0 | MIT |
+| MCP Python SDK | 1.29.0 | MIT |
 | OpenAI Python SDK | 2.3.0 | Apache-2.0 |
 | Passlib | 1.7.4 | BSD |
 | Psycopg | 3.2.10 | LGPL-3.0 |
@@ -75,10 +75,10 @@ Publish CI attests each Core digest with GitHub OIDC (SLSA provenance + CycloneD
 | PyJWT | 2.13.0 | MIT |
 | pypdf | 6.14.2 | BSD-3-Clause |
 | python-docx | 1.2.0 | MIT |
-| python-jose | 3.5.0 | MIT |
 | python-multipart | 0.0.32 | Apache-2.0 |
 | SlowAPI | 0.1.9 | MIT |
 | SQLModel | 0.0.25 | MIT |
+| Starlette | 1.3.1 | BSD-3-Clause |
 | Svix | 1.89.0 | MIT |
 | Tavily Python | 0.7.13 | MIT |
 | Uvicorn | 0.37.0 | BSD-3-Clause |

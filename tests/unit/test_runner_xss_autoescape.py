@@ -11,7 +11,14 @@ XSS_PAYLOAD = '<img src=x onerror="alert(1)"><script>alert(1)</script>'
 
 
 def test_runner_jinja_env_autoescapes_html():
-    assert jinja_env.autoescape is True
+    # Starlette 1.x / Jinja2Templates uses select_autoescape (callable);
+    # older Starlette set autoescape=True. Both must enable HTML escaping.
+    autoescape = jinja_env.autoescape
+    if callable(autoescape):
+        assert autoescape("x.html") is True
+        assert autoescape("x.xml") is True
+    else:
+        assert autoescape is True
 
 
 def test_question_template_escapes_malicious_node_fields():
