@@ -229,9 +229,15 @@ async def test_dashboard_hides_archive_ui(client, app_with_db, dashboard_user):
     assert b"delete-confirm" in r.content
 
 
-async def test_docs_index_requires_auth(client):
+async def test_docs_index_public_anonymous(client):
     r = await client.get("/docs")
-    assert r.status_code in (302, 401, 403)
+    assert r.status_code == 200
+    assert b"Documentation" in r.content
+    assert b"/docs/mcp" in r.content
+    assert b"/docs/delete-account" not in r.content
+    assert "public, max-age=300" in r.headers.get("cache-control", "")
+    assert "Cookie" in r.headers.get("vary", "")
+    assert "Authorization" in r.headers.get("vary", "")
 
 
 async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
@@ -246,10 +252,14 @@ async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
     assert b"/docs/creator-dashboard" in r.content
     assert b"/docs/download-workflow" in r.content
     assert b"/docs/mcp" in r.content
+    assert b"/docs/delete-account" in r.content
     assert b"build and revise through MCP" in r.content
     assert b"/docs/mcp#mcp-authoring-quickstart" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
+    cache = r.headers.get("cache-control", "")
+    assert "private" in cache
+    assert "no-store" in cache or "no-cache" in cache
 
 
 async def test_docs_introduction_returns_200(client, app_with_db, dashboard_user):
@@ -262,9 +272,21 @@ async def test_docs_introduction_returns_200(client, app_with_db, dashboard_user
     assert b"/docs/mcp#mcp-authoring-quickstart" in r.content
 
 
-async def test_docs_creator_dashboard_requires_auth(client):
-    r = await client.get("/docs/creator-dashboard")
-    assert r.status_code in (302, 401, 403)
+async def test_docs_public_pages_anonymous_ok(client):
+    public_paths = (
+        "/docs",
+        "/docs/introduction",
+        "/docs/plans",
+        "/docs/creator-dashboard",
+        "/docs/download-workflow",
+        "/docs/mcp",
+        "/docs/changelog",
+    )
+    for path in public_paths:
+        r = await client.get(path)
+        assert r.status_code == 200, path
+        assert "public, max-age=300" in r.headers.get("cache-control", ""), path
+        assert "Cookie" in r.headers.get("vary", ""), path
 
 
 async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard_user):
@@ -279,11 +301,6 @@ async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard
     assert b"revenue" not in r.content.lower()
 
 
-async def test_docs_download_workflow_requires_auth(client):
-    r = await client.get("/docs/download-workflow")
-    assert r.status_code in (302, 401, 403)
-
-
 async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard_user):
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs/download-workflow")
@@ -293,8 +310,8 @@ async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard
     assert b"Re-import" in r.content
 
 
-async def test_docs_mcp_requires_auth(client):
-    r = await client.get("/docs/mcp")
+async def test_docs_delete_account_requires_auth(client):
+    r = await client.get("/docs/delete-account")
     assert r.status_code in (302, 401, 403)
 
 
