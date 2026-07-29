@@ -9,6 +9,7 @@ that still live in SMEme (profile management, etc.).
 Tests cover:
 - Login / register endpoints redirect to Clerk (no SMEme cookie issued)
 - Logout redirects with ?smeme_clerk_logout=1 flag
+- Logout is POST-only (CSRF-protected)
 - Rate-limiting on the login endpoint still applies
 - Profile: email change is blocked (Clerk owns email)
 - Profile: username change is blocked until Business creator handles (HTMX error fragment)
@@ -113,14 +114,40 @@ async def test_register_returns_clerk_signup_link(app):
 
 
 async def test_logout_redirects_with_clerk_signout_flag(app):
-    """GET /auth/logout in Clerk mode redirects and includes smeme_clerk_logout=1."""
+    """POST /auth/logout in Clerk mode redirects and includes smeme_clerk_logout=1."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.get("/auth/logout", follow_redirects=False)
+        response = await client.post(
+            "/auth/logout",
+            headers={"Origin": "http://test"},
+            follow_redirects=False,
+        )
 
     assert response.status_code == 303
     location = response.headers.get("location", "")
     # Either uses Clerk's external sign-out URL or SMEme's own logout flag.
     assert "/auth/login" in location or "clerk" in location.lower()
+    assert "smeme_clerk_logout=1" in location or "clerk" in location.lower()
+
+
+async def test_logout_get_is_not_allowed(app):
+    """GET /auth/logout must not clear cookies (L-02 CSRF)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/auth/logout", follow_redirects=False)
+
+    assert response.status_code == 405
+
+
+async def test_logout_rejects_cross_origin_post_without_csrf(app):
+    """Cross-origin POST without CSRF header must fail when a Clerk cookie is present."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/auth/logout",
+            cookies={"__session": "fake-clerk-session"},
+            headers={"Origin": "https://evil.example"},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 403
 
 
 # =============================================================================

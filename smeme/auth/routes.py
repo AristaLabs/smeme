@@ -157,9 +157,12 @@ async def register_submit(request: Request):
     )
 
 
-@auth_router.get("/logout", tags=["auth"], include_in_schema=False)
+@auth_router.post("/logout", tags=["auth"], include_in_schema=False)
 async def logout(response: Response):
     """Clear Clerk auth cookies and redirect to login.
+
+    POST-only so CSRF middleware protects against cross-origin forced logout (L-02).
+    Same-origin form posts (or requests with a valid CSRF header) are accepted.
 
     Server-side cookie deletion is not sufficient on its own — ``clerk-js`` stores
     session state in IndexedDB / localStorage and rehydrates it on ``Clerk.load()``.
@@ -430,16 +433,16 @@ async def delete_account_submit(
     redirect_url = (
         "/auth/account-deleted"
         if result.status == DeleteAccountStatus.ALREADY_DELETED
-        else "/auth/logout"
+        else "/auth/login?smeme_clerk_logout=1"
     )
     if request.headers.get("HX-Request"):
         response = HTMLResponse(status_code=200)
         response.headers["HX-Redirect"] = redirect_url
-        if redirect_url == "/auth/logout":
+        if "smeme_clerk_logout=1" in redirect_url:
             clear_clerk_browser_cookies(response)
         return response
 
     response = RedirectResponse(url=redirect_url, status_code=303)
-    if redirect_url == "/auth/logout":
+    if "smeme_clerk_logout=1" in redirect_url:
         clear_clerk_browser_cookies(response)
     return response
