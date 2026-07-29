@@ -87,7 +87,8 @@ On `vMAJOR.MINOR.PATCH` tags, `SHA256SUMS.txt` covers only durable Release
 assets (SBOM files, `EVIDENCE.txt`, `COSIGN.md`). It is written after those
 files are finalized and does not checksum itself. Workflow-only paths such as
 `legal-bundle/` remain in the 90-day artifact and are intentionally omitted
-from the release checksum manifest.
+from the release checksum manifest. Download all Release assets into one
+directory before verifying; manifest entries use GitHub asset basenames.
 
 ```bash
 sha256sum -c SHA256SUMS.txt

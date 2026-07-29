@@ -6,7 +6,9 @@ set -euo pipefail
 # Invariant:
 #   1. Call only after every listed file is fully finalized.
 #   2. Never checksum SHA256SUMS.txt itself.
-#   3. Do not include workflow-only paths (e.g. legal-bundle/) unless those
+#   3. Record GitHub Release asset basenames, because action-gh-release flattens
+#      uploaded source paths to basenames.
+#   4. Do not include workflow-only paths (e.g. legal-bundle/) unless those
 #      paths are also attached to the GitHub Release.
 #
 # Keep this list aligned with the softprops/action-gh-release ``files:`` block
@@ -50,11 +52,13 @@ if [[ "${missing}" -ne 0 ]]; then
   exit 1
 fi
 
-(
-  cd "${EVIDENCE_DIR}"
-  # Explicit list (not find) so legal-bundle and other workflow-only files are
-  # excluded from the release checksum manifest.
-  sha256sum "${RELEASE_ASSETS[@]}"
-) >"${EVIDENCE_DIR}/SHA256SUMS.txt"
+# Explicit list (not find) excludes legal-bundle and other workflow-only files.
+# Emit basenames so a user can download all Release assets into one directory
+# and run `sha256sum -c SHA256SUMS.txt` without reconstructing source folders.
+: >"${EVIDENCE_DIR}/SHA256SUMS.txt"
+for rel in "${RELEASE_ASSETS[@]}"; do
+  digest="$(sha256sum "${EVIDENCE_DIR}/${rel}" | awk '{print $1}')"
+  printf '%s  %s\n' "${digest}" "${rel##*/}" >>"${EVIDENCE_DIR}/SHA256SUMS.txt"
+done
 
 printf 'Wrote durable-asset checksums to %s\n' "${EVIDENCE_DIR}/SHA256SUMS.txt"

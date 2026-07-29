@@ -69,8 +69,18 @@ runs:
         } >>"${EVIDENCE_DIR}/EVIDENCE.txt"
         bash "${GITHUB_WORKSPACE}/scripts/write_core_release_checksums.sh" \
           "${EVIDENCE_DIR}"
+        # action-gh-release uploads each source path by basename. Verify the
+        # manifest against that same flattened layout before publishing it.
+        RELEASE_VERIFY_DIR="$(mktemp -d)"
+        trap 'rm -rf "${RELEASE_VERIFY_DIR}"' EXIT
+        cp "${EVIDENCE_DIR}/sbom/smeme.cdx.json" "${RELEASE_VERIFY_DIR}/"
+        cp "${EVIDENCE_DIR}/sbom/smeme.spdx.json" "${RELEASE_VERIFY_DIR}/"
+        cp "${EVIDENCE_DIR}/sbom/smeme.source.txt" "${RELEASE_VERIFY_DIR}/"
+        cp "${EVIDENCE_DIR}/EVIDENCE.txt" "${RELEASE_VERIFY_DIR}/"
+        cp "${EVIDENCE_DIR}/COSIGN.md" "${RELEASE_VERIFY_DIR}/"
+        cp "${EVIDENCE_DIR}/SHA256SUMS.txt" "${RELEASE_VERIFY_DIR}/"
         (
-          cd "${EVIDENCE_DIR}"
+          cd "${RELEASE_VERIFY_DIR}"
           sha256sum -c SHA256SUMS.txt
         )
         echo "evidence-dir=${EVIDENCE_DIR}" >> "$GITHUB_OUTPUT"
