@@ -1,0 +1,52 @@
+{# SEO / discovery head tags for public docs pages.
+   Expects:
+     docs_canonical_path  — absolute path, e.g. "/docs/mcp"
+     docs_meta_description
+     docs_og_title        — optional; defaults to page title text
+     docs_breadcrumb_items — optional list of {name, path} for JSON-LD
+     docs_schema_type     — optional "TechArticle" (default) or "WebPage"
+#}
+{%- set _canonical = site_base ~ docs_canonical_path -%}
+<meta name="description" content="{{ docs_meta_description }}" />
+<link rel="canonical" href="{{ _canonical }}" />
+<meta property="og:site_name" content="SMEme" />
+<meta property="og:title" content="{{ docs_og_title }}" />
+<meta property="og:description" content="{{ docs_meta_description }}" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="{{ _canonical }}" />
+<meta property="og:image" content="{{ site_base }}/static/og-card.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="SMEme — the expert reasoning layer for agents" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ docs_og_title }}" />
+<meta name="twitter:description" content="{{ docs_meta_description }}" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "{{ docs_schema_type|default('TechArticle') }}",
+  "headline": {{ docs_og_title|tojson }},
+  "description": {{ docs_meta_description|tojson }},
+  "url": {{ _canonical|tojson }},
+  "author": {"@type": "Organization", "name": "Arista Labs"},
+  "publisher": {"@type": "Organization", "name": "Arista Labs", "url": "https://aristalabs.ai"}
+}
+</script>
+{%- if docs_breadcrumb_items is defined and docs_breadcrumb_items %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+  {%- for item in docs_breadcrumb_items %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "name": {{ item.name|tojson }},
+      "item": {{ (site_base ~ item.path)|tojson }}
+    }{% if not loop.last %},{% endif %}
+  {%- endfor %}
+  ]
+}
+</script>
+{%- endif %}

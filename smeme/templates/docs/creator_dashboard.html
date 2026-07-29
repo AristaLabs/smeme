@@ -1,6 +1,13 @@
 {% extends "layouts/base.html" %}
 {% from "components/macros.html" import badge %}
 {% block title %}Deploy, Validate, List, & Delete — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/creator-dashboard" %}
+{% set docs_og_title = "Deploy, validate, list, & delete — Docs" %}
+{% set docs_meta_description = "How to Deploy and Redeploy a SMEme decision tree, fix readiness checks, choose Listed or Hidden, read Live vs Stale, and delete a tree from the dashboard." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Deploy, list, & delete", "path": "/docs/creator-dashboard"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -27,10 +34,12 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Deploy, validate, list, & delete</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Saving a decision tree in the editor doesn't make it available to your AI — you need to
-          <strong class="font-medium text-ui-ink">Deploy</strong> it first.
-          After deploying, use <strong class="font-medium text-ui-ink">Listed</strong> to control whether it appears in your AI tool list.
-          Use the trash icon on the dashboard to <a href="#delete-heading" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">delete a decision tree</a> permanently.
+          Saving a decision tree in the editor does not make it available to your agent — you must
+          <strong class="font-medium text-ui-ink">Deploy</strong> (or <strong class="font-medium text-ui-ink">Redeploy</strong>) it first.
+          Then use <strong class="font-medium text-ui-ink">Listed</strong> or <strong class="font-medium text-ui-ink">Hidden</strong>
+          to control MCP discoverability, watch <strong class="font-medium text-ui-ink">Live</strong> vs
+          <strong class="font-medium text-ui-ink">Stale</strong> status, and use the trash icon to
+          <a href="#delete-heading" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">delete a decision tree</a> permanently.
         </p>
       </header>
 

@@ -1,5 +1,12 @@
 {% extends "layouts/base.html" %}
-{% block title %}Building Decision trees — Docs{% endblock %}
+{% block title %}Building decision trees — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/introduction" %}
+{% set docs_og_title = "Building decision trees — Docs" %}
+{% set docs_meta_description = "Learn how to create and edit SMEme decision trees: question and conclusion nodes, edges, validation, and review before Deploy." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Building decision trees", "path": "/docs/introduction"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -27,8 +34,8 @@
         <p class="text-xs font-semibold uppercase tracking-wider text-ui-ink-muted mb-1.5">Start here</p>
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Building decision trees</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          A decision tree is a branching decision tree that encodes your expert reasoning — the questions to ask,
-          the conditions to check, and the conclusions to reach. Once deployed, it becomes an AI tool your agent can call.
+          A decision tree encodes your expert reasoning as branching questions, conditions, and conclusions.
+          Once you Deploy it and set it Listed, your agent can call that logic over MCP and receive a structured report.
         </p>
         <div class="mt-4">
           {% include "docs/_docs_next_steps.html" %}

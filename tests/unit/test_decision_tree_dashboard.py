@@ -4,10 +4,13 @@ Covers:
 - GET /decision-trees/dashboard returns 200 for authenticated user
 - Dashboard renders the user's own current non-archived DecisionTree titles
 - Dashboard requires authentication
-- GET /docs (hub), /docs/creator-dashboard, /docs/mcp require auth; return 200 when signed in
+- Public /docs/* pages return 200 anonymously; /docs/delete-account stays authenticated
+- Public docs emit unique SEO metadata, absolute canonicals, and JSON-LD
 - POST /decision-trees/start creates a DecisionTreeSession row with no payment gate
 """
 
+import json
+import re
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -21,6 +24,16 @@ from smeme.core.config import settings as process_settings
 from smeme.core.models import DecisionTree, DecisionTreeSession, User
 from smeme.mcp.urls import mcp_connector_url
 from tests.conftest import auth_as
+
+_PUBLIC_DOCS_PATHS = (
+    "/docs",
+    "/docs/introduction",
+    "/docs/plans",
+    "/docs/creator-dashboard",
+    "/docs/download-workflow",
+    "/docs/mcp",
+    "/docs/changelog",
+)
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -273,20 +286,74 @@ async def test_docs_introduction_returns_200(client, app_with_db, dashboard_user
 
 
 async def test_docs_public_pages_anonymous_ok(client):
-    public_paths = (
-        "/docs",
-        "/docs/introduction",
-        "/docs/plans",
-        "/docs/creator-dashboard",
-        "/docs/download-workflow",
-        "/docs/mcp",
-        "/docs/changelog",
-    )
-    for path in public_paths:
+    for path in _PUBLIC_DOCS_PATHS:
         r = await client.get(path)
         assert r.status_code == 200, path
         assert "public, max-age=300" in r.headers.get("cache-control", ""), path
         assert "Cookie" in r.headers.get("vary", ""), path
+
+
+async def test_docs_public_seo_metadata_and_json_ld(client):
+    """Each public docs page has unique title/description, self-canonical, one H1, JSON-LD."""
+    site_base = process_settings.effective_base_url.rstrip("/")
+    titles: set[str] = set()
+    descriptions: set[str] = set()
+
+    for path in _PUBLIC_DOCS_PATHS:
+        r = await client.get(path)
+        assert r.status_code == 200, path
+        html = r.text
+
+        title_m = re.search(r"<title>(.*?)</title>", html, re.I | re.S)
+        assert title_m, path
+        title = re.sub(r"\s+", " ", title_m.group(1)).strip()
+        assert title, path
+        assert title not in titles, f"duplicate title for {path}: {title}"
+        titles.add(title)
+
+        desc_m = re.search(r'<meta\s+name="description"\s+content="([^"]+)"', html, re.I)
+        assert desc_m, path
+        description = desc_m.group(1).strip()
+        assert description, path
+        assert description not in descriptions, f"duplicate description for {path}"
+        descriptions.add(description)
+        assert "/docs/delete-account" not in description, path
+
+        canonical_m = re.search(r'<link\s+rel="canonical"\s+href="([^"]+)"', html, re.I)
+        assert canonical_m, path
+        canonical = canonical_m.group(1)
+        assert canonical == f"{site_base}{path}", path
+        assert "/docs/delete-account" not in canonical
+
+        assert len(re.findall(r"<h1\b", html, re.I)) == 1, path
+
+        ld_blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            html,
+            re.I | re.S,
+        )
+        assert ld_blocks, path
+        types_seen: set[str] = set()
+        for raw in ld_blocks:
+            data = json.loads(raw)
+            assert data.get("@context") == "https://schema.org", path
+            schema_type = data.get("@type")
+            assert schema_type in {"TechArticle", "WebPage", "BreadcrumbList"}, path
+            types_seen.add(schema_type)
+            if schema_type == "BreadcrumbList":
+                for item in data["itemListElement"]:
+                    assert "/docs/delete-account" not in item["item"]
+            else:
+                assert data.get("url") == canonical, path
+                assert data.get("description") == description, path
+        assert types_seen & {"TechArticle", "WebPage"}, path
+        if path != "/docs":
+            assert "BreadcrumbList" in types_seen, path
+
+    mcp = await client.get("/docs/mcp")
+    assert b"creator how-to" in mcp.content or b"Creator setup" in mcp.content
+    assert b'href="/mcp"' in mcp.content
+    assert b"wire" in mcp.content.lower() or b"tool reference" in mcp.content.lower()
 
 
 async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard_user):

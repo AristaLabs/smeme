@@ -1,6 +1,13 @@
 {% extends "layouts/base.html" %}
 {% from "components/macros.html" import callout %}
 {% block title %}Connect your agent (MCP) — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/mcp" %}
+{% set docs_og_title = "Connect your agent (MCP) — Docs" %}
+{% set docs_meta_description = "Creator setup for SMEme MCP: add a connector, OAuth, build or revise drafts in chat, then run Deployed Listed decision trees against evidence. For the public tool wire reference, see /mcp." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Connect your agent", "path": "/docs/mcp"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -27,9 +34,11 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Connect your agent</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Add the SMEme MCP server to Claude, Cursor, Microsoft Copilot, or any MCP client.
-          Your agent can do two things over MCP: <strong class="font-medium text-ui-ink">build or revise a draft in chat</strong>,
-          and <strong class="font-medium text-ui-ink">run deployed decision trees against evidence</strong>.
+          This page is the creator how-to for MCP: connect Claude, Cursor, Copilot, or another client,
+          then either <strong class="font-medium text-ui-ink">build or revise a draft in chat</strong>
+          or <strong class="font-medium text-ui-ink">run Deployed Listed decision trees against evidence</strong>.
+          For the public wire-level tool catalog, use
+          <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a>.
         </p>
         <nav aria-label="MCP docs sections" class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <a href="#mcp-authoring-quickstart" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Build or revise in chat</a>
