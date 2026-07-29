@@ -39,12 +39,12 @@ prose under [`agent-skills/`](agent-skills/README.md); CI builds what MCP return
 
 ```bash
 cp .env.core.example .env.core
-# edit secrets
+# set SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD (openssl rand -hex …)
 docker compose --env-file .env.core -f docker-compose.core.yml up --build
 ```
 
-- App: http://localhost:8000 → `/decision-trees/dashboard`
-- Health: http://localhost:8000/api/v1/health
+- App: http://127.0.0.1:8000 → `/decision-trees/dashboard`
+- Health: http://127.0.0.1:8000/api/v1/health
 - Full guide: [self-host-quickstart.md](docs/guides/self-host-quickstart.md)
 
 ### Local Python (Core)

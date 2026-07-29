@@ -1,0 +1,8 @@
+# Do not commit private keys or cert material.
+*.key
+*.crt
+*.pem
+*.p12
+*
+!.gitignore
+!.gitkeep
