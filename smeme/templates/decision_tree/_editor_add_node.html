@@ -156,37 +156,6 @@
   </form>
     </div>
   </details>
-
-  <script>
-    (function () {
-      function syncAddNodeKind() {
-        var q = document.getElementById("add-node-kind-question");
-        var kind = q && q.checked ? "question" : "conclusion";
-        var qs = document.getElementById("add-node-question-section");
-        var cs = document.getElementById("add-node-conclusion-section");
-        if (qs) qs.classList.toggle("hidden", kind !== "question");
-        if (cs) cs.classList.toggle("hidden", kind !== "conclusion");
-        function setDisabled(root, on) {
-          if (!root) return;
-          root.querySelectorAll("input, select, textarea").forEach(function (el) {
-            if (el.name === "kind" || el.name === "decision_tree_id" || el.name === "panel_context_node_id") return;
-            el.disabled = !on;
-          });
-        }
-        setDisabled(qs, kind === "question");
-        setDisabled(cs, kind === "conclusion");
-        var ta = document.querySelector('#add-node-wired-form textarea[name="text"]');
-        var ti = document.querySelector('#add-node-wired-form input[name="title"]');
-        if (ta) ta.required = kind === "question";
-        if (ti) ti.required = kind === "conclusion";
-        var su = document.querySelector('#add-node-wired-form textarea[name="summary"]');
-        if (su) su.required = kind === "conclusion";
-      }
-      document.querySelectorAll('#add-node-wired-form input[name="kind"]').forEach(function (r) {
-        r.addEventListener("change", syncAddNodeKind);
-      });
-      syncAddNodeKind();
-    })();
-  </script>
+  <script src="/static/js/editor-add-node.js"></script>
 </div>
 {% endif %}

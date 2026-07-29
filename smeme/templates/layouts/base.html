@@ -4,25 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ request.state.csrf_token|default('') }}" />
-    <script>
-      (function () {
-        var root = document.documentElement;
-        if (root.getAttribute("data-theme-pin") === "light") {
-          root.classList.remove("dark");
-          root.setAttribute("data-theme-pref", "light");
-          return;
-        }
-        var match = document.cookie.match(/(?:^|; )smeme_theme=([^;]*)/);
-        var pref = match ? decodeURIComponent(match[1]).trim().toLowerCase() : "system";
-        if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
-        document.documentElement.setAttribute("data-theme-pref", pref);
-        var dark =
-          pref === "dark" ||
-          (pref === "system" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-        document.documentElement.classList.toggle("dark", dark);
-      })();
-    </script>
+    <!-- Early FOUC theme boot: must run synchronously, before first paint, so no defer. -->
+    <script src="/static/js/theme-boot.js"></script>
     <title>{% block title %}SMEme Platform{% endblock %}</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/static/favicon.png" sizes="512x512" type="image/png" />
@@ -37,20 +20,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
 
-    <!-- HTMX (before body; hx-* attrs on first paint) -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
-    <script>
-      document.addEventListener("htmx:configRequest", function (event) {
-        var match = document.cookie.match(/(?:^|; )smeme_csrf=([^;]*)/);
-        var token = match ? decodeURIComponent(match[1]) : "";
-        if (!token) {
-          var meta = document.querySelector('meta[name="csrf-token"]');
-          token = meta ? meta.getAttribute("content") || "" : "";
-        }
-        if (token) event.detail.headers["X-CSRF-Token"] = token;
-      });
-    </script>
+    <!-- HTMX (before body; hx-* attrs on first paint) — self-hosted, see tests/unit/test_static_vendor_assets.py -->
+    <script src="/static/js/vendor/htmx-2.0.4.min.js"></script>
+    <script src="/static/js/vendor/htmx-ext-json-enc-2.0.1.js"></script>
+    <script src="/static/js/htmx-csrf.js"></script>
 
     <!-- Pre-built, purged Tailwind stylesheet (replaces the Play CDN; see tailwind.input.css / scripts/build_css.sh) -->
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -151,89 +124,12 @@
 
     {% include "partials/_clerk_browser_sync.html" %}
 
-    <script>
-      document.body.addEventListener("refreshWizardBrief", function () {
-        var panel = document.querySelector(".main-panel-content");
-        if (!panel || typeof htmx === "undefined") return;
-        htmx.ajax("GET", "/decision-trees/agentic/brief-partial", {
-          target: ".main-panel-content",
-          swap: "innerHTML",
-        });
-      });
-    </script>
+    <script src="/static/js/wizard-brief.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/modals.js"></script>
 
     {% block scripts %}{% endblock %}
-    <script>
-      (function () {
-        var toggle = document.getElementById("theme-toggle");
-        if (!toggle) return;
-
-        var cookieName = "smeme_theme";
-        var maxAge = 365 * 24 * 3600;
-        var cycle = ["light", "dark", "system"];
-        var labels = {
-          light: "Theme: light. Click for dark.",
-          dark: "Theme: dark. Click for system.",
-          system: "Theme: system (follows device). Click for light.",
-        };
-        var titles = {
-          light: "Theme: light",
-          dark: "Theme: dark",
-          system: "Theme: system",
-        };
-
-        function readPreference() {
-          var match = document.cookie.match(
-            new RegExp("(?:^|; )" + cookieName + "=([^;]*)")
-          );
-          var pref = match ? decodeURIComponent(match[1]).trim().toLowerCase() : "system";
-          if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
-          return pref;
-        }
-
-        function systemPrefersDark() {
-          return window.matchMedia("(prefers-color-scheme: dark)").matches;
-        }
-
-        function applyPreference(pref) {
-          document.documentElement.setAttribute("data-theme-pref", pref);
-          var dark =
-            pref === "dark" || (pref === "system" && systemPrefersDark());
-          document.documentElement.classList.toggle("dark", dark);
-          toggle.setAttribute("aria-label", labels[pref]);
-          toggle.setAttribute("title", titles[pref]);
-        }
-
-        function writePreference(pref) {
-          document.cookie =
-            cookieName +
-            "=" +
-            encodeURIComponent(pref) +
-            "; path=/; max-age=" +
-            maxAge +
-            "; samesite=lax";
-          applyPreference(pref);
-        }
-
-        function nextPreference(current) {
-          var idx = cycle.indexOf(current);
-          if (idx === -1) idx = cycle.indexOf("system");
-          return cycle[(idx + 1) % cycle.length];
-        }
-
-        applyPreference(readPreference());
-
-        toggle.addEventListener("click", function () {
-          writePreference(nextPreference(readPreference()));
-        });
-
-        window
-          .matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", function () {
-            if (readPreference() === "system") applyPreference("system");
-          });
-      })();
-    </script>
+    <script src="/static/js/theme-toggle.js"></script>
   </body>
 </html>
 

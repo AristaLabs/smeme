@@ -42,7 +42,8 @@
          URL if ClerkJS hasn't loaded yet. #}
       <button
         type="button"
-        onclick="if(window.__clerkOpenSignIn){window.__clerkOpenSignIn();}else{window.location.href='{{ clerk_sign_in_url }}'}"
+        data-clerk-action="sign-in"
+        data-clerk-fallback-url="{{ clerk_sign_in_url }}"
         class="ui-action-primary block w-full text-center rounded-lg font-medium py-3 px-4 cursor-pointer"
       >
         Log in
@@ -54,7 +55,7 @@
     <div class="text-center mt-6 space-y-2">
       <div>
         <span class="text-sm text-ui-ink-secondary">Don't have an account?</span>
-        <a href="#" onclick="if(window.__clerkOpenSignUp){window.__clerkOpenSignUp();}else{window.location.href='{{ clerk_sign_up_url }}'};return false;" class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 underline-offset-2 hover:underline ml-1">Register</a>
+        <a href="#" data-clerk-action="sign-up" data-clerk-fallback-url="{{ clerk_sign_up_url }}" class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200 underline-offset-2 hover:underline ml-1">Register</a>
       </div>
     </div>
   </div>

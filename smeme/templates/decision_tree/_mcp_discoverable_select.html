@@ -11,7 +11,7 @@
           id="{{ sid }}"
           class="rounded-md px-2.5 py-1.5 text-xs font-medium max-w-[11rem] focus:outline-none focus:ring-1 {% if listed %}border border-emerald-600/15 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-600/15 focus:border-emerald-500 focus:ring-emerald-500{% else %}border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 ring-1 ring-amber-600/20 focus:border-amber-500 focus:ring-amber-500{% endif %}{% if select_extra_class %} {{ select_extra_class }}{% endif %}"
           title="{% if listed %}Listed — your AI can discover this decision tree via MCP.{% else %}Hidden — deployed but not on your AI's tool list. Set to Listed when ready.{% endif %}"
-          onchange="this.form.requestSubmit()">
+          data-submit-on-change>
     <option value="false" {% if not listed %}selected{% endif %}>Hidden</option>
     <option value="true" {% if listed %}selected{% endif %}>Listed</option>
   </select>

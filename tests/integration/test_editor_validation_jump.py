@@ -117,7 +117,8 @@ async def test_editor_shows_clickable_validation_issue(
     assert "validation-issue-row" in r.text
     assert 'data-node-id="q1"' in r.text
     assert "Jump to node" in r.text
-    assert "editorScrollToValidationIssues" in r.text
+    assert 'data-action="editor-scroll-to-validation-issues"' in r.text
+    assert '/static/js/editor.js' in r.text
 
 
 async def test_validation_issue_selects_node_in_sidebar(

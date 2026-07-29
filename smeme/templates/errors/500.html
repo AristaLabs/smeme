@@ -14,7 +14,7 @@
 
   <div class="flex flex-wrap gap-4 justify-center">
     {{ btn("Go to homepage", variant="primary", size="lg", href="/") }}
-    {{ btn("Go back", variant="secondary", size="lg", href="javascript:history.back()") }}
+    {{ btn("Go back", variant="secondary", size="lg", href="#", attrs='data-action="history-back"') }}
   </div>
 
   <p class="text-sm text-ui-ink-muted mt-8">

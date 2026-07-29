@@ -125,11 +125,14 @@ def _plausible_analytics_enabled() -> bool:
     return "/pa-" in (settings.plausible_script_url or "")
 
 
-# Content Security Policy - HTMX + Tailwind CDN compatible
-# Allows HTMX from unpkg, Tailwind from cdn.tailwindcss.com
+# Content Security Policy
+# HTMX is self-hosted (smeme/static/js/vendor/, see M-04); no remaining
+# executable inline <script> tags in Core templates (script-src has no
+# 'unsafe-inline' — only application/ld+json data islands remain inline,
+# which are not script-src-gated). See tests/unit/test_middleware_csp.py.
 def _csp_policy_for_request() -> str:
     """Build CSP; extend with Clerk Frontend API when browser sync is enabled."""
-    script = "'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com"
+    script = "'self'"
     connect = "'self'"
     frame = "'none'"
     img = "'self' data:"
