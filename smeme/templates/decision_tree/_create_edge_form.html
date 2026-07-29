@@ -1,0 +1,47 @@
+<form hx-post="/decision-trees/editor/create_edge"
+      hx-target="#side-panel-content"
+      hx-swap="innerHTML"
+      hx-ext="response-targets"
+      class="p-3 bg-ui-surface-muted rounded border border-ui-line">
+  <input type="hidden" name="decision_tree_id" value="{{ decision_tree_id }}">
+  <input type="hidden" name="source" value="{{ source_node_id }}">
+
+  <div id="new-edge-error-display"></div>
+
+  <div class="mb-3">
+    <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Target Node:</label>
+    <select name="target"
+            class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+            required>
+      <option value="">-- Select target node --</option>
+      {% for node in graph.nodes if node.id != source_node_id %}
+      <option value="{{ node.id }}">
+        {{- node.id }} -
+        {% if node.is_question() %}{{ node.data.text }}{% else %}{{ node.data.title }}{% endif -%}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="block text-sm font-medium text-ui-ink-secondary mb-1">Condition (optional):</label>
+    <input type="text" name="condition"
+           class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+           placeholder="e.g., 'Grassland'">
+    <p class="mt-1 text-xs text-ui-ink-muted">
+      💡 For radio, use a single option label exactly as shown on the question (e.g. &quot;Grassland&quot;).<br>
+      📌 Option labels can contain commas (e.g., &quot;Student on F, J, M or Q visas&quot;)
+    </p>
+  </div>
+
+  <div class="flex gap-2">
+    <button type="submit" class="px-3 py-2 text-sm font-medium ui-action-primary rounded-md">
+      Create Edge
+    </button>
+    <button type="button"
+            class="px-3 py-2 text-sm font-medium text-ui-ink-secondary bg-ui-surface border border-ui-line-strong rounded-md hover:bg-ui-surface-muted"
+            onclick="location.reload()">
+      Cancel
+    </button>
+  </div>
+</form>

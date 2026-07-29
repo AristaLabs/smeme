@@ -94,6 +94,7 @@
               {% if outgoing_edges %}
                 <div class="space-y-2">
                   {% for edge in outgoing_edges %}
+                    {% set edge_index = loop.index %}
                     {% include 'decision_tree/_edge_item.html' with context %}
                   {% endfor %}
                 </div>

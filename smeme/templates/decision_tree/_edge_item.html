@@ -13,15 +13,19 @@
     </div>
     {% if not is_public %}
     <div class="flex gap-1">
-      <button
-        hx-post="/decision-trees/editor/update_edge_form"
-        hx-vals='{"source": "{{ edge.source }}", "target": "{{ edge.target }}", "condition": "{{ edge.condition or '' }}", "decision_tree_id": "{{ decision_tree_id }}"}'
-        hx-target="#edge-edit-form-{{ edge.target }}"
-        hx-swap="innerHTML"
-        class="px-2 py-1 text-xs font-medium text-ui-ink-secondary bg-ui-surface border border-ui-line-strong rounded hover:bg-ui-surface-muted"
-        title="Edit edge">
-        ✎
-      </button>
+      <form hx-post="/decision-trees/editor/update_edge_form"
+            hx-target="#edge-edit-form-{{ edge_index }}"
+            hx-swap="innerHTML">
+        <input type="hidden" name="source" value="{{ edge.source }}">
+        <input type="hidden" name="target" value="{{ edge.target }}">
+        <input type="hidden" name="condition" value="{{ edge.condition or '' }}">
+        <input type="hidden" name="decision_tree_id" value="{{ decision_tree_id }}">
+        <button type="submit"
+                class="px-2 py-1 text-xs font-medium text-ui-ink-secondary bg-ui-surface border border-ui-line-strong rounded hover:bg-ui-surface-muted"
+                title="Edit edge">
+          ✎
+        </button>
+      </form>
       <form hx-post="/decision-trees/editor/delete_edge"
             hx-target="#side-panel-content"
             hx-swap="innerHTML"
@@ -40,6 +44,6 @@
     </div>
     {% endif %}
   </div>
-  <div id="edge-edit-form-{{ edge.target }}" class="mt-2"></div>
+  <div id="edge-edit-form-{{ edge_index }}" class="edge-edit-form mt-2"></div>
 </div>
 

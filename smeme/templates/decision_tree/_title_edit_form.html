@@ -1,0 +1,14 @@
+<div class="flex items-center gap-2">
+  <form hx-post="/decision-trees/editor/update_title"
+        hx-target="#title-container"
+        hx-swap="innerHTML">
+    <input type="hidden" name="decision_tree_id" value="{{ decision_tree_id }}">
+    <input type="text"
+           name="title"
+           value="{{ title }}"
+           class="text-2xl font-bold border-2 border-blue-500 rounded px-2 py-1 bg-white min-w-64"
+           required
+           hx-trigger="keydown[key=='Enter'] from:closest input, focusout from:closest input delay:100ms"
+           autofocus>
+  </form>
+</div>
