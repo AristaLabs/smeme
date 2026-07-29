@@ -93,7 +93,11 @@ async def dashboard_user(test_session_factory):
     yield {"user": user, "my_decision_tree": my_decision_tree}
 
     async with test_session_factory() as session:
-        await session.execute(delete(DecisionTreeSession).where(DecisionTreeSession.decision_tree_id == my_decision_tree.id))
+        await session.execute(
+            delete(DecisionTreeSession).where(
+                DecisionTreeSession.decision_tree_id == my_decision_tree.id
+            )
+        )
         await session.execute(delete(DecisionTree).where(DecisionTree.id == my_decision_tree.id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
@@ -234,13 +238,16 @@ async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs")
     assert r.status_code == 200
-    assert b"Deploy" in r.content and b"Listed" in r.content
+    assert b"Deploy" in r.content
+    assert b"Listed" in r.content
     from smeme.docs.constants import DOCS_VERSION
 
     assert DOCS_VERSION.encode() in r.content
     assert b"/docs/creator-dashboard" in r.content
     assert b"/docs/download-workflow" in r.content
     assert b"/docs/mcp" in r.content
+    assert b"build and revise through MCP" in r.content
+    assert b"/docs/mcp#mcp-authoring-quickstart" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
 
@@ -251,6 +258,8 @@ async def test_docs_introduction_returns_200(client, app_with_db, dashboard_user
     assert r.status_code == 200
     assert b"How to fix" in r.content
     assert b"Deploy, list" in r.content
+    assert b"build or revise a draft through MCP" in r.content
+    assert b"/docs/mcp#mcp-authoring-quickstart" in r.content
 
 
 async def test_docs_creator_dashboard_requires_auth(client):
@@ -264,7 +273,8 @@ async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard
     assert r.status_code == 200
     assert b"Deploy, validate" in r.content
     assert b"How to fix" in r.content
-    assert b"Live" in r.content and b"Stale" in r.content
+    assert b"Live" in r.content
+    assert b"Stale" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
 
@@ -295,6 +305,25 @@ async def test_docs_mcp_returns_200(client, app_with_db, dashboard_user):
     assert b"Connect your agent" in r.content
     assert b"smeme_reasoning" in r.content
     assert b"there is no separate install package" in r.content
+    # MCP authoring sequence (agent constructs; SMEme validates/saves)
+    assert b'id="mcp-authoring-quickstart"' in r.content
+    assert b"dt_graph_json" in r.content
+    assert b"draft_ready" in r.content
+    assert b"smeme_authoring_design_guidance" in r.content
+    assert b"smeme_authoring_validate_graph" in r.content
+    assert b"smeme_authoring_create_draft" in r.content
+    assert b"smeme_authoring_get_draft" in r.content
+    assert b"smeme_authoring_update_draft" in r.content
+    assert b"expected_graph_hash" in r.content
+    assert b"graph_conflict" in r.content
+    assert b"Open the editor" in r.content
+    assert b"review" in r.content.lower()
+    assert b"Deploy" in r.content
+    assert b"Listed" in r.content
+    assert b"Hidden" in r.content
+    assert b"discussions/categories/mcp-tools" in r.content
+    assert b"discussions/categories/mcp-clients" in r.content
+    assert b'href="https://github.com/AristaLabs/smeme/discussions"' not in r.content
     if process_settings.mcp_enabled:
         assert b"install-claude" in r.content
         assert b"install-chatgpt" in r.content
@@ -309,7 +338,9 @@ async def test_docs_mcp_returns_200(client, app_with_db, dashboard_user):
         assert b"MCP is not enabled on this server" in r.content
 
 
-async def test_mcp_discoverable_toggle_requires_owner(client, app_with_db, dashboard_user, test_session_factory):
+async def test_mcp_discoverable_toggle_requires_owner(
+    client, app_with_db, dashboard_user, test_session_factory
+):
     """Non-owner cannot toggle discoverability (403)."""
     from sqlalchemy import delete
 
@@ -359,7 +390,9 @@ async def test_start_decision_tree_creates_session_without_payment_gate(
     decision_tree_id = dashboard_user["my_decision_tree"].id
 
     with auth_as(app_with_db, user):
-        r = await client.post("/decision-trees/start", data={"decision_tree_id": str(decision_tree_id)})
+        r = await client.post(
+            "/decision-trees/start", data={"decision_tree_id": str(decision_tree_id)}
+        )
 
     # Must not redirect to billing
     assert r.status_code == 200

@@ -28,9 +28,24 @@
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Connect your agent</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
           Add the SMEme MCP server to Claude, Cursor, Microsoft Copilot, or any MCP client.
-          After OAuth, your agent bootstraps the calling contract over the wire via
-          <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code>.
-          Invoke any of your deployed, listed decision trees from a plain-language prompt.
+          Your agent can do two things over MCP: <strong class="font-medium text-ui-ink">build or revise a draft in chat</strong>,
+          and <strong class="font-medium text-ui-ink">run deployed decision trees against evidence</strong>.
+        </p>
+        <nav aria-label="MCP docs sections" class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <a href="#mcp-authoring-quickstart" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Build or revise in chat</a>
+          <a href="#install-steps-heading" class="text-ui-ink-secondary hover:text-ui-ink font-medium">Connect a client</a>
+          <a href="#tools-heading" class="text-ui-ink-secondary hover:text-ui-ink font-medium">Run deployed trees</a>
+        </nav>
+        <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
+          Need help?
+          <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-tools"
+             class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+             target="_blank" rel="noopener noreferrer">MCP Tools</a>
+          for authoring and tool questions;
+          <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-clients"
+             class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+             target="_blank" rel="noopener noreferrer">MCP Clients</a>
+          for connector, OAuth, or client setup.
         </p>
       </header>
 
@@ -42,9 +57,66 @@
 
       <div class="space-y-10">
 
+        {# Authoring quickstart #}
+        <section id="mcp-authoring-quickstart" aria-labelledby="mcp-authoring-quickstart-heading">
+          <h2 id="mcp-authoring-quickstart-heading" class="text-base font-semibold text-ui-ink mb-3">Build or revise a draft in chat</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Your agent constructs the <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">dt_graph_json</code>
+            using SMEme&rsquo;s design guidance. SMEme <strong class="font-medium text-ui-ink">validates and saves</strong>
+            the agent-constructed graph — the MCP authoring tools do not generate the graph, and they never
+            automatically <strong class="font-medium text-ui-ink">Deploy</strong> or change
+            <strong class="font-medium text-ui-ink">Listed</strong> / <strong class="font-medium text-ui-ink">Hidden</strong>.
+          </p>
+          <ol class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
+            <li>
+              Call <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_authoring_design_guidance</code>
+              before drafting.
+            </li>
+            <li>
+              You and your agent agree the questions, options, branches, and conclusions.
+              The agent then constructs the <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">dt_graph_json</code>
+              from that design using SMEme&rsquo;s guidance.
+            </li>
+            <li>
+              Call <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_authoring_validate_graph</code>
+              repeatedly, fixing findings, until <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">draft_ready</code>
+              is true.
+            </li>
+            <li>
+              For a new tree, call <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_authoring_create_draft</code>
+              (strict: requires <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">draft_ready</code>).
+              To revise an existing draft, call
+              <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_authoring_get_draft</code>,
+              then <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_authoring_update_draft</code>
+              with <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">expected_graph_hash</code>.
+              Update may save an intentional intermediate graph; on
+              <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">graph_conflict</code>, re-fetch and retry.
+            </li>
+            <li>
+              Open the editor, <strong class="font-medium text-ui-ink">review</strong> the saved draft, then
+              <strong class="font-medium text-ui-ink">Deploy</strong> and choose
+              <strong class="font-medium text-ui-ink">Listed</strong> or
+              <strong class="font-medium text-ui-ink">Hidden</strong>. Review, Deploy, and Listed/Hidden are editor actions —
+              separate from MCP authoring saves.
+            </li>
+          </ol>
+          <p class="mt-4 text-sm text-ui-ink-muted leading-relaxed">
+            Authoring and tool questions:
+            <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-tools"
+               class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+               target="_blank" rel="noopener noreferrer">Ask in MCP Tools</a>.
+            Connector, OAuth, or client setup:
+            <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-clients"
+               class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+               target="_blank" rel="noopener noreferrer">Ask in MCP Clients</a>.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
         {# Prerequisites #}
         <section aria-labelledby="prereq-heading">
-          <h2 id="prereq-heading" class="text-base font-semibold text-ui-ink mb-3">Before you start</h2>
+          <h2 id="prereq-heading" class="text-base font-semibold text-ui-ink mb-3">Before you run a deployed tree</h2>
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
@@ -198,9 +270,11 @@
 
         {# Tools #}
         <section aria-labelledby="tools-heading">
-          <h2 id="tools-heading" class="text-base font-semibold text-ui-ink mb-3">MCP tools</h2>
+          <h2 id="tools-heading" class="text-base font-semibold text-ui-ink mb-3">MCP tools — run deployed trees</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
             Your agent discovers these at connect time. Guidance tools (quota 0) bootstrap the session; the rest follow the sequence in step 2.
+            Authoring tools for building drafts are listed under
+            <a href="#mcp-authoring-quickstart" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Build or revise a draft in chat</a>.
           </p>
           <div class="overflow-x-auto rounded-xl border border-ui-line">
             <table class="min-w-full border-collapse text-left text-sm">
@@ -355,9 +429,20 @@
         <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
           <p class="font-medium text-ui-ink">See also</p>
           <ul class="space-y-1">
+            <li><a href="#mcp-authoring-quickstart" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Build or revise a draft in chat</a> — MCP authoring sequence</li>
             <li><a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Public MCP tool reference</a> — wire names, anti-patterns, error codes</li>
             <li><a href="/docs/introduction" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Building decision trees</a> — create and edit your decision trees</li>
             <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a> — compile and expose your decision trees</li>
+            <li>
+              <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-tools"
+                 class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+                 target="_blank" rel="noopener noreferrer">MCP Tools</a>
+              —
+              <a href="https://github.com/AristaLabs/smeme/discussions/categories/mcp-clients"
+                 class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium"
+                 target="_blank" rel="noopener noreferrer">MCP Clients</a>
+              community help
+            </li>
           </ul>
         </div>
 
