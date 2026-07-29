@@ -1,9 +1,13 @@
 """Jinja2 templates configuration with custom filters."""
 
+from __future__ import annotations
+
 import re
+from collections.abc import Mapping
 from typing import Any
 
-from starlette.templating import Jinja2Templates
+from starlette.requests import Request
+from starlette.templating import Jinja2Templates as StarletteJinja2Templates
 
 from smeme.core.theme import theme_context_processor
 from smeme.docs.context import docs_context_processor
@@ -39,6 +43,58 @@ def natsort(items: list[Any], attribute: str | None = None, reverse: bool = Fals
             reverse=reverse,
         )
     return sorted(items, key=lambda x: natural_sort_key(str(x)), reverse=reverse)
+
+
+class Jinja2Templates(StarletteJinja2Templates):
+    """Starlette 1.x templates with legacy ``TemplateResponse(name, context)`` support.
+
+    Starlette >=1 requires ``TemplateResponse(request, name, context)``. Most SMEme
+    call sites still use the pre-1.0 ``(name, context)`` form where ``request`` lives
+    in the context dict. Accept both during the H-04 FastAPI/Starlette upgrade.
+    """
+
+    def TemplateResponse(self, *args: Any, **kwargs: Any):  # noqa: N802 - Starlette API name
+        if args and isinstance(args[0], Request):
+            return super().TemplateResponse(*args, **kwargs)
+
+        if not args or not isinstance(args[0], str):
+            return super().TemplateResponse(*args, **kwargs)
+
+        name = args[0]
+        status_code = kwargs.pop("status_code", 200)
+        headers = kwargs.pop("headers", None)
+        media_type = kwargs.pop("media_type", None)
+        background = kwargs.pop("background", None)
+
+        if len(args) >= 2 and isinstance(args[1], Mapping):
+            context = dict(args[1])
+            if len(args) >= 3 and isinstance(args[2], int):
+                status_code = args[2]
+        else:
+            context = dict(kwargs.pop("context", None) or {})
+
+        if kwargs:
+            leftover = ", ".join(sorted(kwargs))
+            msg = f"Unexpected TemplateResponse kwargs: {leftover}"
+            raise TypeError(msg)
+
+        request = context.get("request")
+        if not isinstance(request, Request):
+            msg = (
+                "Legacy TemplateResponse(name, context) requires context['request'] "
+                "to be a Starlette Request"
+            )
+            raise TypeError(msg)
+
+        return super().TemplateResponse(
+            request,
+            name,
+            context,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
 
 
 # Create shared templates instance with custom filters
