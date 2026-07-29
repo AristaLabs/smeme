@@ -303,7 +303,7 @@ class TestProfileDeleteRoutes:
                 headers={"HX-Request": "true"},
             )
         assert response.status_code == 200
-        assert response.headers.get("HX-Redirect") == "/auth/logout"
+        assert response.headers.get("HX-Redirect") == "/auth/login?smeme_clerk_logout=1"
 
         async with test_session_factory() as session:
             assert (

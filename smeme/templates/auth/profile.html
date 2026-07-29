@@ -16,7 +16,9 @@
     </p>
     </div>
     <div class="shrink-0 pt-1">
-      {{ btn("Log out", variant="old_glory_red", href="/auth/logout", attrs='rel="nofollow"') }}
+      <form method="post" action="/auth/logout">
+        {{ btn("Log out", variant="old_glory_red", type="submit", attrs='rel="nofollow"') }}
+      </form>
     </div>
   </div>
 

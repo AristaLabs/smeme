@@ -39,7 +39,9 @@
 
   <div class="mt-8 flex flex-wrap gap-3">
     <a class="underline font-medium" href="/auth/register">Create account</a>
-    <a class="underline font-medium" href="/auth/logout">Sign out</a>
+    <form method="post" action="/auth/logout" class="inline">
+      <button type="submit" class="underline font-medium">Sign out</button>
+    </form>
     <a class="underline font-medium" href="{{ sign_up_url }}">Return to sign-up</a>
     <a class="underline font-medium" href="{{ sign_in_url }}">Sign in again</a>
     <a class="underline font-medium" href="/auth/clerk-callback">Retry</a>
