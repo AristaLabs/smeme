@@ -3,11 +3,11 @@
 {% block title %}Signing in - SMEme{% endblock %}
 {% block main_class %}flex items-center justify-center min-h-[calc(100vh-4rem)]{% endblock %}
 {% block content %}
-{# Opt-in for _clerk_browser_sync.html cookie-sync retry. Must not run on
+{# data-clerk-callback-needs-cookie-sync opts in to _clerk_browser_sync.html's
+   cookie-sync retry (see clerk-browser-sync.js). Must not be present on
    provision-blocked / other clerk-callback responses or the clear error page
    is overwritten with /auth/login?clerk_sync_failed=1. #}
-<script>window.__clerkCallbackNeedsCookieSync = true;</script>
-<div class="text-center space-y-3">
+<div class="text-center space-y-3" data-clerk-callback-needs-cookie-sync="true">
   <p class="text-lg font-medium text-ui-ink">Signing you in&hellip;</p>
   <p class="text-sm text-ui-ink-muted">Completing secure session sync.</p>
 </div>

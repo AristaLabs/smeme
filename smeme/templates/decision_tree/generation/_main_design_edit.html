@@ -22,7 +22,8 @@
         <button 
             type="button" 
             class="ui-action-primary px-4 py-2 rounded-lg text-sm transition font-medium inline-flex items-center gap-2"
-            onclick="retryDesignGeneration()"
+            data-action="retry-design-generation"
+            data-thread-id="{{ thread_id }}"
             id="retry-design-btn"
         >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -41,36 +42,7 @@
         </div>
     {% endcall %}
     {% endif %}
-    
-    <script>
-    function retryDesignGeneration() {
-        const btn = document.getElementById('retry-design-btn');
-        const indicator = document.getElementById('retry-design-indicator');
-        
-        btn.disabled = true;
-        indicator.style.display = 'block';
-        
-        fetch('/decision-trees/agentic/retry-design', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                thread_id: {{ thread_id|tojson }}
-            })
-        })
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('.main-panel').innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Retry failed:', error);
-            alert('Retry failed. Please try again or refresh the page.');
-            btn.disabled = false;
-            indicator.style.display = 'none';
-        });
-    }
-    </script>
+    <script src="/static/js/generation-design-retry.js"></script>
 </div>
 
 <!-- Form -->

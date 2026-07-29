@@ -12,38 +12,7 @@
       id="node-editor-form">
   <input type="hidden" name="node_id" value="{{ node.id }}">
   <input type="hidden" name="decision_tree_id" value="{{ decision_tree_id }}">
-  
-  <script>
-    (function() {
-      const form = document.getElementById('node-editor-form');
-      const statusEl = document.getElementById('save-status');
-      
-      // Show saving indicator
-      form.addEventListener('htmx:beforeRequest', function() {
-        statusEl.innerHTML = '<span class="text-brand-600 dark:text-brand-300">● Saving...</span>';
-      });
-      
-      // Handle successful save
-      form.addEventListener('htmx:afterSwap', function() {
-        statusEl.innerHTML = '<span class="text-green-600 dark:text-green-400">✓ Saved</span>';
-        setTimeout(() => {
-          statusEl.innerHTML = '';
-        }, 2000);
-      });
-      
-      // Handle validation errors from 422 responses
-      form.addEventListener('htmx:afterRequest', function(evt) {
-        if (evt.detail.xhr.status === 422) {
-          statusEl.innerHTML = '<span class="text-red-600 dark:text-red-400">⚠ Error</span>';
-          document.getElementById('form-error-display').innerHTML = evt.detail.xhr.responseText;
-        } else if (evt.detail.xhr.status >= 400) {
-          statusEl.innerHTML = '<span class="text-red-600 dark:text-red-400">⚠ Save failed</span>';
-        } else {
-          document.getElementById('form-error-display').innerHTML = '';
-        }
-      });
-    })();
-  </script>
+  <script src="/static/js/node-editor-autosave.js"></script>
   
   {# Hidden element to trigger validation on form changes #}
   <div hx-get="/decision-trees/editor/validate/{{ decision_tree_id }}"

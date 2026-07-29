@@ -33,7 +33,7 @@
 
     <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
       <a href="{{ wizard_start_block.dashboard_href }}"
-         onclick="if (this.getAttribute('href') === window.location.pathname || this.getAttribute('href') === (window.location.pathname + window.location.search) || this.getAttribute('href') === (window.location.pathname + window.location.search + window.location.hash)) { event.preventDefault(); var modal = document.getElementById('modal-container'); if (modal) { modal.innerHTML = ''; } window.location.reload(); }"
+         data-reload-if-current-href
          class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-ui-line-strong bg-ui-surface text-ui-ink-secondary hover:bg-ui-surface-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
         Go to dashboard
       </a>
