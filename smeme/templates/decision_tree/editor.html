@@ -187,6 +187,51 @@ function editorOpenAddNode() {
   }
 }
 
+function editorSelectGraphNode(nodeElement) {
+  var graph = nodeElement.closest('.dt-graph');
+  if (!graph) return;
+  if (graph.dataset.readOnly === 'true') {
+    alert('This assessment is public and cannot be edited directly. Create a new version to make changes.');
+    return;
+  }
+
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/decision-trees/editor/select_node_with_decision_tree';
+  form.setAttribute('hx-post', form.action);
+  form.setAttribute('hx-target', '#side-panel-content');
+  form.setAttribute('hx-swap', 'innerHTML');
+
+  var values = {
+    node_id: nodeElement.dataset.nodeId,
+    decision_tree_id: graph.dataset.decisionTreeId,
+  };
+  Object.keys(values).forEach(function(name) {
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = values[name] || '';
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  htmx.process(form);
+  form.requestSubmit();
+}
+
+document.addEventListener('click', function(event) {
+  var node = event.target.closest && event.target.closest('.dt-graph .node[data-node-id]');
+  if (node) editorSelectGraphNode(node);
+});
+
+document.addEventListener('keydown', function(event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  var node = event.target.closest && event.target.closest('.dt-graph .node[data-node-id]');
+  if (!node) return;
+  event.preventDefault();
+  editorSelectGraphNode(node);
+});
+
 /** Client-side view switch (matches server ?view= without full reload). */
 function editorShowView(view) {
   var panes = {

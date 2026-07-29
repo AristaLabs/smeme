@@ -14,8 +14,7 @@
       {% set outgoing_edges = graph.edges|selectattr('source', 'equalto', node.id)|list %}
       {% set is_selected = (selected_node_id == node.id) %}
       
-      <form id="checklist-card-{{ node.id }}"
-            hx-post="/decision-trees/editor/select_node_with_decision_tree"
+      <form hx-post="/decision-trees/editor/select_node_with_decision_tree"
             hx-target="#side-panel-content"
             hx-swap="innerHTML"
             class="question-card border rounded-lg p-4 {% if is_selected %}ring-2 ring-brand-500 dark:ring-brand-400 bg-brand-50 dark:bg-brand-900/30 border-brand-200 dark:border-brand-700{% else %}bg-ui-surface hover:bg-ui-surface-muted border-ui-line{% endif %} transition-all">

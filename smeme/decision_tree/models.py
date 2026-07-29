@@ -21,7 +21,7 @@ These models are used for:
 """
 
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
@@ -29,6 +29,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StringConstraints,
     ValidationInfo,
     field_validator,
     model_validator,
@@ -57,6 +58,13 @@ Node types in a DecisionTree graph:
 
 QuestionType = Literal["radio"]
 """Question nodes are radio-only: exclusive choice among a finite non-empty option set."""
+
+NODE_ID_PATTERN = r"^[A-Za-z][A-Za-z0-9_-]*$"
+NodeId = Annotated[
+    str,
+    StringConstraints(pattern=NODE_ID_PATTERN),
+]
+"""Stable graph identifier: letter first, then ASCII letters, digits, ``_`` or ``-``."""
 
 
 # ============================================================================
@@ -178,7 +186,7 @@ class GraphNode(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    id: str = Field(description="Unique node identifier (e.g., 'q1', 'conclusion_llc')")
+    id: NodeId = Field(description="Unique node identifier (e.g., 'q1', 'conclusion_llc')")
     type: NodeType = Field(
         default="question",
         description="Node type: 'question' or 'conclusion'",
@@ -239,8 +247,8 @@ class GraphEdge(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    source: str = Field(description="Source node ID")
-    target: str = Field(description="Target node ID")
+    source: NodeId = Field(description="Source node ID")
+    target: NodeId = Field(description="Target node ID")
     condition: str | None = Field(
         default=None,
         description="Condition for conditional edges; None = default/fallback edge",

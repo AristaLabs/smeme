@@ -2,6 +2,8 @@
 <svg width="{{ visualization.width }}" height="{{ visualization.height }}"
      data-graph-width="{{ visualization.width }}"
      data-graph-height="{{ visualization.height }}"
+     data-decision-tree-id="{{ decision_tree_id }}"
+     data-read-only="{{ 'true' if is_public else 'false' }}"
      viewBox="0 0 {{ visualization.width }} {{ visualization.height }}"
      xmlns="http://www.w3.org/2000/svg" class="dt-graph">
   
@@ -119,35 +121,11 @@
       {% set text_color = "var(--ui-ink-secondary)" %}
     {% endif %}
     
-    <g class="node" data-node-id="{{ node.id }}"
-       {% if not is_public %}
-       style="cursor: pointer;"
-       onclick="
-         var form = document.createElement('form');
-         form.method = 'POST';
-         form.action = '/decision-trees/editor/select_node_with_decision_tree';
-         form.setAttribute('hx-post', '/decision-trees/editor/select_node_with_decision_tree');
-         form.setAttribute('hx-target', '#side-panel-content');
-         form.setAttribute('hx-swap', 'innerHTML');
-         var nodeInput = document.createElement('input');
-         nodeInput.type = 'hidden';
-         nodeInput.name = 'node_id';
-         nodeInput.value = '{{ node.id }}';
-         form.appendChild(nodeInput);
-         var decisionTreeInput = document.createElement('input');
-         decisionTreeInput.type = 'hidden';
-         decisionTreeInput.name = 'decision_tree_id';
-         decisionTreeInput.value = '{{ decision_tree_id }}';
-         form.appendChild(decisionTreeInput);
-         document.body.appendChild(form);
-         htmx.process(form);
-         form.requestSubmit();
-       "
-       {% else %}
-       style="cursor: not-allowed;"
-       onclick="alert('This assessment is public and cannot be edited directly. Create a new version to make changes.')"
-       {% endif %}
-       >
+    <g class="node"
+       data-node-id="{{ node.id }}"
+       role="button"
+       tabindex="0"
+       style="cursor: {{ 'not-allowed' if is_public else 'pointer' }};">
       <title>{{ node.tooltip or node.label }}</title>
       <rect
         x="{{ node.position.x }}" y="{{ node.position.y }}"

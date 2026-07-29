@@ -94,6 +94,13 @@ AsyncSessionDep = Annotated[AsyncSession, Depends(get_db)]
 # =============================================================================
 
 
+def _render_editor_error(message: object) -> str:
+    """Render an autoescaped editor error fragment."""
+    return templates.env.get_template("decision_tree/_editor_error.html").render(
+        message=str(message)
+    )
+
+
 def render_edit_blocked_error(decision_tree_id: UUID, error_detail: str) -> HTMLResponse:
     """
     Render user-friendly HTML error for blocked edit attempts.
@@ -104,7 +111,7 @@ def render_edit_blocked_error(decision_tree_id: UUID, error_detail: str) -> HTML
     error_html = render_callout_html(
         title="Edit Blocked",
         body=(
-            f'<p class="mb-3">{error_detail}</p>'
+            f'<p class="mb-3">{html.escape(error_detail)}</p>'
             f'<div class="flex gap-2">'
             f'<a href="/decision-trees/editor/{decision_tree_id}/create_version" '
             f'class="inline-flex items-center px-3 py-2 ui-action-primary text-sm font-medium rounded">'
@@ -688,7 +695,7 @@ async def update_node(
     if not result.get("success", False):
         error_message = result.get("error_message", "Unknown error")
         return HTMLResponse(
-            content=f"<div class='alert alert-error'>{error_message}</div>",
+            content=_render_editor_error(error_message),
             status_code=400,
         )
 
@@ -763,7 +770,7 @@ async def delete_node(
     if not result.get("success", False):
         error_message = result.get("error_message", "Unknown error")
         return HTMLResponse(
-            content=f"<div class='alert alert-error'>{error_message}</div>",
+            content=_render_editor_error(error_message),
             status_code=400,
         )
 
@@ -1110,7 +1117,7 @@ async def delete_edge(
     if not result.get("success", False):
         error_message = result.get("error_message", "Unknown error")
         return HTMLResponse(
-            content=f"<div class='alert alert-error'>{error_message}</div>",
+            content=_render_editor_error(error_message),
             status_code=400,
         )
 
@@ -1312,23 +1319,10 @@ async def edit_title_form(
             return render_edit_blocked_error(decision_tree_id, e.detail)
         raise
 
-    # Return edit form HTML
-    form_html = f"""
-    <div class="flex items-center gap-2">
-      <form hx-post="/decision-trees/editor/update_title"
-            hx-target="#title-container"
-            hx-swap="innerHTML">
-        <input type="hidden" name="decision_tree_id" value="{decision_tree_id}">
-        <input type="text"
-               name="title"
-               value="{decision_tree.title}"
-               class="text-2xl font-bold border-2 border-blue-500 rounded px-2 py-1 bg-white min-w-64"
-               required
-               hx-trigger="keydown[key=='Enter'] from:closest input, focusout from:closest input delay:100ms"
-               autofocus>
-      </form>
-    </div>
-    """.strip()
+    form_html = templates.env.get_template("decision_tree/_title_edit_form.html").render(
+        decision_tree_id=decision_tree_id,
+        title=decision_tree.title,
+    )
 
     return HTMLResponse(content=form_html)
 
@@ -1379,24 +1373,10 @@ async def update_title(
         extra={"decision_tree_id": str(decision_tree_id), "user_id": str(user.id)},
     )
 
-    # Return updated title display
-    display_html = f"""
-    <div class="flex items-center gap-2">
-      <h2 class="text-2xl font-bold">{title}</h2>
-
-      <button class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-              hx-post="/decision-trees/editor/edit_title_form"
-              hx-vals='{{"decision_tree_id": "{decision_tree_id}"}}'
-              hx-target="#title-container"
-              hx-swap="innerHTML"
-              title="Edit title">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
-        Edit
-      </button>
-    </div>
-    """.strip()
+    display_html = templates.env.get_template("decision_tree/_title_display.html").render(
+        decision_tree_id=decision_tree_id,
+        title=title,
+    )
 
     return HTMLResponse(content=display_html)
 
@@ -1671,71 +1651,11 @@ async def create_edge_form(
             status_code=400,
         )
 
-    # Build form HTML
-    # Generate options for target nodes (all nodes except source)
-    node_options = "".join(
-        [
-            f'<option value="{n.id}">'
-            f"{n.id} - {n.data.text if getattr(n, 'data', None) and getattr(n.data, 'text', None) else '(no text)'}"
-            f"</option>"
-            for n in graph.nodes
-            if n.id != source_node_id
-        ]
+    form_html = templates.env.get_template("decision_tree/_create_edge_form.html").render(
+        decision_tree_id=decision_tree_id,
+        source_node_id=source_node_id,
+        graph=graph,
     )
-
-    form_html = f"""
-    <form hx-post="/decision-trees/editor/create_edge"
-          hx-target="#side-panel-content"
-          hx-swap="innerHTML"
-          hx-ext="response-targets"
-          class="p-3 bg-ui-surface-muted rounded border border-ui-line">
-        <input type="hidden" name="decision_tree_id" value="{decision_tree_id}">
-        <input type="hidden" name="source" value="{source_node_id}">
-
-        <!-- Error display area -->
-        <div id="new-edge-error-display"></div>
-
-        <div class="mb-3">
-            <label class="block text-sm font-medium text-ui-ink-secondary mb-1">
-                Target Node:
-            </label>
-            <select name="target"
-                    class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink
-                           focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    required>
-                <option value="">-- Select target node --</option>
-                {node_options}
-            </select>
-        </div>
-
-        <div class="mb-3">
-            <label class="block text-sm font-medium text-ui-ink-secondary mb-1">
-                Condition (optional):
-            </label>
-            <input type="text" name="condition"
-                   class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink
-                          focus:outline-none focus:ring-2 focus:ring-brand-500"
-                   placeholder="e.g., 'Grassland'">
-            <p class="mt-1 text-xs text-ui-ink-muted">
-                💡 For radio, use a single option label exactly as shown on the question (e.g. &quot;Grassland&quot;).<br>
-                📌 Option labels can contain commas (e.g., &quot;Student on F, J, M or Q visas&quot;)
-            </p>
-        </div>
-
-        <div class="flex gap-2">
-            <button type="submit"
-                    class="px-3 py-2 text-sm font-medium ui-action-primary rounded-md">
-                Create Edge
-            </button>
-            <button type="button"
-                    class="px-3 py-2 text-sm font-medium text-ui-ink-secondary bg-ui-surface
-                           border border-ui-line-strong rounded-md hover:bg-ui-surface-muted"
-                    onclick="location.reload()">
-                Cancel
-            </button>
-        </div>
-    </form>
-    """
 
     return HTMLResponse(content=form_html)
 
@@ -1770,82 +1690,15 @@ async def update_edge_form(
 
     graph = parse_graph_data(decision_tree)
 
-    # Build form HTML
-    # Generate options for target nodes
-    node_options = "".join(
-        [
-            f'<option value="{n.id}">'
-            f"{n.id} - {n.data.text if getattr(n, 'data', None) and getattr(n.data, 'text', None) else '(no text)'}"
-            f"</option>"
-            for n in graph.nodes
-            if n.id not in (source, target)
-        ]
-    )
-
-    # Get current target node display text
     target_node = next((n for n in graph.nodes if n.id == target), None)
-    target_display = (
-        f"{target} - {target_node.data.text}"
-        if target_node
-        and getattr(target_node, "data", None)
-        and getattr(target_node.data, "text", None)
-        else f"{target} - (no text)"
+    form_html = templates.env.get_template("decision_tree/_update_edge_form.html").render(
+        decision_tree_id=decision_tree_id,
+        source=source,
+        target=target,
+        condition=condition,
+        target_node=target_node,
+        graph=graph,
     )
-
-    form_html = f"""
-    <form hx-post="/decision-trees/editor/update_edge"
-          hx-target="#side-panel-content"
-          hx-swap="innerHTML"
-          hx-ext="response-targets"
-          class="mt-2 p-3 bg-ui-surface-muted rounded border border-ui-line">
-        <input type="hidden" name="decision_tree_id" value="{decision_tree_id}">
-        <input type="hidden" name="source" value="{source}">
-        <input type="hidden" name="old_target" value="{target}">
-        <input type="hidden" name="old_condition" value="{condition or ""}">
-
-        <!-- Error display area -->
-        <div id="edge-error-display"></div>
-
-        <div class="mb-3">
-            <label class="block text-sm font-medium text-ui-ink-secondary mb-1">
-                Target Node:
-            </label>
-            <select name="new_target"
-                    class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink
-                           focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="{target}" selected>{target_display}</option>
-                {node_options}
-            </select>
-        </div>
-
-        <div class="mb-3">
-            <label class="block text-sm font-medium text-ui-ink-secondary mb-1">
-                Condition:
-            </label>
-            <input type="text" name="new_condition" value="{condition or ""}"
-                   placeholder="Leave empty for default edge"
-                   class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink
-                          focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <p class="mt-1 text-xs text-ui-ink-muted">
-                💡 For radio, use a single option label exactly as shown on the question (e.g. &quot;Grassland&quot;).<br>
-                📌 Option labels can contain commas (e.g., &quot;Student on F, J, M or Q visas&quot;)
-            </p>
-        </div>
-
-        <div class="flex gap-2">
-            <button type="submit"
-                    class="px-3 py-2 text-sm font-medium ui-action-primary rounded-md">
-                Save
-            </button>
-            <button type="button"
-                    class="px-3 py-2 text-sm font-medium text-ui-ink-secondary bg-ui-surface
-                           border border-ui-line-strong rounded-md hover:bg-ui-surface-muted"
-                    onclick="location.reload()">
-                Cancel
-            </button>
-        </div>
-    </form>
-    """
 
     return HTMLResponse(content=form_html)
 
