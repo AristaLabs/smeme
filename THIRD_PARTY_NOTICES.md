@@ -60,7 +60,7 @@ Publish CI attests each Core digest with GitHub OIDC (SLSA provenance + CycloneD
 | asyncpg | 0.30.0 | Apache-2.0 |
 | Clerk Backend API | 5.0.6 | MIT |
 | FastAPI | 0.118.0 | MIT |
-| FastAPI Users | 14.0.1 | MIT |
+| FastAPI Users | 15.0.5 | MIT |
 | FastAPI Users DB SQLModel | 0.3.0 | MIT |
 | HTTPX | 0.28.1 | BSD-3-Clause |
 | Jinja2 | 3.1.6 | BSD-3-Clause |
@@ -72,11 +72,11 @@ Publish CI attests each Core digest with GitHub OIDC (SLSA provenance + CycloneD
 | Psycopg | 3.2.10 | LGPL-3.0 |
 | Pydantic | 2.11.10 | MIT |
 | Pydantic Settings | 2.11.0 | MIT |
-| PyJWT | 2.10.1 | MIT |
-| pypdf | 6.8.0 | BSD-3-Clause |
+| PyJWT | 2.13.0 | MIT |
+| pypdf | 6.14.2 | BSD-3-Clause |
 | python-docx | 1.2.0 | MIT |
 | python-jose | 3.5.0 | MIT |
-| python-multipart | 0.0.20 | Apache-2.0 |
+| python-multipart | 0.0.32 | Apache-2.0 |
 | SlowAPI | 0.1.9 | MIT |
 | SQLModel | 0.0.25 | MIT |
 | Svix | 1.89.0 | MIT |

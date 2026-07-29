@@ -33,6 +33,7 @@ from smeme.decision_tree.generation.agentic.ownership import (
     assert_workflow_state_owned_by,
     require_owned_generation_for_thread,
 )
+from smeme.decision_tree.generation.agentic.request_limits import read_form_with_body_limit
 from smeme.decision_tree.generation.agentic.routes._helpers import (
     _render_initial_form,
     logger,
@@ -388,8 +389,10 @@ async def start_generation(
     then loads the research edit form when research_complete fires.
 
     Form is parsed manually so we can re-render with preserved values on validation error.
+    Body size is capped before/during multipart parse (H-03); wizard quota is checked
+    before PDF/DOCX parsing so blocked users cannot burn parser resources.
     """
-    form_data = await request.form()
+    form_data = await read_form_with_body_limit(request)
     form_dict = {k: (v or "") for k, v in form_data.items() if isinstance(v, str)}
     if not settings.show_decision_tree_generation_region_selector:
         form_dict["country"] = ""
@@ -423,6 +426,24 @@ async def start_generation(
             form_values=form_dict,
             show_research_source_confirm=True,
         )
+
+    # Fast-path pre-check: catch blocked users before PDF/DOCX parse work.
+    block, in_progress_count = await _wizard_start_context(db, user)
+    if block:
+        ctx = _brief_page_context(
+            request,
+            user,
+            block=block,
+            in_progress_count=in_progress_count,
+            open_block_modal=True,
+            form_values=form_dict,
+        )
+        is_htmx = request.headers.get("HX-Request") == "true"
+        if is_htmx:
+            return templates.TemplateResponse(
+                "decision_tree/generation/_main_initial_form.html", ctx
+            )
+        return templates.TemplateResponse("decision_tree/generation/_generation_layout.html", ctx)
 
     # Phase B: File ingestion (validate -> store -> parse -> merge)
     file_items: list[tuple[str, str]] = []
@@ -462,23 +483,26 @@ async def start_generation(
                     validation_errors=[f"{upload.filename or 'File'}: {err}"],
                 )
             if path:
-                temp_paths.append(path)
                 total_bytes += path.stat().st_size
-
-        if total_bytes > MAX_TOTAL_BYTES:
-            for p in temp_paths:
-                try:
-                    p.unlink(missing_ok=True)
-                except OSError:
-                    pass
-            return _render_initial_form(
-                request,
-                user=user,
-                form_values=form_dict,
-                validation_errors=[
-                    f"Total file size exceeds {MAX_TOTAL_BYTES // (1024 * 1024)} MB.",
-                ],
-            )
+                if total_bytes > MAX_TOTAL_BYTES:
+                    try:
+                        path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    for p in temp_paths:
+                        try:
+                            p.unlink(missing_ok=True)
+                        except OSError:
+                            pass
+                    return _render_initial_form(
+                        request,
+                        user=user,
+                        form_values=form_dict,
+                        validation_errors=[
+                            f"Total file size exceeds {MAX_TOTAL_BYTES // (1024 * 1024)} MB.",
+                        ],
+                    )
+                temp_paths.append(path)
 
         parse_failures: list[tuple[str, str]] = []
         for path, orig_name in [
@@ -506,24 +530,6 @@ async def start_generation(
                 p.unlink(missing_ok=True)
             except OSError:
                 pass
-
-    # Fast-path pre-check: catches obviously blocked users before any DB write.
-    block, in_progress_count = await _wizard_start_context(db, user)
-    if block:
-        ctx = _brief_page_context(
-            request,
-            user,
-            block=block,
-            in_progress_count=in_progress_count,
-            open_block_modal=True,
-            form_values=form_dict,
-        )
-        is_htmx = request.headers.get("HX-Request") == "true"
-        if is_htmx:
-            return templates.TemplateResponse(
-                "decision_tree/generation/_main_initial_form.html", ctx
-            )
-        return templates.TemplateResponse("decision_tree/generation/_generation_layout.html", ctx)
 
     # start_new_generation acquires a per-user advisory lock and re-checks all
     # quota dimensions atomically before inserting the in-progress row.  Any
