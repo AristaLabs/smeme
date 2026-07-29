@@ -1,5 +1,13 @@
 {% extends "layouts/base.html" %}
 {% block title %}Docs Changelog — SMEme{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/changelog" %}
+{% set docs_og_title = "Docs changelog — SMEme" %}
+{% set docs_meta_description = "Changelog for SMEme in-app documentation: public creator docs, metadata and discovery improvements, and release notes by docs version." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Changelog", "path": "/docs/changelog"}] %}
+{% set docs_schema_type = "WebPage" %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -25,10 +33,36 @@
 
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Docs changelog</h1>
-        <p class="mt-2 text-sm text-ui-ink-muted">Changes to the in-app documentation.</p>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Release notes for SMEme in-app documentation — what changed in each docs version, including when creator docs became publicly readable.
+        </p>
       </header>
 
       <div class="space-y-8">
+
+        {# v1.7.0 #}
+        <section aria-labelledby="v170">
+          <div class="flex items-baseline gap-3 mb-3">
+            <h2 id="v170" class="text-base font-semibold text-ui-ink">v1.7.0</h2>
+            <span class="text-xs text-ui-ink-muted">July 2026</span>
+          </div>
+          <ul class="space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Creator docs are publicly readable (anonymous + signed-in). <a href="/docs/delete-account" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Delete your account</a> remains authenticated only and is omitted from anonymous navigation.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Public pages add unique titles, meta descriptions, absolute canonical URLs, Open Graph tags, and BreadcrumbList / TechArticle (or WebPage) JSON-LD aligned with visible content.
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              Answer-first introductions and product vocabulary pass: decision tree, Deploy/Redeploy, Listed/Hidden, Live/Stale, report. <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/docs/mcp</a> targets creator setup; public <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a> remains the tool wire reference.
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
 
         {# v1.6.0 #}
         <section aria-labelledby="v160">

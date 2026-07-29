@@ -1,5 +1,13 @@
 {% extends "layouts/base.html" %}
 {% block title %}Docs — SMEme{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs" %}
+{% set docs_og_title = "Docs — SMEme" %}
+{% set docs_meta_description = "SMEme documentation: build decision trees, Deploy and set Listed or Hidden, connect your agent over MCP, and run deterministic reports from evidence." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}] %}
+{% set docs_schema_type = "WebPage" %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -25,9 +33,9 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Documentation</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          SMEme turns your expert decision logic into AI tools your agent can call over MCP.
-          Build or revise a decision tree in the editor or through MCP chat, deploy it, connect the MCP server,
-          then run it against evidence with a plain-language prompt.
+          This is the SMEme creator guide. It explains how to encode expert judgment as a decision tree,
+          Deploy it for agents, connect MCP clients, and obtain a structured report from evidence —
+          without putting proprietary branching logic inside the model.
         </p>
         <p class="mt-2 text-sm text-ui-ink-muted">
           You're reading version {{ docs_version }} of the SMEme documentation.

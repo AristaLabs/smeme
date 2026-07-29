@@ -1,5 +1,12 @@
 {% extends "layouts/base.html" %}
 {% block title %}Plans &amp; usage — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/plans" %}
+{% set docs_og_title = "Plans & usage — Docs" %}
+{% set docs_meta_description = "SMEme Free and Pro plan limits for decision trees, MCP tool calls, and AI-assisted wizard builds, plus how caps reset and what happens when you hit them." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Plans & usage", "path": "/docs/plans"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
@@ -21,9 +28,10 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Plans &amp; usage</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          SMEme bills by plan tier with monthly caps on decision trees, MCP tool calls, and AI-assisted wizard builds.
-          <strong class="font-medium text-ui-ink">Free</strong> limits reset monthly on your account anniversary (signup date).
-          <strong class="font-medium text-ui-ink">Pro</strong> limits reset on your Stripe billing date each month.
+          This page answers how SMEme Free and Pro quotas work: monthly caps on decision trees, MCP tool calls,
+          and AI-assisted wizard builds, when limits reset, and what happens when you hit a cap.
+          <strong class="font-medium text-ui-ink">Free</strong> resets on your account anniversary (signup date).
+          <strong class="font-medium text-ui-ink">Pro</strong> resets on your Stripe billing date each month.
         </p>
       </header>
 
@@ -110,6 +118,15 @@
           </ul>
           <p class="mt-3 text-sm text-ui-ink-muted">After downgrade or cancellation, Free limits apply immediately — there is no grace period within the month. If you had more decision trees than the Free tier allows, the extras become <strong class="text-ui-ink">dormant</strong>: they remain visible on your dashboard (grayed out) and can still be downloaded as JSON, but cannot be invoked through MCP until you either delete enough decision trees to get back under the limit or upgrade again.</p>
         </section>
+
+        <div class="border-t border-ui-line pt-8">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="mt-2 space-y-1.5 text-sm text-ui-ink-secondary leading-relaxed">
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, validate, list, &amp; delete</a> — Deploy and Listed/Hidden before agents can run a tree</li>
+            <li><a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a> — MCP setup and how tool calls consume quota</li>
+            <li><a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your decision tree</a> — export dormant or active graphs as JSON</li>
+          </ul>
+        </div>
       </div>
     </article>
   </div>

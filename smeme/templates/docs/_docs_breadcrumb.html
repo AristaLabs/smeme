@@ -1,6 +1,10 @@
 {# Breadcrumb for /docs/* pages. Optional docs_breadcrumb_current for leaf title. #}
 <nav class="flex items-center gap-1.5 text-xs text-ui-ink-muted" aria-label="Breadcrumb">
+  {% if user is defined and user %}
   <a href="/decision-trees/dashboard" class="hover:text-ui-ink transition-colors">Dashboard</a>
+  {% else %}
+  <a href="/" class="hover:text-ui-ink transition-colors">Home</a>
+  {% endif %}
   <span aria-hidden="true">/</span>
   {% if docs_breadcrumb_current|default(none) %}
   <a href="/docs" class="hover:text-ui-ink transition-colors">Docs</a>
