@@ -80,6 +80,18 @@ cosign verify-attestation \
 
 Retain this evidence pack (or the matching GitHub Release assets) for the
 period described in `legal/SOURCE_OFFER.md`.
+
+## Release checksums
+
+On `vMAJOR.MINOR.PATCH` tags, `SHA256SUMS.txt` covers only durable Release
+assets (SBOM files, `EVIDENCE.txt`, `COSIGN.md`). It is written after those
+files are finalized and does not checksum itself. Workflow-only paths such as
+`legal-bundle/` remain in the 90-day artifact and are intentionally omitted
+from the release checksum manifest.
+
+```bash
+sha256sum -c SHA256SUMS.txt
+```
 EOF
 
 printf 'Release evidence written to %s\n' "${OUTPUT_DIR}"

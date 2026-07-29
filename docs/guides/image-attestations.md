@@ -20,6 +20,11 @@ digest** after push.
 | GitHub Release assets (`v*.*.*` tags) | Retained for the [source-offer](../../legal/SOURCE_OFFER.md) period |
 | Workflow `upload-artifact` pack | 90 days (convenience only) |
 
+Release tags attach SBOM + `EVIDENCE.txt` + `COSIGN.md` + `SHA256SUMS.txt`.
+`SHA256SUMS.txt` is generated **after** those durable files are finalized and
+lists only Release assets (not workflow-only paths such as `legal-bundle/`).
+Verify with `sha256sum -c SHA256SUMS.txt`.
+
 ## Verify
 
 ```bash
