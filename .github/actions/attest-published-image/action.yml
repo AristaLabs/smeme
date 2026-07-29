@@ -58,18 +58,21 @@ runs:
         bash "${GITHUB_WORKSPACE}/scripts/prepare_core_release_evidence.sh" \
           "${IMAGE_NAME}@${DIGEST}" \
           "${EVIDENCE_DIR}"
-        (
-          cd "${EVIDENCE_DIR}"
-          find . -type f ! -name 'SHA256SUMS.txt' -print0 \
-            | sort -z \
-            | xargs -0 sha256sum
-        ) >"${EVIDENCE_DIR}/SHA256SUMS.txt"
+        # Finalize every durable evidence file before writing SHA256SUMS.txt.
+        # Checksums cover only assets attached to the GitHub Release (not
+        # workflow-only paths such as legal-bundle/).
         {
           printf 'image=%s\n' "${IMAGE_NAME}"
           printf 'digest=%s\n' "${DIGEST}"
           printf 'attested_by=github-oidc-actions-attest\n'
           printf 'generated_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         } >>"${EVIDENCE_DIR}/EVIDENCE.txt"
+        bash "${GITHUB_WORKSPACE}/scripts/write_core_release_checksums.sh" \
+          "${EVIDENCE_DIR}"
+        (
+          cd "${EVIDENCE_DIR}"
+          sha256sum -c SHA256SUMS.txt
+        )
         echo "evidence-dir=${EVIDENCE_DIR}" >> "$GITHUB_OUTPUT"
         echo "cdx-path=${EVIDENCE_DIR}/sbom/smeme.cdx.json" >> "$GITHUB_OUTPUT"
         echo "checksums-path=${EVIDENCE_DIR}/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
