@@ -373,9 +373,9 @@ jobs:
             - Release assets below retain the evidence pack for the source-offer period
             - Verify:
               `gh attestation verify oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }} --repo ${{ github.repository }}`
+          # Keep this list aligned with scripts/write_core_release_checksums.sh.
+          # legal-bundle stays only in the 90-day workflow artifact.
           files: |
-            # Keep in sync with scripts/write_core_release_checksums.sh
-            # (durable assets only; legal-bundle stays in the 90-day artifact).
             ${{ steps.evidence.outputs.cdx-path }}
             ${{ steps.evidence.outputs.evidence-dir }}/sbom/smeme.spdx.json
             ${{ steps.evidence.outputs.evidence-dir }}/sbom/smeme.source.txt

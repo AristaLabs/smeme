@@ -23,7 +23,9 @@ digest** after push.
 Release tags attach SBOM + `EVIDENCE.txt` + `COSIGN.md` + `SHA256SUMS.txt`.
 `SHA256SUMS.txt` is generated **after** those durable files are finalized and
 lists only Release assets (not workflow-only paths such as `legal-bundle/`).
-Verify with `sha256sum -c SHA256SUMS.txt`.
+Download all Release assets into one directory, then verify with
+`sha256sum -c SHA256SUMS.txt`. Manifest entries use asset basenames because
+GitHub flattens uploaded source paths.
 
 ## Verify
 
