@@ -89,6 +89,7 @@
               </svg>
             </a>
           </li>
+          {% if user is defined and user %}
           <li>
             <a href="/docs/delete-account"
                class="group flex items-center justify-between rounded-xl border border-ui-line bg-ui-surface px-5 py-4 shadow-sm transition hover:border-brand-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
@@ -101,6 +102,7 @@
               </svg>
             </a>
           </li>
+          {% endif %}
           <li>
             <a href="/docs/creator-dashboard"
                class="group flex items-center justify-between rounded-xl border border-ui-line bg-ui-surface px-5 py-4 shadow-sm transition hover:border-brand-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">

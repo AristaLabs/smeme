@@ -87,6 +87,10 @@
               Docs
             </a>
             {% else %}
+            <a href="/docs"
+               class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 {% if active == 'docs' or active == 'docs_introduction' or active == 'docs_mcp' or active == 'docs_creator_dashboard' %}bg-brand-50 text-brand-800{% else %}text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink{% endif %}">
+              Docs
+            </a>
             <a href="/auth/login"
                class="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 text-ui-ink-secondary hover:bg-ui-surface-muted hover:text-ui-ink">
               Log in
