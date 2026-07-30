@@ -2,18 +2,25 @@
 #
 # Requires Docker Compose v2.24+ (`!reset` / `!override`).
 #
-#   cp .env.core.example .env.core   # HTTPS BASE_URL + generated secrets
+#   ./scripts/init_core_env.sh
+#   # Set BASE_URL, ALLOWED_ORIGINS, SMEME_PUBLIC_HOST to your https origin / host
 #   # Place TLS material under ./deploy/caddy/certs/ (see deploy/caddy/Caddyfile)
 #   docker compose --env-file .env.core \
-#     -f docker-compose.core.yml -f docker-compose.core.prod.yml up --build -d
+#     -f docker-compose.core.yml -f docker-compose.core.prod.yml \
+#     pull && \
+#   docker compose --env-file .env.core \
+#     -f docker-compose.core.yml -f docker-compose.core.prod.yml \
+#     up -d --no-build --wait
 #
 # This overlay:
 # - Removes the loopback :8000 host publish (Caddy is the only ingress)
 # - Forces ENVIRONMENT=production and DEBUG=false
+# - Passes SMEME_PUBLIC_HOST into Caddy for TLS SNI / site address
 # - Terminates TLS on Caddy and reverse-proxies to web:8000 on the compose network
 
 services:
   web:
+    restart: unless-stopped
     ports: !reset []
     environment:
       ENVIRONMENT: production
@@ -21,9 +28,14 @@ services:
       BASE_URL: ${BASE_URL:?Set BASE_URL to your public https:// origin}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?Set ALLOWED_ORIGINS to your public https:// origin JSON/list}
 
+  db:
+    restart: unless-stopped
+
   caddy:
     image: caddy:2.9.1-alpine
     restart: unless-stopped
+    environment:
+      SMEME_PUBLIC_HOST: ${SMEME_PUBLIC_HOST:?Set SMEME_PUBLIC_HOST to your public hostname (no scheme)}
     ports:
       - "80:80"
       - "443:443"

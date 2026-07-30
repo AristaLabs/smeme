@@ -7,7 +7,9 @@ Thin operator and contributor surface for the public Core tree.
 | Doc | Purpose |
 |-----|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Core system map |
-| [Self-host quickstart](guides/self-host-quickstart.md) | Docker / compose appliance |
+| [Self-host quickstart](guides/self-host-quickstart.md) | Pull image → health (operator path) |
+| [Self-host env reference](guides/self-host-env.md) | Operator knobs + five profiles |
+| [Self-host pilot](guides/self-host-pilot.md) | Clerk AS + MCP + authoring/wizard |
 | [Authoring decision trees](guides/authoring-decision-trees.md) | Web wizard vs MCP chat; DTGraph → editor → Deploy |
 | [Engine promises](guides/engine-promises.md) | What Deploy and evaluate guarantee |
 | [Contribution paths](CONTRIBUTION_PATHS.md) | Themes welcome in public PRs |
@@ -19,6 +21,9 @@ Thin operator and contributor surface for the public Core tree.
 | Guide | Use when |
 |-------|---------|
 | [Getting started](guides/getting-started.md) | Local Core development |
+| [Self-host quickstart](guides/self-host-quickstart.md) | Zero-to-health + HTTPS + lifecycle |
+| [Self-host env](guides/self-host-env.md) | Profiles and variable catalog |
+| [Self-host pilot](guides/self-host-pilot.md) | Clerk, MCP static/DCR, capabilities |
 | [Authoring decision trees](guides/authoring-decision-trees.md) | Draft paths, flags, DTGraph wire shape |
 | [Installation](guides/installation.md) | Dependencies and environment |
 | [MCP / OAuth](guides/dr3-mcp-oauth-authoritative-sources.md) | Configure a self-hosted MCP endpoint, OAuth discovery, and Bearer validation |

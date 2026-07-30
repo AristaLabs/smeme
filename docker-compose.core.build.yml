@@ -1,0 +1,14 @@
+# Contributor overlay: build Core from Dockerfile.core instead of pulling GHCR.
+#
+#   docker compose --env-file .env.core \
+#     -f docker-compose.core.yml -f docker-compose.core.build.yml up -d --build
+#
+# Operators should not use this file; use the pull-only path in docker-compose.core.yml.
+
+services:
+  web:
+    image: smeme-core:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: Dockerfile.core
