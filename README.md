@@ -49,14 +49,18 @@ Start with the pinned **Start here** post in Discussions. Do not post secrets, `
 ## Quick Start (Core / self-host)
 
 ```bash
-cp .env.core.example .env.core
-# set SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD (openssl rand -hex …)
-docker compose --env-file .env.core -f docker-compose.core.yml up --build
+git clone https://github.com/AristaLabs/smeme.git && cd smeme
+git checkout v0.9.9   # or newer operator-bundle tag
+./scripts/init_core_env.sh
+docker compose --env-file .env.core -f docker-compose.core.yml pull
+docker compose --env-file .env.core -f docker-compose.core.yml up -d --no-build --wait
+curl -fsS http://127.0.0.1:8000/api/v1/health
 ```
 
 - App: http://127.0.0.1:8000 → `/decision-trees/dashboard`
 - Health: http://127.0.0.1:8000/api/v1/health
-- Full guide: [self-host-quickstart.md](docs/guides/self-host-quickstart.md)
+- **Healthy ≠ usable product** (Clerk / MCP / Deploy need more config)
+- Guides: [quickstart](docs/guides/self-host-quickstart.md) · [env](docs/guides/self-host-env.md) · [pilot](docs/guides/self-host-pilot.md)
 
 ### Local Python (Core)
 
@@ -68,28 +72,9 @@ uv run uvicorn smeme.core_entrypoint:app --reload
 
 ## Configure environment
 
-Create a `.env` / `.env.core` file (see `.env.core.example`):
-
-```bash
-ENVIRONMENT=development
-DEBUG=true
-DATABASE_URL=postgresql+asyncpg://smeme:smeme_dev_password@localhost:5432/smeme_dev
-
-# Optional for Core boot (generation off by default in the Core image)
-# SMEME_AI_GENERATION_ENABLED=true
-# OPENAI_API_KEY=...
-# TAVILY_API_KEY=...
-
-# Clerk (required for browser login / MCP OAuth when exposing beyond localhost)
-CLERK_SECRET_KEY=sk_test_...
-CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SIGN_IN_URL=https://accounts.your-clerk-domain.com/sign-in
-CLERK_SIGN_UP_URL=https://accounts.your-clerk-domain.com/sign-up
-CLERK_SIGN_OUT_URL=https://accounts.your-clerk-domain.com/sign-out
-CLERK_WEBHOOK_SECRET=whsec_...
-
-MCP_ENABLED=false
-```
+Use `./scripts/init_core_env.sh` (writes `.env.core` from `.env.core.example`).
+Task-grouped knobs and profiles: [self-host-env.md](docs/guides/self-host-env.md).
+Clerk + MCP pilot: [self-host-pilot.md](docs/guides/self-host-pilot.md).
 
 ## Product vocabulary
 
@@ -108,7 +93,7 @@ MCP_ENABLED=false
 - [Architecture](docs/ARCHITECTURE.md)
 - [Authoring decision trees](docs/guides/authoring-decision-trees.md) — web wizard vs MCP chat; shared Deploy → Listed lifecycle
 - [Engine promises](docs/guides/engine-promises.md)
-- [Self-host quickstart](docs/guides/self-host-quickstart.md)
+- [Self-host quickstart](docs/guides/self-host-quickstart.md) · [env reference](docs/guides/self-host-env.md) · [pilot](docs/guides/self-host-pilot.md)
 - [MCP / OAuth operator guide](docs/guides/dr3-mcp-oauth-authoritative-sources.md)
 - [Contribution paths](docs/CONTRIBUTION_PATHS.md)
 - [Contributing](CONTRIBUTING.md) · [CLA](CONTRIBUTOR_LICENSE_AGREEMENT.md) · [Security](SECURITY.md)

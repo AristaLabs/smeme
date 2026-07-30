@@ -1,172 +1,179 @@
 # Self-host quickstart (SMEme Core)
 
-Run the **Core** product (editor, Deploy/Listed, reasoning, MCP) with Docker.
-Core excludes billing, marketing pages, analytics, and vendor-specific legal
-pages.
+Pull the **public** Core image, start Postgres, and reach health on loopback.
+Auth, MCP, and the AI wizard are **not** required for health — see
+[self-host-pilot.md](self-host-pilot.md) after this page.
+
+**Healthy ≠ usable product.** `/api/v1/health` only means the process and DB
+probe succeeded. Browser login, Deploy, Listed trees, and MCP OAuth need Clerk
+(and usually HTTPS).
 
 ## Requirements
 
-- Docker + Docker Compose
-- Postgres 16 (included in `docker-compose.core.yml`)
-- Optional: Clerk (or later generic OIDC) for browser login and MCP OAuth
-- Optional: OpenAI + Tavily when AI generation is enabled
+- Docker + Docker Compose **v2.24+** (prod overlay uses `!reset`)
+- Outbound pull access to `ghcr.io` (package is public; no login required)
+- Optional later: Clerk, OpenAI/Tavily — [env reference](self-host-env.md)
 
-## Quick start
+## Zero to health (operator pull path)
 
 ```bash
-cp .env.core.example .env.core
-# Required — Compose has no secret fallbacks:
-openssl rand -hex 32   # paste into SECRET_KEY
-openssl rand -hex 32   # paste into JWT_SECRET_KEY
-openssl rand -hex 24   # paste into POSTGRES_PASSWORD
-docker compose --env-file .env.core -f docker-compose.core.yml up --build
+git clone https://github.com/AristaLabs/smeme.git
+cd smeme
+git checkout v0.9.9   # or newer operator-bundle tag when published
+
+./scripts/init_core_env.sh
+# Creates .env.core (mode 600). Refuses to overwrite an existing file.
+
+docker compose --env-file .env.core -f docker-compose.core.yml pull
+docker compose --env-file .env.core -f docker-compose.core.yml up -d --no-build --wait
+
+curl -fsS http://127.0.0.1:8000/api/v1/health
+curl -fsS http://127.0.0.1:8000/api/v1/health/db
 ```
 
-- App: http://127.0.0.1:8000 (redirects to `/decision-trees/dashboard`)
-- Health: http://127.0.0.1:8000/api/v1/health
+- App (loopback): http://127.0.0.1:8000 → redirects toward `/decision-trees/dashboard`
+- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.9`
+- Prefer digest pins in production — see [self-host-env.md](self-host-env.md)
 
-Default Core image settings:
+**Network (H-07):** Postgres is **not** published on the host. Web binds
+**`127.0.0.1:8000` only**. Product routes need auth; `/api/docs` and health stay
+on loopback. Internet-facing: use the [production overlay](#production-overlay-https--caddy).
 
-- `SMEME_AI_GENERATION_ENABLED=false` — no `OPENAI_API_KEY` / `TAVILY_API_KEY` required to boot
-- `MCP_ENABLED=false` — set `true` and configure Clerk/OAuth when you want remote MCP
+Empty `SECRET_KEY` / `JWT_SECRET_KEY` / `POSTGRES_PASSWORD` fail closed (Compose
+refuses to interpolate).
 
-**Network exposure (H-07):** Postgres is **not** published on the host. The web
-service binds **`127.0.0.1:8000` only** (not `0.0.0.0`). Product routes require
-auth (`/decision-trees/dashboard` → 401 without a session); `/api/docs` and
-`/api/v1/health` remain reachable on loopback. For internet-facing deploy, use
-the production overlay (TLS via Caddy) — do not widen the Compose publish ports.
+### Next steps after health
 
-### Production overlay (TLS)
+| Goal | Doc |
+|------|-----|
+| Env knobs / profiles | [self-host-env.md](self-host-env.md) |
+| HTTPS | [below](#production-overlay-https--caddy) |
+| Clerk + MCP + wizard | [self-host-pilot.md](self-host-pilot.md) |
+| Backup / upgrade | [Operate](#operate-backup-upgrade-troubleshoot) |
+
+## Production overlay (HTTPS / Caddy)
 
 ```bash
-# Set BASE_URL / ALLOWED_ORIGINS to your https:// origin in .env.core
-# Place tls.crt + tls.key under deploy/caddy/certs/
-export SMEME_PUBLIC_HOST=app.example.com
+# In .env.core — matching examples:
+BASE_URL=https://app.example.com
+ALLOWED_ORIGINS=["https://app.example.com"]
+SMEME_PUBLIC_HOST=app.example.com
+
+mkdir -p deploy/caddy/certs
+# Lab only (self-signed):
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout deploy/caddy/certs/tls.key \
+  -out deploy/caddy/certs/tls.crt \
+  -subj "/CN=app.example.com"
+# Prefer publicly trusted certs for real pilots (replace tls.crt / tls.key).
+
 docker compose --env-file .env.core \
-  -f docker-compose.core.yml -f docker-compose.core.prod.yml up --build -d
+  -f docker-compose.core.yml -f docker-compose.core.prod.yml pull
+docker compose --env-file .env.core \
+  -f docker-compose.core.yml -f docker-compose.core.prod.yml \
+  up -d --no-build --wait
 ```
 
-Requires Docker Compose **v2.24+** (`!reset` for clearing the loopback port).
-See [`deploy/caddy/Caddyfile`](../../deploy/caddy/Caddyfile).
+- `SMEME_PUBLIC_HOST` is passed into the Caddy container (see
+  [`deploy/caddy/Caddyfile`](../../deploy/caddy/Caddyfile)).
+- Loopback `:8000` publish is removed; ingress is **80/443** only.
+- `web` / `db` / `caddy` use `restart: unless-stopped`.
 
-Full operator knob list: [`.env.core.example`](../../.env.core.example).
+## Contributor build (separate from operator path)
 
-## Sovereignty / third-party egress
-
-Self-host keeps **Deploy / evaluate / MCP report** on your infrastructure by default. Some optional flags send **decision-tree content, research text, or prompts** to third parties. Turn them on only if your policy allows that egress.
-
-| Risk | Flag / dependency | What leaves your boundary | Default (Core image) |
-|------|-------------------|---------------------------|----------------------|
-| **High — generation wizard** | `SMEME_AI_GENERATION_ENABLED=true` + `OPENAI_API_KEY` | Brief, research corpus, design/build prompts, draft graph text → **OpenAI** | **Off** |
-| **High — web research** | `TAVILY_API_KEY` (only while generation is on) | Search queries / URLs derived from the brief → **Tavily** | Unset (no calls) |
-| **High if re-enabled** | LangSmith (`LANGCHAIN_*`) | Full LangGraph run I/O (prompts, state) → **LangSmith** | **Hard-disabled** at startup — keys have no effect |
-| **Medium — identity** | `CLERK_*` | Auth sessions, user profile sync, OAuth for MCP → **Clerk** (not your trees, but PII/login) | Operator-chosen |
-| **Low / none for trees** | `MCP_ENABLED` + evaluate tools | Answers + reports stay on **your** server; agents do not receive branch topology | Off until you enable |
-| **Low for trees** | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Server-owned design guidance / validate / create draft — **no OpenAI** in the current MCP authoring path | On when `MCP_ENABLED` (set `false` to opt out) |
-| **None (trees)** | Manual editor + Deploy + Z3 evaluate | Compiles and reasons locally (Postgres + Z3 in-process) | Always available |
-
-**Sovereignty-preserving Core profile** (no decision-tree content to LLM/search vendors):
+Operators should **not** need this. Contributors building local code:
 
 ```bash
-SMEME_AI_GENERATION_ENABLED=false
-# leave OPENAI_API_KEY and TAVILY_API_KEY unset
-MCP_ENABLED=true   # optional; still on your host
-# configure Clerk (or future OIDC) only for login / MCP OAuth
+./scripts/init_core_env.sh
+docker compose --env-file .env.core \
+  -f docker-compose.core.yml -f docker-compose.core.build.yml \
+  up -d --build --wait
 ```
 
-Authors build trees in the **editor** (or via the web wizard / MCP chat authoring
-path — see [Authoring decision trees](authoring-decision-trees.md)); agents call
-MCP evaluate on your instance.
+Or: `docker build -f Dockerfile.core -t smeme-core:local .`
 
-**LangSmith note:** the old `tracing.py` helpers were removed. Getting LangSmith working again is not “drop tracing.py back in” alone — you must stop (or gate) `disable_langsmith_tracing()`, set `LANGCHAIN_TRACING_V2` + API key, and accept that generation traces export workflow I/O. Optional metadata helpers can be re-added later; they are not the main switch.
+Release evidence pack: `scripts/prepare_core_release_evidence.sh smeme-core:local build/release-evidence`.
 
-## Operator options (Core)
+## Operate, backup, upgrade, troubleshoot
 
-| Area | Env | Notes |
-|------|-----|--------|
-| **Runtime** | `DEBUG`, `LOG_LEVEL`, `ALLOWED_ORIGINS` | CORS must include your public origin when not localhost |
-| **AI generation** | `SMEME_AI_GENERATION_ENABLED` | Mounts wizard + checkpointer; requires `OPENAI_API_KEY` when `true` |
-| | `OPENAI_API_KEY` | Required only when generation is on |
-| | `TAVILY_API_KEY` | Optional web research for agentic generation; ignored if generation is off |
-| | `SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR` | Tavily country control on the brief form (default on) |
-| **Auth** | `CLERK_*` | Sign-in/up/out, publishable/secret keys, webhook secret, optional `CLERK_OAUTH_ISSUER` |
-| | `CLERK_OAUTH_DYNAMIC_REGISTRATION` | Usually `false` for self-host with a static OAuth client |
-| **MCP** | `MCP_ENABLED` | Streamable HTTP MCP + discovery |
-| | `MCP_HTTP_PATH` | Default `/api/v1/mcp` |
-| | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | Chat authoring tools (`smeme_authoring_*`); on when MCP is enabled; set `false` to opt out |
-| | `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` | Static client allowlist when DCR is off |
-| | `SMEME_MCP_OAUTH_ACCESS_TOKEN_AUDIENCE` | Optional `aud` binding |
-| | Transport rate limits / invocation telemetry | See `.env.core.example` |
-| **Quotas** | Self-host metering | **Enforcement off** by default; MCP/wizard **metering stays on**. Core does not register plan-based caps. |
-
-**LangSmith:** hard-disabled (see [sovereignty](#sovereignty--third-party-egress)). Not an operator toggle today.
-
-Vendor billing, analytics, waitlist, and cost-accounting settings are not part
-of Core compose.
-
-Full authoring comparison (wizard vs MCP chat, DTGraph shape, egress): [Authoring decision trees](authoring-decision-trees.md).
-
-## Enable AI generation (with optional Tavily)
+### Status / logs / stop
 
 ```bash
-# in .env.core
-SMEME_AI_GENERATION_ENABLED=true
-OPENAI_API_KEY=sk-...
-TAVILY_API_KEY=tvly-...          # optional; improves agentic research
-SHOW_DECISION_TREE_GENERATION_REGION_SELECTOR=true
-
-docker compose --env-file .env.core -f docker-compose.core.yml up --build
+docker compose --env-file .env.core -f docker-compose.core.yml ps
+docker compose --env-file .env.core -f docker-compose.core.yml logs -f web
+docker compose --env-file .env.core -f docker-compose.core.yml stop
+# Tear down containers + network; keep volumes:
+docker compose --env-file .env.core -f docker-compose.core.yml down
 ```
 
-Or one-shot (still requires secrets in the environment or `.env.core`):
+### Danger: `down -v`
+
+`docker compose … down -v` **deletes** the Postgres volume (`smeme_core_pg`) and
+Caddy data volumes. That destroys decision-trees and auth-linked rows. Prefer
+`down` without `-v` unless you intend a wipe.
+
+### Backup / restore test
 
 ```bash
-export SECRET_KEY="$(openssl rand -hex 32)"
-export JWT_SECRET_KEY="$(openssl rand -hex 32)"
-export POSTGRES_PASSWORD="$(openssl rand -hex 24)"
-SMEME_AI_GENERATION_ENABLED=true \
-OPENAI_API_KEY=sk-... \
-TAVILY_API_KEY=tvly-... \
-docker compose --env-file .env.core -f docker-compose.core.yml up --build
+# Dump (while stack is up)
+docker compose --env-file .env.core -f docker-compose.core.yml exec -T db \
+  pg_dump -U smeme -d smeme -Fc > smeme-core-$(date +%Y%m%d).dump
+
+# Restore into a fresh volume (smoke the backup before you need it)
+docker compose --env-file .env.core -f docker-compose.core.yml exec -T db \
+  pg_restore -U smeme -d smeme --clean --if-exists < smeme-core-YYYYMMDD.dump
 ```
 
-## Enable MCP
+After restore, hit `/api/v1/health/db` and spot-check the dashboard.
 
-1. Configure Clerk (or your OIDC AS) per [DR-3 guide](dr3-mcp-oauth-authoritative-sources.md).
-2. In `.env.core`: `MCP_ENABLED=true`, set `BASE_URL` to your public HTTPS origin, fill `CLERK_*`.
-3. For DCR-off + a static OAuth client: set `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` to that client id; keep `CLERK_OAUTH_DYNAMIC_REGISTRATION=false`.
-4. Authoring tools (`smeme_authoring_*`) are registered when MCP is enabled. Set `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false` only if you want to disable them.
-5. Restart the `web` service.
+### Upgrade / rollback
 
-**How agents get guidance:** there is no installable zip to download. After OAuth, the
-client calls **`smeme_reasoning_guidance_get`** (usually after
-`smeme_reasoning_capabilities`) and caches the returned markdown calling
-contract. The repo folder [`agent-skills/`](../../agent-skills/README.md) is
-the authoring source used to build that content. In-app detail: `/docs/mcp`.
+1. Note current `SMEME_CORE_IMAGE` (tag **and** digest if pinned).
+2. `pg_dump` as above.
+3. Set `SMEME_CORE_IMAGE` to the new tag/digest → `pull` → `up -d --no-build --wait`.
+4. Migrations run on container start; watch `logs web` if health stalls.
+5. **Rollback:** point `SMEME_CORE_IMAGE` at the previous digest and recreate
+   `web`. If a migration is not backward-compatible, restore the dump taken in
+   step 2 onto a volume that matches that image generation.
 
-## Build the image alone
+Pair upgrades with rollbacks: never drop the previous digest from your notes
+until the new tag is proven.
 
-```bash
-docker build -f Dockerfile.core -t smeme:local .
-```
+### Secret rotation
 
-Notices and corresponding-source materials live in the image under `/app/legal/` (see [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) and [`legal/SOURCE_OFFER.md`](../../legal/SOURCE_OFFER.md)). For a release evidence pack (SBOM + legal bundle):
+1. Generate new values (`openssl rand -hex 32` / init script on a throwaway copy).
+2. Update `.env.core`; recreate `web` for `SECRET_KEY` / `JWT_SECRET_KEY`.
+3. `POSTGRES_PASSWORD` changes require aligning the DB role (`ALTER USER`) or
+   recreating the volume from backup — do not only change the env file.
 
-```bash
-scripts/prepare_core_release_evidence.sh smeme:local build/release-evidence
-```
+### Troubleshooting
+
+| Symptom | Check |
+|---------|--------|
+| Compose: “required variable … missing a value” | Run `init_core_env.sh` or fill secrets; empty strings fail closed. |
+| `pull` 401 / denied | Package must be public; `docker logout ghcr.io` and retry with empty `DOCKER_CONFIG` if Desktop creds interfere. |
+| Health fails / start_period | `docker compose … logs web`; confirm DB healthy; wait for migrations. |
+| Caddy serves wrong host / TLS errors | `SMEME_PUBLIC_HOST` set; certs under `deploy/caddy/certs/`; `BASE_URL` is `https://` matching that host. |
+| MCP client cannot discover OAuth | HTTPS `BASE_URL`; `MCP_ENABLED=true`; see [self-host-pilot.md](self-host-pilot.md). |
+| Wizard 500 / boot refuses OpenAI | `SMEME_AI_GENERATION_ENABLED=true` requires `OPENAI_API_KEY`. |
+
+## Sovereignty (short)
+
+Deploy / evaluate / MCP report stay on your host by default. Wizard + Tavily
+send content off-box. Full matrix: [self-host-env.md](self-host-env.md) and the
+sovereignty section historically in this guide’s older revisions — prefer the
+env guide + [authoring-decision-trees.md](authoring-decision-trees.md).
 
 ## Stuck?
 
-Ask in [GitHub Discussions → Self-host / operators](https://github.com/AristaLabs/smeme/discussions/categories/self-host-operators)
-(or **Get started** for MCP connect questions). Include the image tag/digest if you
-can; never paste a full `.env` or secrets. Confirmed Core defects →
-[Issues](https://github.com/AristaLabs/smeme/issues).
+[GitHub Discussions → Self-host / operators](https://github.com/AristaLabs/smeme/discussions/categories/self-host-operators).
+Include image tag/digest; never paste a full `.env`.
 
 ## Contributor checks
 
 ```bash
 uv run python scripts/check_core_no_saas_imports.py
+uv run python scripts/check_core_operator_env_drift.py
 ```
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md).

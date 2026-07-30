@@ -68,6 +68,9 @@ jobs:
       - name: Product vocabulary (decision-tree copy)
         run: uv run python scripts/check_product_vocabulary.py
 
+      - name: Core operator env drift (compose ↔ docs ↔ Settings)
+        run: uv run python scripts/check_core_operator_env_drift.py
+
       - name: Core entrypoint must not import SAAS-ONLY modules (D023)
         run: uv run python scripts/check_core_no_saas_imports.py
 
@@ -84,8 +87,12 @@ jobs:
           test -f Dockerfile.core
           test -f start-core.sh
           test -f docker-compose.core.yml
+          test -f docker-compose.core.build.yml
           test -f docker-compose.core.prod.yml
+          test -x scripts/init_core_env.sh
           test -f deploy/caddy/Caddyfile
+          test -f docs/guides/self-host-env.md
+          test -f docs/guides/self-host-pilot.md
           test -f smeme/core_entrypoint.py
           test ! -f smeme/main.py
           test ! -f smeme/saas_overlay.py
@@ -95,6 +102,7 @@ jobs:
           test -f LICENSING.md
           ! grep -q 'private monorepo' LICENSE.md
           ! grep -q 'SaaS-only / private overlay' LICENSE.md
+          ! grep -E '^\s+build:' docker-compose.core.yml
 
       - name: Run linter
         run: uv run ruff check smeme
@@ -288,6 +296,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
 
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392  # v3.6.0
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435  # v3.11.1
 
@@ -328,13 +339,14 @@ jobs:
             io.smeme.core.ref=${{ steps.tag.outputs.ref }}
             io.smeme.core.channel=${{ steps.tag.outputs.channel }}
 
-      - name: Build and push Core image
+      - name: Build and push Core image (linux/amd64 + linux/arm64)
         id: build
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25  # v5.4.0
         with:
           context: .
           file: Dockerfile.core
           push: true
+          platforms: linux/amd64,linux/arm64
           # Buildx OCI attestations previously 403'd on GHCR empty blobs.
           # Signed SBOM + SLSA provenance are attached after push via
           # actions/attest (GitHub OIDC / Sigstore) for the exact digest.
@@ -344,6 +356,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Record multi-arch manifests
+        id: manifests
+        run: |
+          set -euo pipefail
+          IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}"
+          DIGEST="${{ steps.build.outputs.digest }}"
+          echo "Index/manifest digest from build-push: $DIGEST"
+          docker buildx imagetools inspect "$IMG" > /tmp/imagetools.txt
+          cat /tmp/imagetools.txt
+          # Per-arch digests when present (honest evidence; may be platform descriptors).
+          {
+            echo "image=$IMG"
+            echo "index_digest=$DIGEST"
+            echo "platforms=linux/amd64,linux/arm64"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Attest published digest
         id: evidence
@@ -364,6 +392,7 @@ jobs:
             ```
             Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}
             Digest: ${{ steps.build.outputs.digest }}
+            Platforms: linux/amd64, linux/arm64
             Channel: ${{ steps.tag.outputs.channel }}
             ```
 
@@ -387,6 +416,30 @@ jobs:
         run: |
           echo "Published ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}"
           echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "Platforms: linux/amd64,linux/arm64"
           echo "Channel: ${{ steps.tag.outputs.channel }}"
           echo "::notice::Core release ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.version }}@${{ steps.build.outputs.digest }}"
           echo "::notice::Verify: gh attestation verify oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }} --repo ${{ github.repository }}"
+
+  anonymous-pull:
+    name: Anonymous GHCR pull (post-publish)
+    runs-on: ubuntu-latest
+    needs: [publish]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Anonymous pull without registry login
+        env:
+          VERSION: ${{ github.ref_name }}
+          IMAGE: ghcr.io/aristalabs/smeme
+        run: |
+          set -euo pipefail
+          docker logout ghcr.io 2>/dev/null || true
+          export DOCKER_CONFIG="$(mktemp -d)"
+          echo '{}' > "$DOCKER_CONFIG/config.json"
+          # No docker login — public package must pull anonymously.
+          docker pull "${IMAGE}:${VERSION}"
+          docker image inspect "${IMAGE}:${VERSION}" --format '{{.Id}} {{index .RepoDigests 0}}'
+          echo "::notice::Anonymous pull OK for ${IMAGE}:${VERSION}"
