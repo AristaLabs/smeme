@@ -165,6 +165,13 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 
 **Tests:** `tests/unit/mcp/test_dr3_mcp_transport_oauth.py` (401 challenge shape, no **302** on MCP **POST**, **`resource_metadata`** alignment). Broader Bearer behavior: `tests/unit/mcp/test_p2_bearer_auth.py`.
 
+## Stuck?
+
+Ask in [GitHub Discussions → Get started](https://github.com/AristaLabs/smeme/discussions/categories/get-started-mcp-cowork)
+or [Integrations](https://github.com/AristaLabs/smeme/discussions/categories/integrations).
+Mention which client (Cowork, Cursor, …), smeme.ai vs self-host, and what you expected.
+Do not post OAuth client secrets or tokens.
+
 ## See also
 
 - [Self-host quickstart](self-host-quickstart.md)

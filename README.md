@@ -16,6 +16,17 @@ via MCP (`smeme_reasoning_capabilities` → `smeme_reasoning_guidance_get`). The
 is no installable zip — guidance is served over the wire. Humans edit
 prose under [`agent-skills/`](agent-skills/README.md); CI builds what MCP returns.
 
+### Need help?
+
+| Need | Where |
+|------|--------|
+| How-to, MCP clients, integrations, example trees, self-host tips | **[GitHub Discussions](https://github.com/AristaLabs/smeme/discussions)** (Sign in with GitHub — free) |
+| Reproducible bug or Core feature request | [Issues](https://github.com/AristaLabs/smeme/issues) |
+| Account / billing on [smeme.ai](https://www.smeme.ai) | Email **contact@aristalabs.ai** |
+| Security vulnerability | [SECURITY.md](SECURITY.md) — **not** Discussions or public Issues |
+
+Start with the pinned **Start here** post in Discussions. Do not post secrets, `.env` files, or tokens.
+
 ---
 
 ## Tech Stack

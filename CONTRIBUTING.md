@@ -10,6 +10,12 @@ waitlist, and Arista Labs legal pages are out of scope for public PRs.
 
 By opening a pull request, you agree to the [Contributor License Agreement](CONTRIBUTOR_LICENSE_AGREEMENT.md), which lets Arista Labs, LLC relicense contributions (including under commercial terms for hosted / proprietary offerings).
 
+## Questions vs code
+
+- **Usage / how-to / MCP / self-host:** ask in [GitHub Discussions](https://github.com/AristaLabs/smeme/discussions) (not a substitute for the CLA or PR review).
+- **Bugs and Core feature requests:** [Issues](https://github.com/AristaLabs/smeme/issues).
+- **Code changes:** open a PR against this repo (below). Discussions is not CLA review.
+
 ## How to contribute
 
 1. **Fork** the public `smeme` repo.
