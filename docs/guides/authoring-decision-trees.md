@@ -82,15 +82,35 @@ Opt out with `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false`.
 language, structures a `dt_graph_json` payload, validates it, and creates a
 dashboard draft after explicit confirmation. **No server LLM or search egress**
 on this path — design guidance is served as static markdown from
-`smeme_authoring_design_guidance`.
+`smeme_authoring_design_guidance` (content version **2.5.0+** includes an
+optional **Research & critique** protocol).
+
+Unlike the web wizard (server OpenAI + optional Tavily + LangGraph interrupts),
+MCP chat research is **client-side**: the agent uses host capabilities (local
+files, pasted policy text, fetchable URLs, other MCP connectors, prior
+prompts/skills the user points at). SMEme never receives source blobs on this
+path—only the graph JSON the user asks to push.
+
+### Session fork
+
+After `smeme_authoring_design_guidance`, the agent offers once:
+
+- **Quick encode** — skip research; conclusions → outline → validate.
+- **Research & critique** — host context intake → factors (≤12) → pause →
+  conclusions → pause → Q/branch outline → pause → structure JSON.
+
+Research does not auto-start unless the user chooses that fork or already
+attached/named sources.
 
 ### Tool sequence
 
 1. `smeme_authoring_design_guidance` — fetch the design standard (cache by digest).
-2. Iterate with the user in prose until they are ready to push.
-3. `smeme_authoring_validate_graph` — pass `dt_graph_json` (raw graph or
+2. Offer the session fork; on research, gather host-side context and pause for
+   factor / conclusion / outline critique.
+3. Iterate with the user in prose until they are ready to push.
+4. `smeme_authoring_validate_graph` — pass `dt_graph_json` (raw graph or
    `.smeme.json` export envelope).
-4. `smeme_authoring_create_draft` — persist draft when `draft_ready` and user confirms.
+5. `smeme_authoring_create_draft` — persist draft when `draft_ready` and user confirms.
 
 **Deploy** and **Listed** remain in the web editor; the agent does not auto-Deploy.
 
