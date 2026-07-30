@@ -1,7 +1,7 @@
 # SMEme — Decision Tree Design Guidance
 
 _Versioned standard for designing reasoning decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 2.4.0_
+`smeme_authoring_design_guidance`. Content version: 2.5.0_
 
 ---
 
@@ -18,7 +18,82 @@ both design rules and the `dt_graph` wire shape below.
 
 This is **not** the web generation wizard. Do not paste research pipelines or
 markdown decision-tree designs meant for the wizard. Keep the tree readable until the
-user says they are ready to push.
+user says they are ready to push. Optional **Research & critique** below is
+**client-side** (your host tools) — SMEme does not run server research on this path.
+
+---
+
+## Session fork (offer once)
+
+At the start of deliberate chat authoring (after identifying the judgment),
+**offer exactly one fork** and wait for the user’s choice:
+
+- **Quick encode** — the user already knows the judgment; skip research; go to
+  conclusions → outline → validate.
+- **Research & critique** — gather host-side context → factor list → pause →
+  conclusions → pause → Q/branch outline → pause → structure JSON.
+
+Do **not** auto-start research unless the user chooses **Research & critique**
+or has already attached/named sources to use. Small revises of an existing draft
+may stay on Quick unless the user asks to re-research.
+
+---
+
+## Research & critique (optional path)
+
+### Context intake
+
+On the research path, ask what to ground on and use **available host
+capabilities** (whatever this session actually provides):
+
+- Local files the user points at or attaches
+- Pasted policy, procedure, standard, or checklist text
+- URLs the host can fetch
+- Other MCP connectors available in the session
+- Prior prompts or skills the user points at as working prose for the logic
+
+Stay host-agnostic: use tools that exist; do **not** invent APIs or claim a
+connector is present when it is not.
+
+Hard rules:
+
+- Research stays **on the client**. SMEme does not receive source blobs on this
+  path.
+- Never upload private files to SMEme except the `dt_graph` / `.smeme.json`
+  export the user asked you to push.
+- Summarize grounding for the user in chat. When a source drives a question,
+  carry the citation into question `authorities` and clarifiers into
+  `help_text` — do not dump full corpora into graph metadata.
+
+### Factor critique
+
+Propose **decision-critical factors** only (would change the recommendation,
+create branching, or carry legal/safety/high-stakes weight). Soft cap **12**;
+prefer fewer strong factors over padding.
+
+For each factor, state briefly:
+
+1. Why it matters for the outcome
+2. Typical states / option labels
+3. How different values change the branch or conclusion
+
+Then **stop and wait** for the user to edit or approve before locking
+conclusions. Do not proceed on silence or assumed consent.
+
+### Conclusions lock
+
+After factors (research path) or immediately (quick path), lock **2–6**
+mutually exclusive conclusions with the user (see **Start with conclusions**
+below). **Stop and wait** for edit/approve before the question outline.
+
+### Outline critique
+
+Build a readable outline: questions with options and “if X → …”. **Stop and
+wait** until the user says they are ready (or explicitly asks to validate /
+push). Only then structure wire `dt_graph` JSON.
+
+Critique pauses approve **design**, not Deploy. Deploy / Listed remain in the
+SMEme web app.
 
 ---
 
@@ -130,7 +205,8 @@ Minimal example:
 
 ## Start with conclusions (closed outcome set)
 
-Before deep branching, lock a small set of outcomes with the user:
+Before deep branching, lock a small set of outcomes with the user. On the
+research path, do this **after** factor critique approval.
 
 1. **2–6 conclusions** — mutually exclusive (exactly one applies per case).
 2. **Exhaustive for the scope** — every plausible case lands somewhere; use a
@@ -140,8 +216,9 @@ Before deep branching, lock a small set of outcomes with the user:
 4. **Discriminable** — the questions you ask must be enough to tell conclusions
    apart.
 
-Do not grow the conclusion list during branching without re-confirming with the
-user. Extra outcomes that no path can reach will fail validation or Deploy later.
+**Stop and wait** for edit/approve. Do not grow the conclusion list during
+branching without re-confirming with the user. Extra outcomes that no path can
+reach will fail validation or Deploy later.
 
 ---
 
@@ -234,13 +311,15 @@ Good: Q4 Unsure → Q5, Q5 Unsure → Q6 or a conclusion
 
 ## Plain-language iteration (before JSON)
 
-Work with the user in readable outline form:
+Work with the user in readable outline form (after the session fork and any
+research & critique pauses):
 
 1. Goal / decision in one sentence.
-2. Conclusion list (titles + one-line meaning).
-3. Questions with options and “if X → …”.
-4. Preflight checklist (below).
-5. Only then structure wire JSON and validate.
+2. (Research path) Approved factor list — or skip if Quick encode.
+3. Conclusion list (titles + one-line meaning) — wait for approve.
+4. Questions with options and “if X → …” — wait until ready.
+5. Preflight checklist (below).
+6. Only then structure wire JSON and validate.
 
 Do **not** emit `dt_graph` JSON until the user is ready (or explicitly asks to
 validate / push).
@@ -304,12 +383,22 @@ graphs but validate first anyway. Never auto-Deploy.
 - Long question stems that belong in `help_text`.
 - Claiming the draft is Deployed or evaluable before the user Deploys + Lists
   it in the SMEme web app.
+- Auto-starting research without the session fork (or without user-provided
+  sources).
+- Dumping full source corpora into graph metadata instead of `authorities` /
+  `help_text` summaries.
+- Skipping factor, conclusion, or outline critique pauses.
+- Treating factor or conclusion approval as Deploy / Listed.
+- Inventing host tools or connectors that are not available in the session.
 
 ---
 
 ## Summary
 
-- Lock **conclusions** first; branch to discriminate among them.
+- Offer **Quick encode** vs **Research & critique** once; research is client-side.
+- On research: intake host data sources → factors (≤12) → pause → conclusions →
+  pause → outline → pause → JSON.
+- Lock **conclusions** before deep branching; branch to discriminate among them.
 - **Radio-only**, `required: true`, explicit option routes, conclusions only
   as terminals.
 - Prefer sparse branching over checklists; Unsure goes **forward**.

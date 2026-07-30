@@ -676,10 +676,15 @@ def _build_mcp_instructions(cfg: Settings) -> str:
     if cfg.mcp_authoring_graph_tools_enabled:
         base += (
             "\n\nChat authoring: when the user wants to build a decision tree in chat "
-            "(not the web wizard), call smeme_authoring_design_guidance once, iterate "
-            "questions/options/branches in plain language until they say they are ready, "
-            "then structure a dt_graph, call smeme_authoring_validate_graph, fix errors, "
-            "and only then smeme_authoring_create_draft. To revise an existing draft: "
+            "(not the web wizard), call smeme_authoring_design_guidance once (it includes "
+            "optional Research & critique phases), then offer Quick encode vs Research & "
+            "critique. On research, use available host data sources (local files, pasted "
+            "policy text, fetchable URLs, other MCP connectors, prior prompts/skills the "
+            "user points at)—client-side only; do not upload private files to SMEme except "
+            "the graph JSON they ask to push. Pause for user feedback on factors, "
+            "conclusions, and the Q/branch outline before JSON. Then structure a dt_graph, "
+            "call smeme_authoring_validate_graph, fix errors, and only then "
+            "smeme_authoring_create_draft. To revise an existing draft: "
             "smeme_authoring_get_draft → edit → smeme_authoring_validate_graph → "
             "smeme_authoring_update_draft with expected_graph_hash; on graph_conflict, "
             "fetch again and retry. Do not auto-Deploy."
@@ -850,8 +855,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 """Get SMEme's standard for designing reasoning decision trees in chat.
 
                 AUTHORING helper (not evaluation). Returns the versioned design standard:
-                radio-only product constraints, conclusion-first outcome sets, anti-funnel
-                branching, Unsure/forward-only policy, and a preflight checklist before
+                session fork (Quick encode vs Research & critique), optional host-side
+                context intake and factor/conclusion/outline critique pauses, radio-only
+                product constraints, conclusion-first outcome sets, anti-funnel branching,
+                Unsure/forward-only policy, and a preflight checklist before
                 ``smeme_authoring_validate_graph`` / ``smeme_authoring_create_draft``.
 
                 When to call: once at the start of a chat authoring session (Phase B), and

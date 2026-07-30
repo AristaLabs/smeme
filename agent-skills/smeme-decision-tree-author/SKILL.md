@@ -56,13 +56,23 @@ If revising an existing tree, confirm the `decision_tree_id` (from a prior
 
 1. Call **`smeme_authoring_design_guidance`** once (cache by `content_digest`).
    Prefer that document over any cached copy of this skill if they disagree.
-2. Design **with the user in readable form** — lock conclusions first, then
-   questions, options, and “if X → …”. Keep a running outline they can correct.
-3. Apply the design standard: radio-only, anti-funnel branching, Unsure
+2. Offer the **session fork** once (from design guidance):
+   - **Quick encode** — skip research; lock conclusions → outline → validate.
+   - **Research & critique** — host-side context intake → factors (≤12) → pause
+     for approve → conclusions → pause → Q/branch outline → pause → JSON.
+   Do not auto-start research unless the user picks Research & critique or
+   already attached/named sources. Use available host tools only (local files,
+   pasted policy text, fetchable URLs, other MCP connectors, prior prompts /
+   skills the user points at). Never upload private files to SMEme except the
+   graph JSON they ask to push; put citations in `authorities` / `help_text`.
+3. Design **with the user in readable form** — wait for critique approvals.
+   Lock conclusions before deep branching, then questions, options, and
+   “if X → …”. Keep a running outline they can correct.
+4. Apply the design standard: radio-only, anti-funnel branching, Unsure
    forward-only, every path reaches a conclusion. For independently sufficient
    overlapping triggers, agree a priority and use first-hit-wins routing to one
    shared conclusion.
-4. For time-sensitive rules, capture structured per-question `authorities`,
+5. For time-sensitive rules, capture structured per-question `authorities`,
    graph `effective_date` / `review_by`, and expected-outcome regression fixtures.
 
 **Do not** emit wire `dt_graph` JSON until the user says they are ready (or
@@ -211,8 +221,10 @@ Rules agents miss most often:
 ```
 identify / confirm scope
   → smeme_authoring_design_guidance (once; cache by digest)
-  → iterate plain-language tree with user (conclusions first)
-  → user: ready
+  → session fork: Quick encode | Research & critique
+  → (research) host context intake → factors → user approve
+  → lock conclusions → user approve
+  → Q/options/branches outline → user ready
   → structure dt_graph
   → smeme_authoring_validate_graph
   → fix until draft_ready

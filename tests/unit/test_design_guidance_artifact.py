@@ -45,6 +45,7 @@ def test_digest_aligns_with_generated_constants() -> None:
 
 def test_generated_markdown_content() -> None:
     assert DESIGN_GUIDANCE_MARKDOWN.strip()
+    assert DESIGN_GUIDANCE_VERSION == "2.5.0"
     assert "Product constraints" in DESIGN_GUIDANCE_MARKDOWN
     assert "Conclusion-driven" in DESIGN_GUIDANCE_MARKDOWN or "conclusions" in DESIGN_GUIDANCE_MARKDOWN
     assert "smeme_authoring_validate_graph" in DESIGN_GUIDANCE_MARKDOWN
@@ -53,6 +54,11 @@ def test_generated_markdown_content() -> None:
     assert 'required: true' in DESIGN_GUIDANCE_MARKDOWN or '"required": true' in DESIGN_GUIDANCE_MARKDOWN
     assert "conjunctive" in DESIGN_GUIDANCE_MARKDOWN.lower()
     assert "q7a" in DESIGN_GUIDANCE_MARKDOWN or "duplicate" in DESIGN_GUIDANCE_MARKDOWN.lower()
+    assert "Session fork" in DESIGN_GUIDANCE_MARKDOWN
+    assert "Research & critique" in DESIGN_GUIDANCE_MARKDOWN
+    assert "available host" in DESIGN_GUIDANCE_MARKDOWN.lower()
+    assert "Factor critique" in DESIGN_GUIDANCE_MARKDOWN
+    assert "stop and wait" in DESIGN_GUIDANCE_MARKDOWN.lower()
     assert_blind_protocol_safe(DESIGN_GUIDANCE_MARKDOWN)
 
 
