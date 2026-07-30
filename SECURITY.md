@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are accepted for the latest tagged Core release published as `ghcr.io/AristaLabs/smeme` (for example `v1.0.0` and later patch/minor tags). Older tags may not receive backports.
+Security fixes are accepted for the latest tagged Core release published as `ghcr.io/AristaLabs/smeme`. Check [GitHub Releases](https://github.com/AristaLabs/smeme/releases) for the current supported version; older tags may not receive backports.
 
 ## Scope
 
