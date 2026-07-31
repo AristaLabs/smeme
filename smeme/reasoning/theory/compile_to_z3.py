@@ -34,7 +34,7 @@ This prevents “floating” reachability without a supporting path from an entr
 
 **Phase 1:** Valid IR is a **DAG** (see :func:`~smeme.reasoning.ir.validate.validate_ir`). Runtime checks are **existential** ``SAT(T(IR) ∧ φ)`` queries over abstract atoms—not Phase 2 evidence-grounded evaluation.
 
-**Proof theory vs models:** Each ``solver.add(φ)`` is one conjunct of the compiled theory (not a rule with hypotheses). For Booleans, ``guard == option_atom`` is **material equivalence** (iff). See :mod:`~smeme.reasoning.theory.guards_radio` and repo-root ``ALGEBRA.md`` (§6 Reachability — *Model-theoretic packaging*).
+**Proof theory vs models:** Each ``solver.add(φ)`` is one conjunct of the compiled theory (not a rule with hypotheses). For Booleans, ``guard == option_atom`` is **material equivalence** (iff). See :mod:`~smeme.reasoning.theory.guards_radio` and ``smeme/reasoning/evaluate_semantics.md`` (theory vs evidence).
 """
 
 from __future__ import annotations

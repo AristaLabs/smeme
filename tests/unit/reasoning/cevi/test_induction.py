@@ -47,7 +47,6 @@ def test_induce_at_publish_no_corpus_snapshot_is_empty() -> None:
         graph_hash="a" * 64,
         ir_format_version=IR_FORMAT_VERSION,
         corpus_body=None,
-        legal_at_publish=False,
     )
     assert snap.text == ""
     assert snap.sha256_hex is None

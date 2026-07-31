@@ -6,8 +6,8 @@ exposes question ids + option strings only (D021) — not guards, paths, or ``re
 symbols.
 
 This is **not** abductive inference from incomplete or conflicting evidence (see
-ALGEBRA.md §17 vocabulary note). Z3 is used only as an entailment oracle; this
-module does not treat ``unsat_core()`` as a guaranteed MUS.
+``smeme/reasoning/evaluate_semantics.md`` §9 decisive support). Z3 is used only as
+an entailment oracle; this module does not treat ``unsat_core()`` as a guaranteed MUS.
 """
 
 from __future__ import annotations

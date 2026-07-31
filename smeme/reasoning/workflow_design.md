@@ -230,7 +230,7 @@ Runs **`check()`** once on `T(IR)` and reads **one** witness model’s `reach` f
 
 ### What this is **not**
 
-This is **existential structural** analysis: “under **some** valuation of free guard atoms …?” It is **not** “given real user inputs / grounded evidence, what outcome occurs?”—that composition (`T(IR) ∧ E`) is Phase 2+ (CEVI / evidence).
+This is **existential structural** analysis: “under **some** valuation of free guard atoms …?” It is **not** “given real user inputs / grounded evidence, what outcome occurs?”—that composition (`T(IR) ∧ E`) is what **`evaluate_reasoning`** does with structured answers (and Deploy-frozen contract projection).
 
 ---
 

@@ -30,7 +30,7 @@ from smeme.reasoning.runtime.input_validation import (
     validate_raw_answers_for_ir,
 )
 
-# Caps for harness provenance envelope; separate from blob evaluate limits.
+# Caps for harness provenance envelope (structured evaluate).
 MAX_EVIDENCE_ITEMS = 1024
 MAX_EVIDENCE_REFS_PER_QUESTION = 64
 MAX_EVIDENCE_ITEM_ID_LEN = 256

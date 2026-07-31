@@ -59,10 +59,10 @@ class CanonicalFactRecord(BaseModel):
     """Radio: option label exactly as in :class:`~smeme.reasoning.ir.types.IRQuestionShape`."""
 
     bridge_rule_id: str | None = Field(default=None, max_length=256)
-    """Set when this row was produced or overridden by a typed bridge rule (blob path)."""
+    """Optional id when a typed bridge rule produced/overrode this row (schema reserved; no blob path)."""
 
     source_item_id: str | None = Field(default=None, max_length=256)
-    """Evidence chunk / item id (``evidence_blob_v1`` provenance)."""
+    """Optional evidence chunk / item id for audit (schema reserved)."""
 
     char_start: int | None = None
     char_end: int | None = None
@@ -88,7 +88,7 @@ class CanonicalFactRecord(BaseModel):
 
 
 def validate_fact_atom_id(atom_id: str) -> None:
-    """Reject malformed ``fact:*`` ids (used at blob boundaries; Stage A emits only valid ids)."""
+    """Reject malformed ``fact:*`` ids (Stage A emits only valid ids)."""
     bad = "invalid canonical fact atom id: " + repr(atom_id)
     if _RADIO_FACT_ATOM_RE.fullmatch(atom_id):
         return

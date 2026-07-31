@@ -120,7 +120,6 @@ class DecisionTreeViewerState(TypedDict):
     reasoning_status: NotRequired[
         str | None
     ]  # "compiled" once reasoning artifact published, else None
-    cevi_legal: NotRequired[bool]
     research_corpus_present: NotRequired[bool]
     research_corpus_bytes: NotRequired[int]
     research_corpus_body: NotRequired[str]

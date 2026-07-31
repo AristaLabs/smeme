@@ -14,12 +14,10 @@ Load these in order; stop when your task is clear.
 | 2 | [D017 in `docs/DECISIONS.md`](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline) | Why the new pipeline exists; what to reuse vs replace. |
 | 3 | **This file** | Current checkpoint and next steps. |
 | 4 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |
-| 5 | [`workflow_design.md`](workflow_design.md) | Full B0–C vision (minimization, CEVI, projection) — only if scope goes beyond the spine. |
-| 6 | [`evidence_contract.md`](evidence_contract.md) | **Phase 2+ target:** `PublishedEvidenceContract`; **CEVI induction** vs **CEVI runtime**; **`smeme/reasoning/cevi/`** (Phase A: corpus normalize, IR atom catalog, publish induction hook) — see §7–§8.7. |
+| 5 | [`workflow_design.md`](workflow_design.md) | Broader design vision (minimization, projection) — only if scope goes beyond the spine. |
+| 6 | [`evidence_contract.md`](evidence_contract.md) | **Deploy freeze today:** `PublishedEvidenceContract` → `cevi_contract_*`; deterministic induction + evaluate `fact_projection`. |
 | 7 | [`IR_validator.md`](IR_validator.md) | Tiered validation / counterexamples — when extending `validate_ir`. |
 | — | [`evaluate_semantics.md`](evaluate_semantics.md) | **Evaluate contract:** \(T(\mathrm{IR})\) vs evidence \(E\), radio/PbEq, why all answered questions hit the solver, MCP structured ingest. |
-| — | [`docs/planning/sprint-cevi-corpus-induction.md`](../../docs/planning/sprint-cevi-corpus-induction.md) | Corpus persistence, publish-time induction (**no Tavily** in this path), **`legal`** toggle + legal ontology plan; editor corpus textarea superseded by **Lexicon** ([`sprint-cevi-lexicon-editor.md`](../../docs/planning/sprint-cevi-lexicon-editor.md)). |
-| — | [`docs/planning/sprint-cevi-lexicon-editor.md`](../../docs/planning/sprint-cevi-lexicon-editor.md) | **Shipped (editor MVP):** Lexicon tab, drafts, publish merge, Deploy/MCP + MCP tab; deterministic baseline unlocks editing; AI suggestions and legal ontology enrichment are non-blocking status layers. Staged modal / live discoverability = follow-up. |
 | — | [`docs/planning/dtq-to-reasoning-cutover.md`](../../docs/planning/dtq-to-reasoning-cutover.md) | **Completed cutover plan** (historical): naming, DB, API/MCP migration reference. |
 
 Repo-wide harness: [`CLAUDE.md`](../../CLAUDE.md) at the repository root.
@@ -39,7 +37,7 @@ Code layout (actual repo, not the sprint’s `dtq_v1/` sketch):
 | Runtime | `runtime/run.py`, `runtime/evaluate.py` | **Phase 1:** `solve_reachability_witness` (debug / smoke). **`evaluate_reasoning`** (`runtime/evaluate.py`) is the production runtime over persisted IR. `enumerate_conclusion_sat_queries` in `runtime/analyze.py` powers the publish preflight gate. |
 | Publish gate | `publish_readiness.py` | Async **`assess_publish_readiness`**: DecisionTree publication validation → **`compile_dt_graph_to_ir`** → **`validate_ir`** → **`enumerate_conclusion_sat_queries`**. |
 | Wire surfaces | `mcp/reasoning_fastmcp.py` | MCP **`smeme_reasoning_*`** tools call **`evaluate_reasoning`** on persisted **`ReasoningCompiledArtifact`** IR. |
-| CEVI (partial) | `cevi/*`, `runtime/evaluate.py` | Deterministic publish induction → **`PublishedEvidenceContract`**; structured answers via **`fact_projection`** Stage B before the shared Z3 tail in **`evaluate_reasoning`**. |
+| Evidence contract | `cevi/*`, `runtime/evaluate.py` | Deterministic Deploy induction → **`PublishedEvidenceContract`**; structured answers via **`fact_projection`** before the shared Z3 tail in **`evaluate_reasoning`**. |
 | Tests | `tests/unit/reasoning/` | Unit tests for compile, validate, Z3, runtime. |
 
 Public imports: `smeme.reasoning` exports IR, `validate_ir`, `IRValidationError`, `compile_ir_to_z3`, `solve_reachability_witness`, `ReachabilityWitness`, etc. Use `smeme.reasoning.dt_graph_bridge` for `compile_dt_graph_to_ir`.
@@ -51,11 +49,11 @@ Public imports: `smeme.reasoning` exports IR, `validate_ir`, `IRValidationError`
 Aligned with [`SPRINT_PLAN.md`](SPRINT_PLAN.md) **Week 1 Days 6–7** and **Week 2**, adjusted to the real module paths:
 
 1. **Validator / UX (continued)** — Radio option guards are enforced in `validate_ir`. Next: unreachable-node warnings, structured `ValidationError(code, message, location)`.
-2. **CEVI / Phase 2+ (continued)** — Corpus-backed deterministic induction on publish is in tree; remaining work: minimization, broader projection, lemma store (see `workflow_design.md`).
+2. **Theory / runtime depth** — Minimization, broader projection, lemma store (see `workflow_design.md`). Deploy already freezes a deterministic evidence contract; evaluate uses structured `raw_answers` + `fact_projection`.
 
 Structured session answers use **radio** `fact:radio:*` atoms through **`evaluate_reasoning(raw_answers)`** (Stage A canonical facts + Stage B projection).
 
-Explicit **non-goals** (still open): minimization (B0.6), full CEVI surface area beyond current slices, broad projection, lemma store — see sprint non-goals section.
+Explicit **non-goals** (still open): minimization (B0.6), broad projection, lemma store, blob-evaluate ingest — see sprint non-goals / `evidence_contract.md`.
 
 ---
 
@@ -63,9 +61,9 @@ Explicit **non-goals** (still open): minimization (B0.6), full CEVI surface area
 
 ### Axioms vs SMT encoding (proof theory vs models)
 
-On paper, \(T(\mathrm{IR})\) is a **set of formulas** (reachability, guard definitions, typed semantics). In code, each conjunct is added with **`solver.add(φ)`**: Z3 must satisfy **all** of them in one model. There is no separate natural-deduction engine: **finding a satisfying assignment** is the operational meaning of “the theory holds.” For **Boolean** guard and option variables, an equation **`G == p`** in Z3 is the same as the **biconditional** \(G \leftrightarrow p\)—a **definitional** axiom that pins a guard symbol to a **radio** option atom (see `theory/guards_radio.py`). User/session evidence (`evaluate_reasoning`) adds more **unit literals** on those atoms; the solver then decides **`SAT(T(IR) ∧ E)`**. Longer mathematical framing: [`ALGEBRA.md`](../../ALGEBRA.md) (Reachability section + **Model-theoretic packaging**).
+On paper, \(T(\mathrm{IR})\) is a **set of formulas** (reachability, guard definitions, typed semantics). In code, each conjunct is added with **`solver.add(φ)`**: Z3 must satisfy **all** of them in one model. There is no separate natural-deduction engine: **finding a satisfying assignment** is the operational meaning of “the theory holds.” For **Boolean** guard and option variables, an equation **`G == p`** in Z3 is the same as the **biconditional** \(G \leftrightarrow p\)—a **definitional** axiom that pins a guard symbol to a **radio** option atom (see `theory/guards_radio.py`). User/session evidence (`evaluate_reasoning`) adds more **unit literals** on those atoms; the solver then decides **`SAT(T(IR) ∧ E)`**. Longer evaluate framing: [`evaluate_semantics.md`](evaluate_semantics.md); broader design notes: [`workflow_design.md`](workflow_design.md).
 
-- **Phase 1 spine vs Phase 2+:** The compiled reachability theory and publish SAT gate are **structural** (`SAT(T(IR) ∧ φ)`). **User-grounded evaluate** (`evaluate_reasoning`) is shipped; **still Phase 2+ / incomplete:** minimization, proof traces, and the full CEVI / projection vision in `workflow_design.md`.
+- **Spine vs open work:** The compiled reachability theory and publish SAT gate are **structural** (`SAT(T(IR) ∧ φ)`). **User-grounded evaluate** (`evaluate_reasoning`) and Deploy evidence-contract freeze are shipped; **still open:** minimization, proof traces, and broader projection vision in `workflow_design.md`.
 - **Validated IR before Z3:** `compile_ir_to_z3(ir)` assumes `validate_ir(ir).valid` is true; it does not call `validate_ir` itself. Use `solve_reachability_witness(ir)` on integration paths (default validates and raises `IRValidationError` on failure).
 - **DAG + single entry:** `validate_ir` enforces a DAG and exactly one entry; theory matches single-start session semantics.
 - **Format version:** Compiler emits `IR_FORMAT_VERSION`; mismatch in validation means recompile or migrate stored JSON.
