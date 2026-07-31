@@ -323,13 +323,6 @@ class DecisionTree(BaseSQLModel, table=True):
         description="Post-downgrade Free tier: download-only; cleared on Pro re-upgrade.",
     )
 
-    # CEVI: legal-domain toggle gates ontology validation at publish (see evidence_contract.md)
-    cevi_legal: bool = Field(
-        default=False,
-        sa_column=Column(sa.Boolean, nullable=False, server_default=sa.false()),
-        description="When true, publish-time induction may run legal ontology enrichment.",
-    )
-
     # Timestamps (timezone-aware)
     created_at: Mapped[datetime] = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -639,30 +632,13 @@ class ReasoningCompiledArtifact(BaseSQLModel, table=True):
         sa_column=Column(sa.BigInteger(), nullable=True),
         description="Per-tree deploy vintage (starts at 1); null only for unadoptable orphans.",
     )
-    cevi_legal_validation_status: str = Field(
-        default="not_required",
-        sa_column=Column(String(20), nullable=False),
-        description="not_required | pending | passed | failed",
-    )
-    cevi_legal_validation_started_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(DateTime(timezone=True), nullable=True),
-    )
-    cevi_legal_validation_completed_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(DateTime(timezone=True), nullable=True),
-    )
-    cevi_legal_validation_error: str | None = Field(
-        default=None,
-        sa_column=Column(Text(), nullable=True),
-    )
     compiled_at: Mapped[datetime] = Field(
         sa_column=Column(DateTime(timezone=True), server_default=sa.func.now()),
     )
 
 
 class DecisionTreeResearchCorpus(BaseSQLModel, table=True):
-    """SME research text persisted for CEVI induction (publish-time only; not read on evaluate hot path)."""
+    """SME research text persisted for Deploy-time evidence-contract induction (not read on evaluate hot path)."""
 
     model_config = {"arbitrary_types_allowed": True}
 

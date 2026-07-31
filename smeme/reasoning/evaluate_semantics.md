@@ -82,9 +82,9 @@ The `answers` map has **at most one value per `question_id`** (JSON object keys)
 | Audit / envelope | Provenance envelope (`ingest_envelope.py`) + persistence | Caller-defined |
 | Agent ergonomics | One answer per question, matches session UX | Error-prone for connectors |
 
-`evaluate_with_canonical_facts` remains the **internal** tail after Stage A; direct canonical-fact callers (tests, blob merge) are not the MCP contract.
+`evaluate_with_canonical_facts` remains the **internal** tail after Stage A; direct canonical-fact callers (tests) are not the MCP contract.
 
-**Blob evaluate** (`evaluate_reasoning_with_blob`, MCP tool behind `MCP_REASONING_BLOB_TOOL_ENABLED`) is a separate ingest path: bridge rules merge into canonical facts with an explicit **conflict** check (`fact_conflict_requires_resolution`). Primary product path is **`evaluate_reasoning(raw_answers)`**.
+**Product path only:** **`evaluate_reasoning(raw_answers)`**. There is no blob-evaluate tool or bridge-runtime ingest in this tree.
 
 ---
 
@@ -112,7 +112,7 @@ Option literals are **not deleted** from \(T(\mathrm{IR}) \land E\); they are **
 | --------- | ------ |
 | Two `value=true` for same `q` in one **MCP structured** payload | **Prevented at ingest** (one string per `qid`) |
 | Non-empty answer string not matching any option label | **`ingest_invalid_answer_option`** (MCP/REST via `prepare_evaluate_ingest`) |
-| Two options true for same `q` in canonical facts (internal/blob) | Blob: rejected before Z3; otherwise may reach Z3 |
+| Two options true for same `q` in caller-built canonical facts | May reach Z3 (tests/internals); MCP structured path prevents this |
 | `reach[q] = true` and exactly-one violated (e.g. two options pinned true) | **UNSAT** — PbEq antecedent is active |
 | `reach[q] = false` and two options pinned true | PbEq vacuous; **not** a violation of the radio implication (may be unsatisfiable for other reasons) |
 | Labeled guard + **default** guard on same question | **Both guards can be true** — default is always true; this is encoding semantics, not duplicate options |
@@ -165,12 +165,12 @@ The same compiled \(T(\mathrm{IR})\) supports different query modes.
 | Assume | `force_reachable_ids` / `force_unreachable_ids` on evaluate + what_if + how_to_reach + decisive_support + edit_affects_path | ALGEBRA §18 (worked examples in §18.5); locks remain how_to_reach-only |
 | Minimal sufficient evidence | `smeme_reasoning_decisive_support` | Inclusion-minimal \(S \subseteq E\) that still forces \(c\) under fixed \(T\); **not** abduction |
 
-**Grounding:** callers supply structured `raw_answers` (LLM extract client-side). CEVI / blob grounding is **not** on the current product path. Optional reach assumptions \(\phi\) compose as \(SAT(T \wedge E \wedge \phi)\). Logical analysis tools often follow evaluate on the same envelope but do not require a prior evaluate.
+**Grounding:** callers supply structured `raw_answers` (LLM extract client-side). Deploy freezes a `PublishedEvidenceContract` for `fact_projection`; free-form blob grounding is **not** shipped. Optional reach assumptions \(\phi\) compose as \(SAT(T \wedge E \wedge \phi)\). Logical analysis tools often follow evaluate on the same envelope but do not require a prior evaluate.
 
 ---
 
 ## 10. Related docs
 
 - [`README.md`](README.md) — module map and publish path
-- [`evidence_contract.md`](evidence_contract.md) — CEVI / blob / frozen contract (evaluate boundary §8.4; deferred for product MCP)
-- [`workflow_design.md`](workflow_design.md) — phase separation (structural core vs interpretation); some Phase 1 wording predates shipped evaluate
+- [`evidence_contract.md`](evidence_contract.md) — Deploy-frozen `PublishedEvidenceContract` + hash invariants
+- [`workflow_design.md`](workflow_design.md) — broader design vision; some older “Phase 2+” wording predates shipped evaluate

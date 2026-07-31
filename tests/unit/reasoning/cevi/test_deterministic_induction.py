@@ -48,7 +48,6 @@ def test_deterministic_glosses_identity_options_and_lexical_without_corpus() -> 
         corpus_snapshot=snap,
         graph_hash="f" * 64,
         ir_format_version=IR_FORMAT_VERSION,
-        legal_at_publish=False,
     )
     assert c.kind == "corpus_partial"
     assert c.corpus_chunk_manifest == ()
@@ -87,7 +86,6 @@ def test_skips_empty_question_gloss_but_keeps_options() -> None:
         corpus_snapshot=snap,
         graph_hash="f" * 64,
         ir_format_version=IR_FORMAT_VERSION,
-        legal_at_publish=False,
     )
     assert "node:q1" not in c.atom_glosses
     assert c.option_paraphrases["node:q1"].by_option["A"] == ("A",)
@@ -119,7 +117,6 @@ def test_attributed_chunk_ids_only_when_corpus_overlaps_question_cues() -> None:
         corpus_snapshot=snap,
         graph_hash="f" * 64,
         ir_format_version=IR_FORMAT_VERSION,
-        legal_at_publish=False,
     )
     assert len(c.corpus_chunk_manifest) == 2
     first_id = c.corpus_chunk_manifest[0].chunk_id
@@ -153,7 +150,6 @@ def test_corpus_attribution_miss_when_manifest_nonempty_but_no_overlap() -> None
         corpus_snapshot=snap,
         graph_hash="f" * 64,
         ir_format_version=IR_FORMAT_VERSION,
-        legal_at_publish=False,
     )
     assert len(c.corpus_chunk_manifest) == 2
     assert c.atom_glosses["node:q1"].corpus_chunk_ids == ()
@@ -179,7 +175,6 @@ def test_conclusion_attribution_matches_title_blob_in_corpus() -> None:
         corpus_snapshot=snap,
         graph_hash="f" * 64,
         ir_format_version=IR_FORMAT_VERSION,
-        legal_at_publish=False,
     )
     assert len(c.corpus_chunk_manifest) >= 1
     ids = {m.chunk_id for m in c.corpus_chunk_manifest}

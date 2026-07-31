@@ -45,8 +45,7 @@ def test_induce_ir_only_minimal_v1_shape() -> None:
     assert d["provenance"]["research_corpus_hash"] is None
     assert d["provenance"]["graph_hash"] == "g" * 64
     assert d["provenance"]["ir_format_version"] == 3
-    assert d["provenance"]["legal"] is False
-
+    
 
 def test_cevi_fingerprint_matches_hash_contract() -> None:
     c = induce_published_evidence_contract_ir_only(
@@ -177,7 +176,6 @@ def test_kind_corpus_induced_distinct_fingerprint() -> None:
             research_corpus_hash="d" * 64,
             graph_hash=gh,
             ir_format_version=irv,
-            legal=False,
         ),
     )
     assert contract_to_stored_json(ir_only)["kind"] == "ir_only"
@@ -239,3 +237,37 @@ def test_bridge_rules_aggregate_cap() -> None:
             bridge_rules=bridge_rules,
             provenance=PublishedEvidenceProvenanceV1(graph_hash=gh, ir_format_version=irv),
         )
+
+def test_legacy_provenance_legal_raw_hash_unchanged_and_semantic_strip() -> None:
+    """Stored JSON with provenance.legal keeps its hash; parse strips without mutating."""
+    stored = contract_to_stored_json(
+        induce_published_evidence_contract_ir_only(
+            graph_hash="d" * 64,
+            ir_format_version=IR_FORMAT_VERSION,
+        )
+    )
+    stored = dict(stored)
+    stored["provenance"] = dict(stored["provenance"])
+    stored["provenance"]["legal"] = False
+    original_hash = hash_contract(stored)
+    assert "legal" in stored["provenance"]
+
+    parsed = validated_contract_with_ir_json(stored, ir_json=_minimal_ir_json())
+    assert "legal" in stored["provenance"]  # input untouched
+    assert hash_contract(stored) == original_hash
+    assert not hasattr(parsed.provenance, "legal") or "legal" not in parsed.provenance.model_dump()
+
+    reserialized = contract_to_stored_json(parsed)
+    assert "legal" not in reserialized["provenance"]
+    assert hash_contract(reserialized) != original_hash
+
+
+def test_new_deploy_provenance_omits_legal() -> None:
+    d = contract_to_stored_json(
+        induce_published_evidence_contract_ir_only(
+            graph_hash="e" * 64,
+            ir_format_version=IR_FORMAT_VERSION,
+        )
+    )
+    assert "legal" not in d["provenance"]
+

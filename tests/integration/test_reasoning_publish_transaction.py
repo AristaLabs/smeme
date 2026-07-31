@@ -271,8 +271,6 @@ async def test_publish_happy_path_persists_contract_and_hash(
         assert art.cevi_contract_hash is not None
         assert len(art.cevi_contract_hash) == 64
         assert art.research_corpus_hash is None
-        assert art.cevi_legal_validation_status == "not_required"
-        assert art.cevi_legal_validation_error is None
         c = PublishedEvidenceContractV1.model_validate(art.cevi_contract_json)
         assert c.kind == "corpus_partial"
         assert cevi_fingerprint(c) == art.cevi_contract_hash
@@ -282,7 +280,6 @@ async def test_publish_happy_path_persists_contract_and_hash(
             graph_hash=art.graph_hash,
             ir_format_version=IR_FORMAT_VERSION,
             corpus_body=None,
-            legal_at_publish=False,
         )
         assert corpus_snap.sha256_hex is None
         assert contract_to_stored_json(expected) == art.cevi_contract_json
@@ -378,7 +375,6 @@ async def test_publish_contract_validates_and_round_trips(
         graph_hash: str,
         ir_format_version: int,
         corpus_body: str | None,
-        legal_at_publish: bool,
     ):
         contract = PublishedEvidenceContractV1(
             kind="corpus_partial",
@@ -398,7 +394,6 @@ async def test_publish_contract_validates_and_round_trips(
                 research_corpus_hash=None,
                 graph_hash=graph_hash,
                 ir_format_version=ir_format_version,
-                legal=legal_at_publish,
             ),
         )
         snap = build_research_corpus_snapshot(corpus_body)

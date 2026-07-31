@@ -98,10 +98,6 @@ class PublishedEvidenceProvenanceV1(BaseModel):
         default=None,
         description="IR format at publish (same as artifact.ir_format_version).",
     )
-    legal: bool = Field(
-        default=False,
-        description="DecisionTree cevi_legal flag at publish (ontology validation intent when induction supports it).",
-    )
 
 
 class DefaultsPolicyV1(BaseModel):
@@ -417,9 +413,8 @@ def induce_published_evidence_contract_ir_only(
     graph_hash: str,
     ir_format_version: int,
     research_corpus_hash: str | None = None,
-    legal_at_publish: bool = False,
 ) -> PublishedEvidenceContractV1:
-    """CEVI induction default: ``kind=ir_only`` until corpus-backed enrichment is implemented."""
+    """Default induction: ``kind=ir_only`` when no corpus-backed slices are produced."""
     return PublishedEvidenceContractV1(
         kind="ir_only",
         defaults=DefaultsPolicyV1(),
@@ -427,7 +422,6 @@ def induce_published_evidence_contract_ir_only(
             research_corpus_hash=research_corpus_hash,
             graph_hash=graph_hash,
             ir_format_version=ir_format_version,
-            legal=legal_at_publish,
         ),
     )
 
@@ -438,8 +432,24 @@ def contract_to_stored_json(contract: PublishedEvidenceContractV1) -> dict[str, 
 
 
 def cevi_fingerprint(contract: PublishedEvidenceContractV1) -> str:
-    """``cevi_contract_hash`` value for this contract (see ``evidence_contract.md`` §4)."""
+    """``cevi_contract_hash`` value for this contract (see ``evidence_contract.md``)."""
     return hash_contract(contract_to_stored_json(contract))
+
+
+def _strip_legacy_provenance_keys(data: dict[str, Any]) -> dict[str, Any]:
+    """Copy stored contract JSON and drop removed provenance keys for semantic parse.
+
+    Does **not** mutate ``data``. Legacy ``provenance.legal`` remains in stored bytes so
+    D025 ``cevi_contract_hash`` / ``artifact_hash`` stay valid; reserializing the parsed
+    model will not reproduce that historical hash.
+    """
+    out = dict(data)
+    provenance = out.get("provenance")
+    if isinstance(provenance, dict) and "legal" in provenance:
+        cleaned = dict(provenance)
+        cleaned.pop("legal", None)
+        out["provenance"] = cleaned
+    return out
 
 
 def validated_contract_with_ir_json(
@@ -453,6 +463,6 @@ def validated_contract_with_ir_json(
     """
     catalog, question_options = canonical_ir_validation_context(ir_json)
     return PublishedEvidenceContractV1.model_validate(
-        data,
+        _strip_legacy_provenance_keys(data),
         context={"atom_catalog": catalog, "question_options": question_options},
     )

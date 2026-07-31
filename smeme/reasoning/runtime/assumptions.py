@@ -1,7 +1,8 @@
 """Shared reachability assumptions φ for evaluate / what_if / how_to_reach.
 
 Product vocabulary uses IR node ids (worksheet / list_conclusions). Internally
-this is force/forbid ``reach(n)`` over the compiled theory — see ALGEBRA.md §18.
+this is force/forbid ``reach(n)`` over the compiled theory — see
+``smeme/reasoning/evaluate_semantics.md`` (§9 force_reachable / force_unreachable).
 """
 
 from __future__ import annotations

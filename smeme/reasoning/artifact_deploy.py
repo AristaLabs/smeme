@@ -71,10 +71,6 @@ async def persist_compiled_artifact_append_only(
     cevi_contract_json: dict[str, Any] | None,
     cevi_contract_hash: str | None,
     research_corpus_hash: str | None,
-    cevi_legal_validation_status: str = "not_required",
-    cevi_legal_validation_started_at: Any = None,
-    cevi_legal_validation_completed_at: Any = None,
-    cevi_legal_validation_error: str | None = None,
 ) -> ReasoningCompiledArtifact:
     """Insert a new immutable artifact or return the current row when identity matches."""
     locked = (
@@ -99,10 +95,6 @@ async def persist_compiled_artifact_append_only(
         cevi_contract_json=cevi_contract_json,
         cevi_contract_hash=cevi_contract_hash,
         research_corpus_hash=research_corpus_hash,
-        cevi_legal_validation_status=cevi_legal_validation_status,
-        cevi_legal_validation_started_at=cevi_legal_validation_started_at,
-        cevi_legal_validation_completed_at=cevi_legal_validation_completed_at,
-        cevi_legal_validation_error=cevi_legal_validation_error,
     )
     ir_hash, artifact_hash = compute_identity_fields_from_stored_artifact(candidate)
     candidate.ir_hash = ir_hash

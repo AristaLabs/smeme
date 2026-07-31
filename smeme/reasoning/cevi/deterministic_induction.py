@@ -87,7 +87,6 @@ def build_deterministic_corpus_partial_contract(
     corpus_snapshot: ResearchCorpusSnapshot,
     graph_hash: str,
     ir_format_version: int,
-    legal_at_publish: bool,
 ) -> PublishedEvidenceContractV1:
     """Emit the deterministic ``corpus_partial`` contract for one compile."""
     manifest = build_corpus_chunk_manifest(corpus_snapshot)
@@ -201,6 +200,5 @@ def build_deterministic_corpus_partial_contract(
             research_corpus_hash=research_corpus_hash,
             graph_hash=graph_hash,
             ir_format_version=ir_format_version,
-            legal=legal_at_publish,
         ),
     )

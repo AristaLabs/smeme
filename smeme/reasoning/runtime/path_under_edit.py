@@ -5,7 +5,7 @@ Primary query: after merging override answers into baseline ``E ↦ E'``, does
 
 Secondary: conclusion-entailment side-car under the same ``E'`` (still / newly /
 no longer entailed). Product MCP name: ``smeme_reasoning_edit_affects_path``.
-See ``docs/planning/sprint-mcp-path-under-edit.md`` and ALGEBRA.md §17.
+See ``docs/planning/sprint-mcp-path-under-edit.md`` and ``smeme/reasoning/evaluate_semantics.md`` (§9 logical analysis tools).
 """
 
 from __future__ import annotations

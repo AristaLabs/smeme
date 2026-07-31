@@ -1521,7 +1521,6 @@ async def publish_decision_tree(
         graph_hash=graph_hash,
         ir_format_version=IR_FORMAT_VERSION,
         corpus_body=corpus_body,
-        legal_at_publish=bool(decision_tree.cevi_legal),
     )
 
     cevi_diag = diagnose_published_evidence_contract(cev_contract)
@@ -1553,7 +1552,6 @@ async def publish_decision_tree(
             cevi_contract_hash=cevi_contract_hash,
             research_corpus_hash=research_corpus_hash,
             compiler_version=REASONING_COMPILER_VERSION,
-            cevi_legal_validation_status="not_required",
         )
     except PublishGraphChangedError as exc:
         await db.rollback()
