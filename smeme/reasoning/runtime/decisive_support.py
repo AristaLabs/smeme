@@ -22,7 +22,6 @@ from smeme.reasoning.runtime.assumptions import (
     EMPTY_ASSUMPTIONS,
     AssumptionsError,
     ReasoningAssumptions,
-    apply_assumptions_to_solver,
     validate_assumptions,
 )
 from smeme.reasoning.runtime.counterfactual import (
@@ -34,6 +33,10 @@ from smeme.reasoning.runtime.counterfactual import (
     NormalizedAnswers,
     conclusion_title_from_graph,
     entails_target,
+)
+from smeme.reasoning.runtime.consistency_gate import (
+    ConsequenceQueryResult,
+    assert_literal_subconjunction,
 )
 from smeme.reasoning.theory.compile_to_z3 import compile_ir_to_z3
 
@@ -113,7 +116,11 @@ def _entails(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
-) -> str:
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
+    admitted_e: NormalizedAnswers | None = None,
+) -> ConsequenceQueryResult:
+    if admitted_e is not None:
+        assert_literal_subconjunction(answers, admitted_e)
     return entails_target(
         entail_solver,
         reach,
@@ -123,22 +130,39 @@ def _entails(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=timeout_ms,
+        assumptions=assumptions,
     )
 
 
-def _raise_gate(gate: str) -> None:
-    if gate == "timeout":
+def _raise_gate(gate: ConsequenceQueryResult) -> None:
+    if gate.status == "timeout":
         raise DecisiveSupportError(
             "solver_timeout",
             "The reasoning engine timed out while computing answer support. "
             "Retry once; if it persists, note the approximate time and contact the operator.",
         )
-    if gate == "budget":
+    if gate.status == "budget":
         raise DecisiveSupportError(
             "search_cap_exceeded",
             "Answer-support search hit the server search limit before finishing. "
             "Retry with fewer answered questions or a narrower target; if it persists, "
             "contact the operator.",
+        )
+    if gate.status == "unknown":
+        raise DecisiveSupportError(
+            "solver_unknown",
+            "The reasoning engine returned an inconclusive result while computing answer support. "
+            "Retry once; if it persists, contact the operator.",
+        )
+    if gate.status == "inconsistent":
+        cause = gate.require_cause()
+        raise DecisiveSupportError(
+            cause,
+            (
+                "These answers cannot all hold together."
+                if cause == "answers_inconsistent"
+                else "The path assumptions conflict with the answers or branching rules."
+            ),
         )
 
 
@@ -152,8 +176,10 @@ def _deletion_shrink(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
 ) -> NormalizedAnswers:
     """Greedy deletion until no single answered question can be dropped."""
+    admitted = dict(answers)
     current = dict(answers)
     progress = True
     while progress:
@@ -169,10 +195,12 @@ def _deletion_shrink(
                 sat_calls=sat_calls,
                 max_sat_calls=max_sat_calls,
                 timeout_ms=timeout_ms,
+                assumptions=assumptions,
+                admitted_e=admitted,
             )
-            if gate in ("timeout", "budget"):
+            if gate.status in ("timeout", "budget", "unknown", "inconsistent"):
                 _raise_gate(gate)
-            if gate == "yes":
+            if gate.status == "entailed":
                 current = candidate
                 progress = True
                 break
@@ -189,6 +217,8 @@ def _is_inclusion_minimal(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
+    admitted_e: NormalizedAnswers,
 ) -> bool:
     if not answers:
         return True
@@ -203,10 +233,12 @@ def _is_inclusion_minimal(
             sat_calls=sat_calls,
             max_sat_calls=max_sat_calls,
             timeout_ms=timeout_ms,
+            assumptions=assumptions,
+            admitted_e=admitted_e,
         )
-        if gate in ("timeout", "budget"):
+        if gate.status in ("timeout", "budget", "unknown", "inconsistent"):
             _raise_gate(gate)
-        if gate == "yes":
+        if gate.status == "entailed":
             return False
     return True
 
@@ -250,7 +282,7 @@ def find_minimal_decisive_supports(
     entail_solver, entail_sym = compile_ir_to_z3(ir)
     entail_reach = entail_sym["nodes"]
     _set_solver_timeout(entail_solver, check_timeout_ms)
-    apply_assumptions_to_solver(entail_solver, entail_reach, phi)
+    # φ admitted inside entails_target (E-then-φ), not on the outer solver.
 
     base_gate = _entails(
         entail_solver,
@@ -261,10 +293,12 @@ def find_minimal_decisive_supports(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
+        admitted_e=base_norm,
     )
-    if base_gate in ("timeout", "budget"):
+    if base_gate.status in ("timeout", "budget", "unknown", "inconsistent"):
         _raise_gate(base_gate)
-    if base_gate != "yes":
+    if base_gate.status != "entailed":
         raise DecisiveSupportError(
             "target_not_entailed",
             f'Conclusion "{target_title}" is not forced by the current answers'
@@ -289,6 +323,7 @@ def find_minimal_decisive_supports(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
     first = DecisiveSupport.from_answers(shrunk)
     supports.append(first)
@@ -325,10 +360,12 @@ def find_minimal_decisive_supports(
                 sat_calls=sat_calls,
                 max_sat_calls=max_sat_calls,
                 timeout_ms=check_timeout_ms,
+                assumptions=phi,
+                admitted_e=base_norm,
             )
-            if gate in ("timeout", "budget"):
+            if gate.status in ("timeout", "budget", "unknown", "inconsistent"):
                 _raise_gate(gate)
-            if gate != "yes":
+            if gate.status != "entailed":
                 continue
             if not _is_inclusion_minimal(
                 entail_solver,
@@ -339,6 +376,8 @@ def find_minimal_decisive_supports(
                 sat_calls=sat_calls,
                 max_sat_calls=max_sat_calls,
                 timeout_ms=check_timeout_ms,
+                assumptions=phi,
+                admitted_e=base_norm,
             ):
                 continue
             support = DecisiveSupport.from_answers(candidate)

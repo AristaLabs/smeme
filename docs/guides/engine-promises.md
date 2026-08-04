@@ -22,6 +22,11 @@ After **Deploy**, Core supports two complementary uses:
   ask graph-level questions about Listed decision-trees.
 - Evaluation returns a structured **report**; logical-analysis tools return
   deterministic answers from the same deployed artifact.
+- Queries against inconsistent evidence or assumptions return an explicit
+  inconsistent status (`answers_inconsistent` or `assumptions_inconsistent`),
+  never a vacuous “entailed” or false “impossible.” When evidence alone is
+  inconsistent, the cause is `answers_inconsistent` even if assumptions are
+  present.
 - **Listed** and **Hidden** control whether a deployed decision-tree appears in
   its owner's MCP tool list.
 

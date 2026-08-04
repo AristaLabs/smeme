@@ -19,7 +19,13 @@ from smeme.reasoning.runtime.assumptions import (
     apply_assumptions_to_solver,
     validate_assumptions,
 )
-from smeme.reasoning.runtime.canonical_facts import raw_answers_to_canonical_facts
+from smeme.reasoning.runtime.canonical_facts import CanonicalFactRecord
+from smeme.reasoning.runtime.consistency_gate import (
+    ConsequenceQueryResult,
+    check_premise_consistency,
+    resolve_facts,
+    validate_reach_target,
+)
 from smeme.reasoning.runtime.evaluate import evaluate_reasoning
 from smeme.reasoning.runtime.ingest_codes import sort_warnings
 from smeme.reasoning.runtime.ingest_envelope import (
@@ -359,6 +365,69 @@ def _check_sat_budget(
     return chk
 
 
+def _push_base(
+    solver: Any,
+    reach: dict[str, BoolRef],
+    ir: IR,
+    *,
+    facts: list[CanonicalFactRecord],
+    assumptions: ReasoningAssumptions,
+) -> None:
+    """Push admitted E then admitted φ (target assertion order)."""
+    apply_canonical_facts_to_solver(solver, ir, facts, z3_ctx=solver.ctx)
+    if not assumptions.is_empty():
+        apply_assumptions_to_solver(solver, reach, assumptions)
+
+
+def _disambiguate_unsat_query(
+    solver: Any,
+    reach: dict[str, BoolRef],
+    ir: IR,
+    *,
+    repaired: NormalizedAnswers,
+    facts: list[CanonicalFactRecord] | None,
+    resolved: list[CanonicalFactRecord],
+    assumptions: ReasoningAssumptions,
+    sat_calls: list[int],
+    max_sat_calls: int,
+    timeout_ms: int,
+    sat_t_established: bool,
+    delta: int,
+    on_consistent: Literal["entailed", "impossible"],
+) -> ConsequenceQueryResult:
+    """After UNSAT(B∧literal), establish Cons(B) or run the cause ladder.
+
+    ``on_consistent`` is ``entailed`` or ``impossible`` (never report those from
+    the first UNSAT alone).
+    """
+    gate = check_premise_consistency(
+        solver,
+        reach,
+        ir,
+        answers=None if facts is not None else repaired,
+        facts=resolved if facts is not None else None,
+        assumptions=assumptions,
+        sat_calls=sat_calls,
+        max_sat_calls=max_sat_calls,
+        timeout_ms=timeout_ms,
+        sat_t_established=sat_t_established,
+    )
+    delta += gate.sat_calls_delta
+    if gate.status == "budget":
+        return ConsequenceQueryResult(status="budget", sat_calls_delta=delta)
+    if gate.status == "timeout":
+        return ConsequenceQueryResult(status="timeout", sat_calls_delta=delta)
+    if gate.status == "unknown":
+        return ConsequenceQueryResult(status="unknown", sat_calls_delta=delta)
+    if gate.status == "inconsistent":
+        return ConsequenceQueryResult(
+            status="inconsistent",
+            cause=gate.require_cause(),
+            sat_calls_delta=delta,
+        )
+    return ConsequenceQueryResult(status=on_consistent, sat_calls_delta=delta)
+
+
 def entails_target(
     entail_solver: Any,
     reach: dict[str, BoolRef],
@@ -369,24 +438,57 @@ def entails_target(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
-) -> Literal["yes", "no", "timeout", "budget"]:
-    """Return whether ``T ∧ E ⊨ reach(target)`` (UNSAT of ``T ∧ E ∧ ¬reach``)."""
+    assumptions: ReasoningAssumptions | None = None,
+    facts: list[CanonicalFactRecord] | None = None,
+    sat_t_established: bool = True,
+) -> ConsequenceQueryResult:
+    """Witness-first entailment over exact base B = T ∧ E ∧ φ.
+
+    First ``SAT(B ∧ ¬reach(c))``:
+    - SAT → ``not_entailed`` (countermodel also proves Cons(B));
+    - UNSAT → disambiguate with ``SAT(B)``: consistent → ``entailed``, else ladder.
+
+    Never report ``entailed`` from the first UNSAT alone. Cons(B) is semantic,
+    not a mandatory preliminary solver call.
+    """
+    validate_reach_target(ir, reach, target_id)
+    phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
+    resolved = resolve_facts(ir, answers=repaired, facts=facts)
+    delta = 0
+
     if sat_calls[0] >= max_sat_calls:
-        return "budget"
+        return ConsequenceQueryResult(status="budget", sat_calls_delta=0)
+
     _set_solver_timeout(entail_solver, timeout_ms)
     entail_solver.push()
-    raw: dict[str, str | None] = dict(repaired)
-    canonical = raw_answers_to_canonical_facts(ir, raw)
-    apply_canonical_facts_to_solver(entail_solver, ir, canonical, z3_ctx=entail_solver.ctx)
+    _push_base(entail_solver, reach, ir, facts=resolved, assumptions=phi)
     entail_solver.add(Not(reach[target_id]))
     chk = entail_solver.check()
     sat_calls[0] += 1
+    delta += 1
     entail_solver.pop()
     if chk == unknown:
-        return "timeout"
+        return ConsequenceQueryResult(status="timeout", sat_calls_delta=delta)
     if sat_calls[0] > max_sat_calls:
-        return "budget"
-    return "yes" if chk == unsat else "no"
+        return ConsequenceQueryResult(status="budget", sat_calls_delta=delta)
+    if chk == sat:
+        return ConsequenceQueryResult(status="not_entailed", sat_calls_delta=delta)
+
+    return _disambiguate_unsat_query(
+        entail_solver,
+        reach,
+        ir,
+        repaired=repaired,
+        facts=facts,
+        resolved=resolved,
+        assumptions=phi,
+        sat_calls=sat_calls,
+        max_sat_calls=max_sat_calls,
+        timeout_ms=timeout_ms,
+        sat_t_established=sat_t_established,
+        delta=delta,
+        on_consistent="entailed",
+    )
 
 
 def possible_target(
@@ -399,24 +501,59 @@ def possible_target(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
-) -> Literal["yes", "no", "timeout", "budget"]:
-    """Return whether ``SAT(T ∧ E ∧ reach(target))`` (exists a completing assignment)."""
+    assumptions: ReasoningAssumptions | None = None,
+    facts: list[CanonicalFactRecord] | None = None,
+    sat_t_established: bool = True,
+) -> ConsequenceQueryResult:
+    """Witness-first possibility over exact base B = T ∧ E ∧ φ.
+
+    First ``SAT(B ∧ reach(c))``:
+    - SAT → ``possible`` (one call; witness proves Cons(B));
+    - UNSAT → disambiguate with ``SAT(B)``: consistent → ``impossible``, else ladder.
+
+    Never report ``impossible`` from the first UNSAT alone.
+
+    Possible-mode repair acceptance may collapse to one call; entailment-mode
+    repair acceptance still requires disambiguation after UNSAT(B' ∧ ¬q).
+    """
+    validate_reach_target(ir, reach, target_id)
+    phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
+    resolved = resolve_facts(ir, answers=repaired, facts=facts)
+    delta = 0
+
     if sat_calls[0] >= max_sat_calls:
-        return "budget"
+        return ConsequenceQueryResult(status="budget", sat_calls_delta=0)
+
     _set_solver_timeout(possible_solver, timeout_ms)
     possible_solver.push()
-    raw: dict[str, str | None] = dict(repaired)
-    canonical = raw_answers_to_canonical_facts(ir, raw)
-    apply_canonical_facts_to_solver(possible_solver, ir, canonical, z3_ctx=possible_solver.ctx)
+    _push_base(possible_solver, reach, ir, facts=resolved, assumptions=phi)
     possible_solver.add(reach[target_id])
     chk = possible_solver.check()
     sat_calls[0] += 1
+    delta += 1
     possible_solver.pop()
     if chk == unknown:
-        return "timeout"
+        return ConsequenceQueryResult(status="timeout", sat_calls_delta=delta)
     if sat_calls[0] > max_sat_calls:
-        return "budget"
-    return "yes" if chk == sat else "no"
+        return ConsequenceQueryResult(status="budget", sat_calls_delta=delta)
+    if chk == sat:
+        return ConsequenceQueryResult(status="possible", sat_calls_delta=delta)
+
+    return _disambiguate_unsat_query(
+        possible_solver,
+        reach,
+        ir,
+        repaired=repaired,
+        facts=facts,
+        resolved=resolved,
+        assumptions=phi,
+        sat_calls=sat_calls,
+        max_sat_calls=max_sat_calls,
+        timeout_ms=timeout_ms,
+        sat_t_established=sat_t_established,
+        delta=delta,
+        on_consistent="impossible",
+    )
 
 
 def _target_gate(
@@ -432,7 +569,8 @@ def _target_gate(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
-) -> Literal["yes", "no", "timeout", "budget"]:
+    assumptions: ReasoningAssumptions | None = None,
+) -> ConsequenceQueryResult:
     if mode == "possible":
         return possible_target(
             possible_solver,
@@ -443,6 +581,7 @@ def _target_gate(
             sat_calls=sat_calls,
             max_sat_calls=max_sat_calls,
             timeout_ms=timeout_ms,
+            assumptions=assumptions,
         )
     return entails_target(
         entail_solver,
@@ -453,7 +592,16 @@ def _target_gate(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=timeout_ms,
+        assumptions=assumptions,
     )
+
+
+def _gate_is_affirmative(result: ConsequenceQueryResult, mode: ReachMode) -> bool:
+    if result.status in ("budget", "timeout", "unknown", "inconsistent"):
+        return False
+    if mode == "possible":
+        return result.status == "possible"
+    return result.status == "entailed"
 
 
 def _realize_witness(
@@ -515,6 +663,7 @@ def _is_cosmetic_plan(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
 ) -> bool:
     if not changed and not dropped:
         return True
@@ -539,6 +688,7 @@ def _is_cosmetic_plan(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=timeout_ms,
+        assumptions=assumptions,
     )
     gate_base = _target_gate(
         reach_mode,
@@ -552,8 +702,11 @@ def _is_cosmetic_plan(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=timeout_ms,
+        assumptions=assumptions,
     )
-    return gate_rep == "yes" and gate_base == "yes"
+    return _gate_is_affirmative(gate_rep, reach_mode) and _gate_is_affirmative(
+        gate_base, reach_mode
+    )
 
 
 def _setup_search_solver(
@@ -745,12 +898,11 @@ def find_repairs_for_target(
     entail_solver, entail_sym = compile_ir_to_z3(ir)
     entail_reach = entail_sym["nodes"]
     _set_solver_timeout(entail_solver, check_timeout_ms)
-    apply_assumptions_to_solver(entail_solver, entail_reach, phi)
+    # φ is admitted inside the consequence helpers (E-then-φ), not on the outer solver.
 
     possible_solver, possible_sym = compile_ir_to_z3(ir)
     possible_reach = possible_sym["nodes"]
     _set_solver_timeout(possible_solver, check_timeout_ms)
-    apply_assumptions_to_solver(possible_solver, possible_reach, phi)
 
     phase0 = _target_gate(
         mode,
@@ -764,14 +916,21 @@ def find_repairs_for_target(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
-    if phase0 == "timeout":
+    if phase0.status == "timeout":
         raise CounterfactualError(
             "solver_timeout",
             "The reasoning engine timed out on this repair search. Retry once with a smaller "
             "max_changes; if it persists, note the approximate time and contact the operator.",
         )
-    if phase0 == "budget":
+    if phase0.status == "unknown":
+        raise CounterfactualError(
+            "solver_unknown",
+            "The reasoning engine returned an inconclusive result. Retry once; if it persists, "
+            "contact the operator.",
+        )
+    if phase0.status == "budget":
         return _how_to_reach_blocked(
             target_conclusion_id,
             target_title,
@@ -788,7 +947,25 @@ def find_repairs_for_target(
             reach_mode=mode,
             assumptions=phi,
         )
-    if phase0 == "yes":
+    if phase0.status == "inconsistent":
+        cause = phase0.require_cause()
+        return _how_to_reach_blocked(
+            target_conclusion_id,
+            target_title,
+            code=cause,
+            message=(
+                "These answers cannot all hold together."
+                if cause == "answers_inconsistent"
+                else "The path assumptions conflict with the answers or branching rules."
+            ),
+            max_changes=max_changes,
+            sat_calls=sat_calls[0],
+            locked=locked,
+            search_complete=True,
+            reach_mode=mode,
+            assumptions=phi,
+        )
+    if _gate_is_affirmative(phase0, mode):
         return HowToReachResult(
             target_conclusion_id=target_conclusion_id,
             target_conclusion_title=target_title,
@@ -872,18 +1049,21 @@ def find_repairs_for_target(
                     sat_calls=sat_calls,
                     max_sat_calls=max_sat_calls,
                     timeout_ms=check_timeout_ms,
+                    assumptions=phi,
                 )
-                if ent == "timeout":
+                if ent.status == "timeout":
                     raise CounterfactualError(
                         "solver_timeout",
                         "The reasoning engine timed out on this repair search. Retry once with a "
                         "smaller max_changes; if it persists, note the approximate time and contact "
                         "the operator.",
                     )
-                if ent == "budget":
+                if ent.status == "budget":
                     budget_exhausted = True
                     break
-                if ent == "no":
+                if ent.status == "inconsistent":
+                    continue
+                if ent.status != "entailed":
                     continue
 
             realized_count = len(changed) + len(dropped)
@@ -905,6 +1085,7 @@ def find_repairs_for_target(
                 sat_calls=sat_calls,
                 max_sat_calls=max_sat_calls,
                 timeout_ms=check_timeout_ms,
+                assumptions=phi,
             ):
                 continue
 

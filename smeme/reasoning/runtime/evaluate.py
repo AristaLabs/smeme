@@ -111,9 +111,15 @@ def evaluate_with_canonical_facts(
 
     Caller must supply IR already validated when ``skip_ir_validation`` is True.
     Optional ``assumptions`` assert force/forbid ``reach`` (ALGEBRA §18).
+
+    Cause ladder on admitted E / admitted φ (not pre-admission stage codes):
+    ``answers_inconsistent`` when UNSAT(T∧E); ``assumptions_inconsistent`` when
+    SAT(T∧E) but UNSAT(T∧E∧φ). ``sources_conflict`` / ``conflicting_assumptions``
+    are earlier pipeline stages and are not emitted here.
     """
     from smeme.reasoning.ir.validate import IRValidationError
     from smeme.reasoning.ir.validate import validate_ir as run_validate_ir
+    from z3 import unknown, unsat
 
     phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
     validate_assumptions(ir, phi)
@@ -128,7 +134,6 @@ def evaluate_with_canonical_facts(
     guards_map = sym["guards"]
 
     items, facts = apply_canonical_facts_to_solver(solver, ir, canonical_facts, z3_ctx=solver.ctx)
-    apply_assumptions_to_solver(solver, reach, phi)
 
     empty_audit = BlobAuditRecord(
         evidence_items=[i.model_dump(mode="json") for i in items],
@@ -138,14 +143,33 @@ def evaluate_with_canonical_facts(
         permissive_mode=permissive_unresolved,
     )
 
-    chk = solver.check()
-
-    if chk != sat:
-        reason = "assumptions_unsat" if not phi.is_empty() else "z3_unsat"
+    # Ladder step 2: admitted E (φ not yet applied).
+    chk_e = solver.check()
+    if chk_e == unknown:
         return (
-            EvaluationResult(status="UNSAT", explanation={"reason": reason}),
+            EvaluationResult(status="UNSAT", explanation={"reason": "solver_unknown"}),
             empty_audit,
         )
+    if chk_e == unsat:
+        return (
+            EvaluationResult(status="UNSAT", explanation={"reason": "z3_unsat"}),
+            empty_audit,
+        )
+
+    # Ladder step 3: admitted φ.
+    if not phi.is_empty():
+        apply_assumptions_to_solver(solver, reach, phi)
+        chk_phi = solver.check()
+        if chk_phi == unknown:
+            return (
+                EvaluationResult(status="UNSAT", explanation={"reason": "solver_unknown"}),
+                empty_audit,
+            )
+        if chk_phi == unsat:
+            return (
+                EvaluationResult(status="UNSAT", explanation={"reason": "assumptions_unsat"}),
+                empty_audit,
+            )
 
     model = solver.model()
     triggered = _triggered_edges_ir(ir, model, reach, guards_map)

@@ -70,6 +70,7 @@ REASONING_TOOL_ERROR_CODES: frozenset[str] = frozenset(
         "no_plan_within_max_changes",
         "target_not_entailed",
         "solver_timeout",
+        "solver_unknown",
         "persist_not_implemented",
         "invalid_reach_mode",
         "invalid_assumption_node_id",
