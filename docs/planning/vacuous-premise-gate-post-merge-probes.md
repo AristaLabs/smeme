@@ -56,7 +56,24 @@ returns that operational status — never `entailed`, `impossible`, or
 | Impl | `_disambiguate_unsat_query` in `smeme/reasoning/runtime/counterfactual.py` |
 | Against `4fd308e` | pass (no production change) |
 
+## Probe 4 — cache staleness within a request across a base change
+
+**Claim:** A Cons/witness established for base \(B_1\) must not be reused for a
+later \(B_2\) in the same request after \(E\) (or \(\varphi\)) changes. Witness-first
+only proves Cons for the **exact** working base; cross-base reuse reintroduces
+vacuous `entailed` / `impossible`.
+
+| Status | Evidence |
+|--------|----------|
+| Prior audit | **Not run** — not in the three-probe batch; **not** folded into probe 1 |
+| Probe 1 vs 4 | Probe 1 = hatch vs D025 persistent trust. Probe 4 = intra-request Cons across \(E\mapsto E'\) |
+| Added | `test_probe4_no_stale_cons_across_base_change_within_request` |
+| Impl | `possible_target` / `entails_target` (no Cons cache; each call uses its own base) |
+| Against main (`92d3132` / lineage `4fd308e`) | pass (no production change) |
+
 ## Verdict
 
-Follow-up PR **required** for permanent missing coverage only. Production code
-on `4fd308e` already matches all three claims; no fix commit.
+Probes 1–3 covered in #67. Probe 4 was dropped from that batch and is closed by
+a dedicated permanent regression before ALGEBRA amendment publish. Production
+code already matched; tests-only follow-up.
+
