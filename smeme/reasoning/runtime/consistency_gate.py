@@ -96,13 +96,11 @@ class PremiseGateResult:
 
     def require_cause(self) -> InconsistencyCause:
         if self.status != "inconsistent":
-            raise PremiseInvariantError(
-                f"require_cause only valid for inconsistent (got {self.status!r})"
-            )
+            msg = f"require_cause only valid for inconsistent (got {self.status!r})"
+            raise PremiseInvariantError(msg)
         if self.cause not in ("answers_inconsistent", "assumptions_inconsistent"):
-            raise PremiseInvariantError(
-                f"inconsistent PremiseGateResult missing/unrecognized cause: {self.cause!r}"
-            )
+            msg = f"inconsistent PremiseGateResult missing/unrecognized cause: {self.cause!r}"
+            raise PremiseInvariantError(msg)
         return self.cause
 
 
@@ -120,14 +118,11 @@ class ConsequenceQueryResult:
 
     def require_cause(self) -> InconsistencyCause:
         if self.status != "inconsistent":
-            raise PremiseInvariantError(
-                f"require_cause only valid for inconsistent (got {self.status!r})"
-            )
+            msg = f"require_cause only valid for inconsistent (got {self.status!r})"
+            raise PremiseInvariantError(msg)
         if self.cause not in ("answers_inconsistent", "assumptions_inconsistent"):
-            raise PremiseInvariantError(
-                f"inconsistent ConsequenceQueryResult missing/unrecognized cause: "
-                f"{self.cause!r}"
-            )
+            msg = f"inconsistent ConsequenceQueryResult missing/unrecognized cause: {self.cause!r}"
+            raise PremiseInvariantError(msg)
         return self.cause
 
 
@@ -191,10 +186,11 @@ def assert_sat_t_established(
         if kind == "hit":
             return "use_record"
         if kind == "mismatch":
-            raise PremiseInvariantError(
+            msg = (
                 "SAT(T) validation-record identity mismatch: refusing stale sat trust "
                 f"(deployed={deployed_record!r}, current={current_identity!r})"
             )
+            raise PremiseInvariantError(msg)
         return "recompute"
     if in_process_unpublished:
         return "recompute"
@@ -331,14 +327,14 @@ def assert_literal_subconjunction(
     """Always-on Lit(S) ⊆ Lit(E) for decisive-support once-gate (no bare assert)."""
     for qid, opt in candidate.items():
         if qid not in admitted:
-            raise PremiseInvariantError(
-                f"decisive-support shrink broke Lit(S)⊆Lit(E): question {qid!r} not in E"
-            )
+            msg = f"decisive-support shrink broke Lit(S)⊆Lit(E): question {qid!r} not in E"
+            raise PremiseInvariantError(msg)
         if admitted[qid] != opt:
-            raise PremiseInvariantError(
+            msg = (
                 f"decisive-support shrink broke Lit(S)⊆Lit(E): {qid!r} option "
                 f"{opt!r} != admitted {admitted[qid]!r}"
             )
+            raise PremiseInvariantError(msg)
 
 
 __all__ = [

@@ -24,6 +24,10 @@ from smeme.reasoning.runtime.assumptions import (
     ReasoningAssumptions,
     validate_assumptions,
 )
+from smeme.reasoning.runtime.consistency_gate import (
+    ConsequenceQueryResult,
+    assert_literal_subconjunction,
+)
 from smeme.reasoning.runtime.counterfactual import (
     DEFAULT_CHECK_TIMEOUT_MS,
     DEFAULT_TOP_K,
@@ -33,10 +37,6 @@ from smeme.reasoning.runtime.counterfactual import (
     NormalizedAnswers,
     conclusion_title_from_graph,
     entails_target,
-)
-from smeme.reasoning.runtime.consistency_gate import (
-    ConsequenceQueryResult,
-    assert_literal_subconjunction,
 )
 from smeme.reasoning.theory.compile_to_z3 import compile_ir_to_z3
 

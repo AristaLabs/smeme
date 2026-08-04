@@ -7,7 +7,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from z3 import And, Bool, BoolRef, Implies, Not, is_true, sat, unknown, unsat
+from z3 import And, Bool, BoolRef, Implies, Not, is_true, sat, unknown
 
 from smeme.decision_tree.models import DTGraph
 from smeme.reasoning.cevi.fact_projection import apply_canonical_facts_to_solver

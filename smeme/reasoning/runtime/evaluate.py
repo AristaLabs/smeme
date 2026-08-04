@@ -117,9 +117,10 @@ def evaluate_with_canonical_facts(
     SAT(T∧E) but UNSAT(T∧E∧φ). ``sources_conflict`` / ``conflicting_assumptions``
     are earlier pipeline stages and are not emitted here.
     """
+    from z3 import unknown, unsat
+
     from smeme.reasoning.ir.validate import IRValidationError
     from smeme.reasoning.ir.validate import validate_ir as run_validate_ir
-    from z3 import unknown, unsat
 
     phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
     validate_assumptions(ir, phi)
