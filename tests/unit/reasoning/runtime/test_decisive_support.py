@@ -151,7 +151,7 @@ def _assert_support_is_minimal(ir: IR, support: dict[str, str], target: str) -> 
         max_sat_calls=200,
         timeout_ms=5000,
     )
-    assert full == "yes"
+    assert full.status == "entailed"
     for qid in list(support):
         dropped = {k: v for k, v in support.items() if k != qid}
         gate = entails_target(
@@ -164,7 +164,7 @@ def _assert_support_is_minimal(ir: IR, support: dict[str, str], target: str) -> 
             max_sat_calls=200,
             timeout_ms=5000,
         )
-        assert gate == "no", f"dropping {qid} should break entailment"
+        assert gate.status == "not_entailed", f"dropping {qid} should break entailment"
 
 
 def test_decisive_support_exclusive_radio() -> None:

@@ -19,9 +19,9 @@ from smeme.reasoning.runtime.assumptions import (
     EMPTY_ASSUMPTIONS,
     AssumptionsError,
     ReasoningAssumptions,
-    apply_assumptions_to_solver,
     validate_assumptions,
 )
+from smeme.reasoning.runtime.consistency_gate import ConsequenceQueryResult
 from smeme.reasoning.runtime.counterfactual import (
     DEFAULT_CHECK_TIMEOUT_MS,
     HARD_MAX_CHECK_TIMEOUT_MS,
@@ -149,7 +149,8 @@ def _entails_node(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
-) -> str:
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
+) -> ConsequenceQueryResult:
     return entails_target(
         entail_solver,
         reach,
@@ -159,14 +160,30 @@ def _entails_node(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=timeout_ms,
+        assumptions=assumptions,
     )
 
 
-def _raise_gate(gate: str) -> None:
-    if gate == "timeout":
+def _raise_gate(gate: ConsequenceQueryResult) -> None:
+    if gate.status == "timeout":
         raise PathUnderEditError(
             "solver_timeout",
             "The path check timed out. Narrow the override answers and retry.",
+        )
+    if gate.status == "unknown":
+        raise PathUnderEditError(
+            "solver_unknown",
+            "The path check returned an inconclusive result. Narrow the override and retry.",
+        )
+    if gate.status == "inconsistent":
+        cause = gate.require_cause()
+        raise PathUnderEditError(
+            cause,
+            (
+                "These answers cannot all hold together."
+                if cause == "answers_inconsistent"
+                else "The path assumptions conflict with the answers or branching rules."
+            ),
         )
     raise PathUnderEditError(
         "search_cap_exceeded",
@@ -184,6 +201,7 @@ def _entailed_set(
     sat_calls: list[int],
     max_sat_calls: int,
     timeout_ms: int,
+    assumptions: ReasoningAssumptions = EMPTY_ASSUMPTIONS,
 ) -> set[str]:
     out: set[str] = set()
     for nid in node_ids:
@@ -196,10 +214,11 @@ def _entailed_set(
             sat_calls=sat_calls,
             max_sat_calls=max_sat_calls,
             timeout_ms=timeout_ms,
+            assumptions=assumptions,
         )
-        if gate in ("timeout", "budget"):
+        if gate.status in ("timeout", "budget", "unknown", "inconsistent"):
             _raise_gate(gate)
-        if gate == "yes":
+        if gate.status == "entailed":
             out.add(nid)
     return out
 
@@ -270,7 +289,7 @@ def run_edit_affects_path(
     entail_solver, entail_sym = compile_ir_to_z3(ir)
     entail_reach = entail_sym["nodes"]
     _set_solver_timeout(entail_solver, check_timeout_ms)
-    apply_assumptions_to_solver(entail_solver, entail_reach, phi)
+    # φ admitted inside entails_target (E-then-φ), not on the outer solver.
 
     baseline_entailed = _entailed_set(
         entail_solver,
@@ -281,6 +300,7 @@ def run_edit_affects_path(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
     missing = [nid for nid in path_ids if nid not in baseline_entailed]
     if missing:
@@ -303,6 +323,7 @@ def run_edit_affects_path(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
 
     merged_payload = merge_ingest_payloads(base_env, override_env, merged_norm)
@@ -318,6 +339,7 @@ def run_edit_affects_path(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
     lost_ids = [nid for nid in path_ids if nid not in after_path_entailed]
     path_still = not lost_ids
@@ -331,6 +353,7 @@ def run_edit_affects_path(
         sat_calls=sat_calls,
         max_sat_calls=max_sat_calls,
         timeout_ms=check_timeout_ms,
+        assumptions=phi,
     )
 
     still = sorted(base_conclusions & after_conclusions)

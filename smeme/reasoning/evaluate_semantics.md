@@ -119,6 +119,36 @@ Option literals are **not deleted** from \(T(\mathrm{IR}) \land E\); they are **
 
 Do **not** rely on Z3 UNSAT alone as ingest validation for “two options true”; unreachable `q` can hide the conflict. MCP structured ingest avoids that for the main path.
 
+### Premise consistency before consequence (vacuous-entailment hardening)
+
+Working bases: \(B_E = T \land E\), \(B_\varphi = T \land E \land \varphi\).
+Let \(B = B_\varphi\).
+
+`Cons(B)` is a semantic condition on reporting a consequence, not a requirement to
+perform a separate preliminary solver call. A satisfying query witness may
+establish consistency of the **exact same** base; an UNSAT query result must be
+disambiguated before it is reported as entailment, refutation, or impossibility.
+
+| Query | Witness-first shape |
+| ----- | ------------------- |
+| Entailment | First \(SAT(B \land \neg q)\): SAT → `not_entailed`; UNSAT → \(SAT(B)\) → `entailed` or ladder |
+| Possibility | First \(SAT(B \land q)\): SAT → `possible` (one call); UNSAT → \(SAT(B)\) → `impossible` or ladder |
+
+Never report `entailed` / `impossible` from the first UNSAT alone. Witnesses do not transfer across different \(E\), \(\varphi\), theory versions, repair candidates, or assertion stacks.
+
+Repair (replaced base): possible-mode acceptance may be one call; entailment-mode acceptance still requires \(SAT(B')\) after \(UNSAT(B' \land \neg q)\).
+
+Cause codes on **admitted** \(E\)/\(\varphi\):
+
+| Code | Stage |
+| ---- | ----- |
+| `sources_conflict` | Before admitted \(E\) (blob; `reason == "blob_conflict"`) |
+| `conflicting_assumptions` | During φ validation (syntactic force∩forbid), before φ admitted |
+| `answers_inconsistent` | Ladder step 2: UNSAT(\(B_E\)) |
+| `assumptions_inconsistent` | Ladder step 3: SAT(\(B_E\)) but UNSAT(\(B_\varphi\)) |
+
+When evidence alone is unsatisfiable, the cause is `answers_inconsistent` even if assumptions are present.
+
 ---
 
 ## 6. Enforcement map

@@ -20,7 +20,8 @@ If the tool returned **`{"error": {...}}`**, use **`smeme-reasoning`** — that 
 | **`multiple_outcomes_possible`** | More than one outcome fits | Present **`report.candidates`** (titles + summaries). Do **not** pick arbitrarily. Ask which fits, or what extra facts would disambiguate. See [example phrasing below](#multiple-outcomes-example). |
 | **`needs_more_information`** | Not enough to force a conclusion | Use **`report.answer_sheet`** and the worksheet; ask targeted follow-ups |
 | **`answers_inconsistent`** | Answers cannot all be true together | Explain via **`brief_memo`**; the user adjusts **`answers`**; re-validate and re-evaluate |
-| **`sources_conflict`** | Evidence disagrees | The user resolves which source to trust; update evidence in the envelope; re-validate |
+| **`assumptions_inconsistent`** | Path assumptions conflict with answers or rules | Adjust or clear force/forbid assumptions; do **not** treat this as an answer-only conflict when the report says assumptions |
+| **`sources_conflict`** | Evidence disagrees (before answers are admitted) | The user resolves which source to trust; update evidence in the envelope; re-validate |
 
 ### <a name="multiple-outcomes-example"></a>What to say for `multiple_outcomes_possible`
 

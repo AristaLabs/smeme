@@ -27,9 +27,14 @@ def _result_kind(eval_result: EvaluationResult) -> str:
     if status == "UNSAT":
         reason = eval_result.explanation.get("reason")
         if reason == "blob_conflict":
+            # Pre-admission stage (before admitted E) — not a ladder cause.
             return "sources_conflict"
+        if reason == "solver_unknown":
+            return "needs_more_information"
         if reason == "assumptions_unsat":
+            # Ladder step 3 on admitted φ.
             return "assumptions_inconsistent"
+        # Ladder step 2 on admitted E (reason z3_unsat).
         return "answers_inconsistent"
     return "needs_more_information"
 
