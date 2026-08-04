@@ -603,3 +603,75 @@ def test_disambiguation_operational_never_logical(
     assert result.status != on_consistent
     assert result.status not in ("entailed", "impossible", "inconsistent")
     assert result.cause is None
+
+
+def test_probe4_no_stale_cons_across_base_change_within_request() -> None:
+    """Probe 4: a Cons/witness for B1 must not license logical results for B2≠B1.
+
+    Same request (shared solvers + sat_calls): affirmative witness on consistent
+    E1 must not let a later inconsistent E2 report entailed/impossible — the
+    classic vacuous path if Cons were reused across a base change.
+    """
+    ir = _entry_radio_ir()
+    solver, sym = compile_ir_to_z3(ir)
+    reach = sym["nodes"]
+    sat_calls = [0]
+
+    pos1 = possible_target(
+        solver,
+        reach,
+        ir,
+        {"Q1": "Yes"},
+        "C_yes",
+        sat_calls=sat_calls,
+        max_sat_calls=100,
+        timeout_ms=5000,
+        sat_t_established=True,
+    )
+    assert pos1.status == "possible"
+
+    ent1 = entails_target(
+        solver,
+        reach,
+        ir,
+        {"Q1": "Yes"},
+        "C_yes",
+        sat_calls=sat_calls,
+        max_sat_calls=100,
+        timeout_ms=5000,
+        sat_t_established=True,
+    )
+    assert ent1.status == "entailed"
+
+    # Base change within the same request: dual-true E is inconsistent.
+    pos2 = possible_target(
+        solver,
+        reach,
+        ir,
+        {},
+        "C_yes",
+        sat_calls=sat_calls,
+        max_sat_calls=100,
+        timeout_ms=5000,
+        facts=_dual_true_q1(),
+        sat_t_established=True,
+    )
+    assert pos2.status == "inconsistent"
+    assert pos2.status != "impossible"
+    assert pos2.cause == "answers_inconsistent"
+
+    ent2 = entails_target(
+        solver,
+        reach,
+        ir,
+        {},
+        "C_yes",
+        sat_calls=sat_calls,
+        max_sat_calls=100,
+        timeout_ms=5000,
+        facts=_dual_true_q1(),
+        sat_t_established=True,
+    )
+    assert ent2.status == "inconsistent"
+    assert ent2.status != "entailed"
+    assert ent2.cause == "answers_inconsistent"
