@@ -13,6 +13,8 @@ Versions are carried by document metadata, Git tags, and immutable commits — n
 
 The baseline is not an open-ended claim about future `main`. A later Core release conforms only if it preserves these obligations and their conformance evidence.
 
+**Maintainer process** (when reasoning / Deploy / MCP evaluate code changes): [decision-DAG algebra maintenance](../guides/decision-dag-algebra-maintenance.md).
+
 ---
 
 ## 0. How to read this document
