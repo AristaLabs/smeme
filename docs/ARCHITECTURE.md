@@ -78,6 +78,8 @@ comparison, DTGraph shape, flags, and egress.
 
 - [Authoring decision trees](guides/authoring-decision-trees.md)
 - [Engine promises](guides/engine-promises.md)
+- [Decision-DAG algebra](spec/decision-dag-algebra.md)
+- [Algebra maintenance](guides/decision-dag-algebra-maintenance.md)
 - [Self-host quickstart](guides/self-host-quickstart.md)
 - [MCP OAuth guide](guides/dr3-mcp-oauth-authoritative-sources.md)
 - [Contribution paths](CONTRIBUTION_PATHS.md)
@@ -96,3 +98,10 @@ OCI labels: `io.smeme.core.version` (release lineage), `io.smeme.core.ref`,
 `io.smeme.core.channel` (`release` \| `staging`). Digest is authoritative.
 Cloud may pin staging Core digests for hosted staging only; production Cloud
 builds require `channel=release`.
+
+**Theory vs image pins.** Public decision-DAG algebra is cited by Git tag/commit
+([`docs/spec/decision-dag-algebra.md`](spec/decision-dag-algebra.md)); runtime is
+pinned by image digest. When reasoning or Deploy semantics change, follow
+[decision-DAG algebra maintenance](guides/decision-dag-algebra-maintenance.md)
+before treating a tip as conformant or cutting a citeable theory revision.
+Verify release digests with [image attestations](guides/image-attestations.md).

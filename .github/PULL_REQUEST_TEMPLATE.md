@@ -15,6 +15,16 @@
 - [ ] Relevant `pytest` targets
 - [ ] If Docker: `docker compose -f docker-compose.core.yml up --build` (Core) or existing SaaS path
 
+## Reasoning / Deploy / MCP evaluate changes
+
+If this PR changes IR, theory compile, evidence ingest, query runtime, Deploy
+readiness, or Appendix B–cited tests, follow
+[decision-DAG algebra maintenance](../docs/guides/decision-dag-algebra-maintenance.md):
+
+- [ ] Part I / Part II / Appendix B updated as required
+- [ ] Entry-point re-audit refreshed for affected rows (B.1 caller path)
+- [ ] N/A — no reasoning surface change
+
 ## References
 
 <!-- ADR, issue, or sprint doc links -->
