@@ -2,7 +2,8 @@
 
 **Spec:** [`decision-dag-algebra.md`](./decision-dag-algebra.md)  
 **Core `main` tip at audit:** includes `C4` = `6ff0d455ec824ab553a649351467d8fb369f4bf5`  
-**Rule:** Appendix B.1 — test evidence must exercise the path a caller actually reaches. Helper-only coverage is labeled as such and does not discharge a public/Deploy obligation.
+**Rule:** Appendix B.1 — test evidence must exercise the path a caller actually reaches. Helper-only coverage is labeled as such and does not discharge a public/Deploy obligation.  
+**Refresh:** After Part I / Appendix B changes, rewrite affected rows before cutting a theory citation tag — [maintenance discipline](../guides/decision-dag-algebra-maintenance.md).
 
 **Verdict:** All Part I executable rows pass under B.1. No private Cloud paths or `docs/planning` cites in the spec. Ready for **First public specification** status.
 
