@@ -1,7 +1,10 @@
 # Core image attestations (SBOM + SLSA)
 
 Publish jobs in [`.github/workflows/ci-core.yml`](../../.github/workflows/ci-core.yml)
-sign every pushed Core digest with GitHub OIDC via `actions/attest`:
+sign every pushed Core digest with GitHub OIDC via `actions/attest`.
+
+Image digests pin **runtime**. Public theory citations use a separate Git tag
+discipline — see [decision-DAG algebra maintenance](decision-dag-algebra-maintenance.md).
 
 | Attestation | Predicate type |
 |-------------|----------------|

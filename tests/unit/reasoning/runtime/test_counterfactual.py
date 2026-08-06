@@ -151,6 +151,32 @@ def test_run_what_if_shared_assumptions_apply_to_both_passes() -> None:
     assert result.delta["outcome_changed"] is False
 
 
+def test_run_what_if_emits_delta_when_one_side_inconsistent() -> None:
+    """Algebra §10.2 (shipped): always emit structural delta; retain result_kind.
+
+    Shared φ forces C_no reachable. Base answers Yes → assumptions_inconsistent;
+    override answers No → concluded. Delta remains present (structural report diff).
+    """
+    ir = _exclusive_radio_ir()
+    assert validate_ir(ir).valid
+    graph = _exclusive_radio_graph()
+    phi = assumptions_from_lists(force_reachable_ids=["C_no"])
+    result = run_what_if(
+        ir,
+        graph,
+        base_payload={"Q1": "Yes"},
+        override_payload={"Q1": "No"},
+        assumptions=phi,
+    )
+    assert result.before_report["result_kind"] == "assumptions_inconsistent"
+    assert result.after_report["result_kind"] == "concluded"
+    assert result.delta is not None
+    assert "outcome_changed" in result.delta
+    assert result.delta["changed_answers"] == [
+        {"question_id": "Q1", "before": "Yes", "after": "No"}
+    ]
+
+
 def test_run_what_if_invalid_assumption_node() -> None:
     ir = _exclusive_radio_ir()
     graph = _exclusive_radio_graph()

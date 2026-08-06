@@ -11,12 +11,14 @@ Load these in order; stop when your task is clear.
 | Order | Doc | Purpose |
 | ----- | --- | ------- |
 | 1 | [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) | System map: web, MCP, and the IR reasoning stack. |
-| 2 | [D017 in `docs/DECISIONS.md`](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline) | Why the new pipeline exists; what to reuse vs replace. |
-| 3 | **This file** | Current checkpoint and next steps. |
-| 4 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |
-| 5 | [`workflow_design.md`](workflow_design.md) | Broader design vision (minimization, projection) — only if scope goes beyond the spine. |
-| 6 | [`evidence_contract.md`](evidence_contract.md) | **Deploy freeze today:** `PublishedEvidenceContract` → `cevi_contract_*`; deterministic induction + evaluate `fact_projection`. |
-| 7 | [`IR_validator.md`](IR_validator.md) | Tiered validation / counterexamples — when extending `validate_ir`. |
+| 2 | [`docs/spec/decision-dag-algebra.md`](../../docs/spec/decision-dag-algebra.md) | Canonical public theory (cite a tag/commit, not `main`). |
+| 3 | [Algebra maintenance](../../docs/guides/decision-dag-algebra-maintenance.md) | When this package changes: update spec, re-audit, theory tags. |
+| 4 | [D017 in `docs/DECISIONS.md`](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline) | Why the new pipeline exists; what to reuse vs replace. |
+| 5 | **This file** | Current checkpoint and next steps. |
+| 6 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |
+| 7 | [`workflow_design.md`](workflow_design.md) | Broader design vision (minimization, projection) — only if scope goes beyond the spine. |
+| 8 | [`evidence_contract.md`](evidence_contract.md) | **Deploy freeze today:** `PublishedEvidenceContract` → `cevi_contract_*`; deterministic induction + evaluate `fact_projection`. |
+| 9 | [`IR_validator.md`](IR_validator.md) | Tiered validation / counterexamples — when extending `validate_ir`. |
 | — | [`evaluate_semantics.md`](evaluate_semantics.md) | **Evaluate contract:** \(T(\mathrm{IR})\) vs evidence \(E\), radio/PbEq, why all answered questions hit the solver, MCP structured ingest. |
 | — | [`docs/planning/dtq-to-reasoning-cutover.md`](../../docs/planning/dtq-to-reasoning-cutover.md) | **Completed cutover plan** (historical): naming, DB, API/MCP migration reference. |
 
