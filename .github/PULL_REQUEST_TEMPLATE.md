@@ -19,7 +19,7 @@
 
 If this PR changes IR, theory compile, evidence ingest, query runtime, Deploy
 readiness, or Appendix B–cited tests, follow
-[decision-DAG algebra maintenance](../docs/guides/decision-dag-algebra-maintenance.md):
+[decision-DAG calculus maintenance](../docs/guides/decision-dag-calculus-maintenance.md):
 
 - [ ] Part I / Part II / Appendix B updated as required
 - [ ] Entry-point re-audit refreshed for affected rows (B.1 caller path)

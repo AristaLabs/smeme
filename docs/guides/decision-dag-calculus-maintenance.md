@@ -1,4 +1,4 @@
-# Decision-DAG algebra — maintenance discipline
+# Decision-DAG calculus — maintenance discipline
 
 **Audience:** Core maintainers changing reasoning, Deploy, or MCP evaluate surfaces.
 
@@ -6,10 +6,12 @@
 
 | Artifact | Path |
 |----------|------|
-| Normative theory | [`docs/spec/decision-dag-algebra.md`](../spec/decision-dag-algebra.md) |
-| Entry-point re-audit (Appendix B.1) | [`docs/spec/decision-dag-algebra-entry-point-reaudit.md`](../spec/decision-dag-algebra-entry-point-reaudit.md) |
+| Normative theory | [`docs/spec/decision-dag-calculus.md`](../spec/decision-dag-calculus.md) |
+| Entry-point re-audit (Appendix B.1) | [`docs/spec/decision-dag-calculus-entry-point-reaudit.md`](../spec/decision-dag-calculus-entry-point-reaudit.md) |
 
 Cite the theory at an **immutable Git tag or commit**, never floating `main`. Record path / tag / commit / content SHA-256 **outside** the file (citing work or release notes).
+
+The first public snapshot remains tag `decision-dag-algebra-v1.0` (path `docs/spec/decision-dag-algebra.md` at that commit). New citations use `decision-dag-calculus-v*` and the calculus path.
 
 ---
 
@@ -17,7 +19,7 @@ Cite the theory at an **immutable Git tag or commit**, never floating `main`. Re
 
 | Pin | What it freezes | Example |
 |-----|-----------------|---------|
-| **Theory citation** | Spec prose + Appendix B baseline as of a commit | annotated tag `decision-dag-algebra-v1.0` → commit SHA |
+| **Theory citation** | Spec prose + Appendix B baseline as of a commit | annotated tag `decision-dag-calculus-v1.1` → commit SHA |
 | **Runtime image** | Code + deps Cloud/self-host run | GHCR digest on `v*.*.*` release (`channel=release`) |
 
 Same commit may carry both. Updating one does not update the other. Image digest pins never rewrite theory URLs; a new theory tag never replaces a digest pin.
@@ -61,8 +63,8 @@ Test evidence must exercise the **path a caller actually reaches** (MCP tool, De
 
 ### 3. Update the artifacts on the same PR when practical
 
-1. Edit `docs/spec/decision-dag-algebra.md` (Part I / II / Appendix B as required).
-2. Rewrite or extend `docs/spec/decision-dag-algebra-entry-point-reaudit.md` for every affected Part I row.
+1. Edit `docs/spec/decision-dag-calculus.md` (Part I / II / Appendix B as required).
+2. Rewrite or extend `docs/spec/decision-dag-calculus-entry-point-reaudit.md` for every affected Part I row.
 3. Land tests that the new Appendix B rows cite **before** or **with** the doc update.
 4. Merge to `main` (staging image builds from that commit; that is not a theory citation).
 
@@ -72,28 +74,28 @@ Use when external cites, GTM, or conformance claims must freeze a new public the
 
 ```bash
 # After the revision is on main:
-git tag -a decision-dag-algebra-vX.Y <merge-commit-sha> -m "Decision-DAG algebra vX.Y"
-git push origin decision-dag-algebra-vX.Y
+git tag -a decision-dag-calculus-vX.Y <merge-commit-sha> -m "Decision-DAG calculus vX.Y"
+git push origin decision-dag-calculus-vX.Y
 ```
 
 External record (example):
 
 ```text
-path:     docs/spec/decision-dag-algebra.md
-tag:      decision-dag-algebra-vX.Y
+path:     docs/spec/decision-dag-calculus.md
+tag:      decision-dag-calculus-vX.Y
 commit:   <full sha>
-SHA-256:  <shasum -a 256 docs/spec/decision-dag-algebra.md at that commit>
+SHA-256:  <shasum -a 256 docs/spec/decision-dag-calculus.md at that commit>
 ```
 
 Bump the document **Version** metadata when cutting a new theory tag. Do **not** rename the file for versioning.
 
-Theory tags (`decision-dag-algebra-v*`) are **orthogonal** to Core release tags (`v*.*.*`). Cutting `v*.*.*` for an image does not create a theory pin; cutting a theory tag does not publish a release image.
+Theory tags (`decision-dag-calculus-v*`; historical `decision-dag-algebra-v1.0`) are **orthogonal** to Core release tags (`v*.*.*`). Cutting `v*.*.*` for an image does not create a theory pin; cutting a theory tag does not publish a release image.
 
 ### 5. Before a Core `v*.*.*` release that includes reasoning changes
 
 - [ ] Part I + Appendix B match the release tip (or an ancestor that still holds).
 - [ ] Entry-point re-audit current for that tip.
-- [ ] If public cites must move with this release, cut/update `decision-dag-algebra-v*` on the intended commit **before** or **with** the release cut.
+- [ ] If public cites must move with this release, cut/update `decision-dag-calculus-v*` on the intended commit **before** or **with** the release cut.
 - [ ] Cloud production pin uses the **release** digest ([Cloud production runbook](https://github.com/AristaLabs/smeme-cloud) — operators: Phase 3.1a Core pin).
 
 ---
@@ -102,11 +104,11 @@ Theory tags (`decision-dag-algebra-v*`) are **orthogonal** to Core release tags 
 
 | Do not | Why |
 |--------|-----|
-| Cite `…/blob/main/docs/spec/decision-dag-algebra.md` in papers, GTM, or contracts | `main` moves |
+| Cite `…/blob/main/docs/spec/decision-dag-calculus.md` in papers, GTM, or contracts | `main` moves |
 | Put Cloud-only drafts or amendment archaeology in Core | Public Core is the only theory home |
 | Claim Part I from helper-only tests | Fails B.1 |
 | Quietly move a broken Part I claim into Part II | Status is by location; demotion needs an explicit revision |
-| Treat image digest as the algebra citation | Different pin |
+| Treat image digest as the theory citation | Different pin |
 
 ---
 

@@ -12,8 +12,8 @@ Thin operator and contributor surface for the public Core tree.
 | [Self-host pilot](guides/self-host-pilot.md) | Clerk AS + MCP + authoring/wizard |
 | [Authoring decision trees](guides/authoring-decision-trees.md) | Web wizard vs MCP chat; DTGraph → editor → Deploy |
 | [Engine promises](guides/engine-promises.md) | What Deploy and evaluate guarantee |
-| [Decision-DAG algebra](spec/decision-dag-algebra.md) | Canonical public theory (cite a tag/commit, not `main`) |
-| [Algebra maintenance](guides/decision-dag-algebra-maintenance.md) | When reasoning changes: update spec, re-audit, theory tags |
+| [Decision-DAG calculus](spec/decision-dag-calculus.md) | Canonical public theory (cite a tag/commit, not `main`) |
+| [Calculus maintenance](guides/decision-dag-calculus-maintenance.md) | When reasoning changes: update spec, re-audit, theory tags |
 | [Contribution paths](CONTRIBUTION_PATHS.md) | Themes welcome in public PRs |
 | [Contributing](../CONTRIBUTING.md) | PR / CLA process |
 | [GitHub Discussions](https://github.com/AristaLabs/smeme/discussions) | Community how-to / MCP / self-host help |
@@ -32,14 +32,14 @@ Thin operator and contributor surface for the public Core tree.
 | [Frontend CSS build](guides/frontend-css-build.md) | Tailwind pre-build (`make css`) |
 | [Data migration](guides/data-migration.md) | Schema vs data migrations |
 | [Image attestations](guides/image-attestations.md) | Verify GHCR SBOM / SLSA before pinning |
-| [Algebra maintenance](guides/decision-dag-algebra-maintenance.md) | Theory + re-audit + citation tags vs image digests |
+| [Calculus maintenance](guides/decision-dag-calculus-maintenance.md) | Theory + re-audit + citation tags vs image digests |
 
 ## Specifications
 
 | Spec | Use when |
 |------|----------|
-| [Decision-DAG algebra](spec/decision-dag-algebra.md) | Normative IR / reachability / Deploy theory |
-| [Entry-point re-audit](spec/decision-dag-algebra-entry-point-reaudit.md) | Appendix B.1 evidence map for Part I |
+| [Decision-DAG calculus](spec/decision-dag-calculus.md) | Normative IR / reachability / Deploy theory |
+| [Entry-point re-audit](spec/decision-dag-calculus-entry-point-reaudit.md) | Appendix B.1 evidence map for Part I |
 
 ## Agent guidance authoring
 

@@ -6,8 +6,8 @@ name: Core CI / GHCR
 # - Version tags v*.*.* → publish release Core image (semver + :latest)
 # - Every publish attests the exact digest (SLSA + CycloneDX) via GitHub OIDC
 #
-# Theory citation tags (decision-dag-algebra-v*) are orthogonal to v*.*.* image
-# tags — see docs/guides/decision-dag-algebra-maintenance.md. Do not use theory
+# Theory citation tags (decision-dag-calculus-v*) are orthogonal to v*.*.* image
+# tags — see docs/guides/decision-dag-calculus-maintenance.md. Do not use theory
 # tags as GHCR publish triggers.
 #
 # Image identity (both tracks):

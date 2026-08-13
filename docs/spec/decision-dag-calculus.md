@@ -1,19 +1,19 @@
-# The SMEme Decision-DAG Algebra
+# The SMEme Decision-DAG Calculus
 
 **Finite Decision DAGs as Propositional Reachability Theories**
 
 | | |
 |---|---|
-| **Version** | 1.0 |
-| **Status** | **First public specification** |
+| **Version** | 1.1 |
+| **Status** | **Public specification** (naming revision of v1.0) |
 | **Conformance baseline** | SMEme Core commits identified in Appendix B |
-| **Path** | `docs/spec/decision-dag-algebra.md` |
+| **Path** | `docs/spec/decision-dag-calculus.md` |
 
-Versions are carried by document metadata, Git tags, and immutable commits — not by the filename. Cite this document at a commit or tag, never at `main`.
+Versions are carried by document metadata, Git tags, and immutable commits — not by the filename. Cite this document at a commit or tag, never at `main`. v1.0 remains the historical snapshot at tag `decision-dag-algebra-v1.0`.
 
 The baseline is not an open-ended claim about future `main`. A later Core release conforms only if it preserves these obligations and their conformance evidence.
 
-**Maintainer process** (when reasoning / Deploy / MCP evaluate code changes): [decision-DAG algebra maintenance](../guides/decision-dag-algebra-maintenance.md).
+**Maintainer process** (when reasoning / Deploy / MCP evaluate code changes): [decision-DAG calculus maintenance](../guides/decision-dag-calculus-maintenance.md).
 
 ---
 
@@ -34,6 +34,8 @@ Some Part I prose explains a formula, fixes the scope of a guarantee, or states 
 ### 0.1 Scope
 
 This specification governs the compilation of a finite typed decision DAG into a quantifier-free propositional theory, and the queries answerable over that theory under case evidence and assumptions. It governs the source-validation conditions necessary to establish the compilation domain (§4.1), but not authoring interfaces or workflows. It does not govern transport, authentication, or the language-model components that produce candidate graphs and candidate evidence. §12 states the boundary precisely.
+
+**Kind of theory.** This document is a **formal semantics** and **constraint encoding**: a typed DAG data model, a canonical guard domain, a partial DAG→IR compiler, an IR→propositional-theory encoding, and a collection of satisfiability and consequence queries. It is **not** an algebra of decision DAGs in the universal-algebra or process-algebra sense. It does not define graph operations (merge, guarded choice, sequential composition), laws over those operations, or a structure-preserving homomorphism from DAG construction into theories. `GuardDomain` is a quotient of guard strings; no operations are defined over it. Compilation introduces auxiliary `reach` and `g` atoms, so even a later preservation result would be a **semantics-preserving encoding theorem** (a correspondence of models, possibly after hiding auxiliaries), not formula identity and not a homomorphism.
 
 ---
 
@@ -76,7 +78,7 @@ IR = (Nodes, Edges, Guards, Shapes)
 - Guards → `(id, expr)`
 - Shapes → typed domains
 
-**Invariant.** IR is a lossless encoding of graph *structure*, not semantics. It preserves adjacency, identity via `Guard.id`, deterministic ordering, and node typing.
+**Invariant.** IR is a deterministic encoding of graph *structure*, not semantics. The compiler is specified to preserve adjacency, identity via `Guard.id`, deterministic ordering, and node typing. That claim is an implementation invariant with test evidence in Appendix B, not a proved isomorphism.
 
 The product object may be called a `DecisionTree`, but the validated source can contain converging paths and shared downstream nodes. The mathematical source is therefore a DAG. The distinction matters because a tree has a unique parent per non-root node; SMEme does not require that restriction.
 
@@ -121,7 +123,7 @@ Neither is sufficient alone. Some obligations are stated over the source graph a
 
 ### 4.1 Source validation
 
-Write `SourceValid(G)` when `validate_graph(G) = valid`. `validate_graph` enforces more than this specification requires; its authoring and publication rules are outside scope. This subsection claims only the algebraically relevant consequences of that predicate — not publication blocking or Deploy readiness (those live in §11). The **algebraically relevant consequences** of `SourceValid(G)` are:
+Write `SourceValid(G)` when `validate_graph(G) = valid`. `validate_graph` enforces more than this specification requires; its authoring and publication rules are outside scope. This subsection claims only the compilation-relevant consequences of that predicate — not publication blocking or Deploy readiness (those live in §11). The **compilation-relevant consequences** of `SourceValid(G)` are:
 
 1. the graph has exactly one entry node, defined as the unique node with no incoming arc;
 2. that entry node is a `QUESTION`;
@@ -168,7 +170,7 @@ Closure here means that every admitted construct already has a finite, defined t
 
 Acyclicity is a validation obligation, not an emergent property. The reachability encoding in §6 depends on it.
 
-## 5. Boolean embedding
+## 5. Boolean interpretation
 
 Given validated IR, the guard component of compilation is interpreted by the map:
 
@@ -189,7 +191,7 @@ Here `Prop(Atoms)` is the set of finite propositional formulas constructed from 
 γ_Core(q, ⊤)   = ⊤
 ```
 
-`γ_Core` is partial: `γ_Core(q, [A])` is undefined when `A` is not an option of `q`. That undefinedness is the vacuity condition §4.2 rejects.
+`γ_Core` is partial: `γ_Core(q, [A])` is undefined when `A` is not an option of `q`. That undefinedness is the vacuity condition §4.2 rejects. Call this an **interpretation** (or guard encoding), not an embedding: the map is partial, it is not shown to be injective, and there are no guard operations for it to preserve.
 
 Each edge retains its own guard atom `g_k`. For an edge `(s, t, g_k)` carrying guard expression `expr_k`, compilation asserts:
 
@@ -448,7 +450,7 @@ Where `φ ≠ ∅`, a candidate edit can render `T ∧ E′ ∧ φ` unsatisfiabl
 
 ## 10. Query modes
 
-All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9. Algebraic modes do not necessarily correspond one-for-one with public endpoints: some are selectable modes or assumption parameters on a broader tool.
+All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9. These query modes do not necessarily correspond one-for-one with public endpoints: some are selectable modes or assumption parameters on a broader tool.
 
 | Mode | Base | Public surface | Notes |
 |---|---|---|---|
@@ -456,10 +458,10 @@ All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9
 | **Compare** | `B₁`, `B₂` | `smeme_reasoning_what_if` | **Per side.** Each side has its own base; a witness for one proves nothing about the other |
 | **Entail** | `B_φ` | `smeme_reasoning_how_to_reach` with `reach_mode="entailed"`; also used by path and support analysis | Witness-first per §8.2 |
 | **Possible** | `B_φ` | `smeme_reasoning_how_to_reach` with `reach_mode="possible"` | Witness-first per §8.2; shipped as a mode, not a separate endpoint |
-| **Path under edit** | `T ∧ E′ ∧ φ` | `smeme_reasoning_edit_affects_path` | Independent per `E′`; baseline path must already be entailed (`path_not_entailed_at_baseline` otherwise) — operational product gate, not an algebraic axiom |
+| **Path under edit** | `T ∧ E′ ∧ φ` | `smeme_reasoning_edit_affects_path` | Independent per `E′`; baseline path must already be entailed (`path_not_entailed_at_baseline` otherwise) — operational product gate, not a semantic axiom |
 | **Repair** | `T ∧ E′_k ∧ φ` | `smeme_reasoning_how_to_reach` | **Per candidate** (Lemma 2) |
 | **Minimal sufficient evidence** | `T ∧ S ∧ φ`, `S ⊆ E` | `smeme_reasoning_decisive_support` | Establish consistency once at full `E` (Lemma 1) |
-| **Assume** | working base plus `φ` | `force_reachable_ids` / `force_unreachable_ids` on evaluation and analysis tools | Shipped as optional reachability constraints, not a separate endpoint; at most `MAX_ASSUMPTION_NODE_IDS` (= 32) ids — operational bound, not an algebraic axiom |
+| **Assume** | working base plus `φ` | `force_reachable_ids` / `force_unreachable_ids` on evaluation and analysis tools | Shipped as optional reachability constraints, not a separate endpoint; at most `MAX_ASSUMPTION_NODE_IDS` (= 32) ids — operational bound, not a semantic axiom |
 
 ### 10.1 Uniqueness — two distinct objects
 
@@ -609,7 +611,9 @@ The capabilities in this part are not implemented and have no conformance rows. 
 
 ## 14. Correction record
 
-**This specification is published for the first time.** Earlier drafts existed only in a private repository. There is no prior public version to compare against.
+**v1.1 (this revision).** Retitles the document as a calculus rather than an algebra; moves the canonical path from `docs/spec/decision-dag-algebra.md` to `docs/spec/decision-dag-calculus.md`; replaces “Boolean embedding” with “Boolean interpretation”; records in §0.1 that the specification does not define DAG operations, algebraic laws, or a homomorphism. Executable Part I obligations and Appendix B evidence are unchanged. The first public snapshot remains tag `decision-dag-algebra-v1.0` (old path, at that commit).
+
+**v1.0.** First public specification. Earlier drafts existed only in a private repository.
 
 **Released Core images contained incorrect consequence behavior.** Releases `v0.9.9` and `v0.9.10` exhibited three defects on the consequence surfaces:
 
@@ -636,7 +640,10 @@ This document does not claim:
 - that the deployed artifact is the correct one for a given case (§12);
 - that a decidable propositional fragment is expressively adequate for any particular domain;
 - that consistency checking substitutes for human review;
-- that option labels on a single question are unique under case-insensitive matching (see below).
+- that option labels on a single question are unique under case-insensitive matching (see below);
+- that compilation is a homomorphism of DAG or guard operations (§0.1, §5);
+- that `γ_Core` is an embedding (injective or structure-preserving) into propositional formulas (§5);
+- that IR is a proved isomorphism of the source graph (§2).
 
 **Case-colliding options (defect in `E`, not in `T(IR)`).** When two options on one question differ only by case (for example `Yes` and `yes`), `T(IR)` still carries two distinct option atoms and remains faithful to those labels. Case-insensitive admission can nonetheless assert **both** atoms true in `E`, so `B_E` misrepresents the intended single answer. If the question is reachable, reachability-scoped `ExactlyOne` (§5.1) then makes the case inconsistent; if unreachable, the cardinality constraint is inactive. Closing this requires case-unique option validation (§13.8). This document does not certify single-answer projection under colliding options.
 
@@ -677,7 +684,7 @@ Repository paths below are relative to SMEme Core. A commit reference identifies
 
 Part I determines normativity. If an executable Part I obligation lacks corresponding implementation and test evidence here, that omission is a conformance defect in this document and should be reported rather than silently reclassified.
 
-**First public.** Entry-point re-audit: [`decision-dag-algebra-entry-point-reaudit.md`](./decision-dag-algebra-entry-point-reaudit.md).
+**Public specification.** Entry-point re-audit: [`decision-dag-calculus-entry-point-reaudit.md`](./decision-dag-calculus-entry-point-reaudit.md).
 
 ---
 

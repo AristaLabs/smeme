@@ -4,7 +4,7 @@ Publish jobs in [`.github/workflows/ci-core.yml`](../../.github/workflows/ci-cor
 sign every pushed Core digest with GitHub OIDC via `actions/attest`.
 
 Image digests pin **runtime**. Public theory citations use a separate Git tag
-discipline — see [decision-DAG algebra maintenance](decision-dag-algebra-maintenance.md).
+discipline — see [decision-DAG calculus maintenance](decision-dag-calculus-maintenance.md).
 
 | Attestation | Predicate type |
 |-------------|----------------|
