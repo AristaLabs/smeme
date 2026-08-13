@@ -11,8 +11,8 @@ Load these in order; stop when your task is clear.
 | Order | Doc | Purpose |
 | ----- | --- | ------- |
 | 1 | [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) | System map: web, MCP, and the IR reasoning stack. |
-| 2 | [`docs/spec/decision-dag-algebra.md`](../../docs/spec/decision-dag-algebra.md) | Canonical public theory (cite a tag/commit, not `main`). |
-| 3 | [Algebra maintenance](../../docs/guides/decision-dag-algebra-maintenance.md) | When this package changes: update spec, re-audit, theory tags. |
+| 2 | [`docs/spec/decision-dag-calculus.md`](../../docs/spec/decision-dag-calculus.md) | Canonical public theory (cite a tag/commit, not `main`). |
+| 3 | [Calculus maintenance](../../docs/guides/decision-dag-calculus-maintenance.md) | When this package changes: update spec, re-audit, theory tags. |
 | 4 | [D017 in `docs/DECISIONS.md`](../../docs/DECISIONS.md#d017-dtq-proof-of-concept-vs-production-symbolic-reasoning-pipeline) | Why the new pipeline exists; what to reuse vs replace. |
 | 5 | **This file** | Current checkpoint and next steps. |
 | 6 | [`SPRINT_PLAN.md`](SPRINT_PLAN.md) | Original day-by-day spine (structure differs slightly from repo layout). |

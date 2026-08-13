@@ -1,11 +1,11 @@
-# Decision-DAG algebra — entry-point re-audit
+# Decision-DAG calculus — entry-point re-audit
 
-**Spec:** [`decision-dag-algebra.md`](./decision-dag-algebra.md)  
+**Spec:** [`decision-dag-calculus.md`](./decision-dag-calculus.md)  
 **Core `main` tip at audit:** includes `C4` = `6ff0d455ec824ab553a649351467d8fb369f4bf5`  
 **Rule:** Appendix B.1 — test evidence must exercise the path a caller actually reaches. Helper-only coverage is labeled as such and does not discharge a public/Deploy obligation.  
-**Refresh:** After Part I / Appendix B changes, rewrite affected rows before cutting a theory citation tag — [maintenance discipline](../guides/decision-dag-algebra-maintenance.md).
+**Refresh:** After Part I / Appendix B changes, rewrite affected rows before cutting a theory citation tag — [maintenance discipline](../guides/decision-dag-calculus-maintenance.md).
 
-**Verdict:** All Part I executable rows pass under B.1. No private Cloud paths or `docs/planning` cites in the spec. Ready for **First public specification** status.
+**Verdict:** All Part I executable rows pass under B.1. No private Cloud paths or `docs/planning` cites in the spec. Naming revision (v1.1) does not change executable obligations. Ready for **public specification** status.
 
 | Part I | Public / Deploy entry point | Evidence path (B.1) | Result |
 |---|---|---|---|
