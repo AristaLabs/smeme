@@ -67,10 +67,11 @@ q2 ∈ {A, B}
 q1 -Yes→ c1
 q1 -Yes→ q2
 q2 -A→ c2
+q2 -B→ c1
 q1 -No→ c3
 ```
 
-`q2=B` has no outgoing arc.
+`q2 -B→ c1` is compilation-domain closure: a required radio question cannot leave an option without an outgoing arc (§4 / `validate_graph`). It does not introduce a new conclusion. Pinning `q2=A` still yields `C_poss={c1,c2}`; pinning `q2=B` still yields `C_poss={c1}`.
 
 **G2.0** `E = {q1=Yes}`, `q2` unanswered.
 
@@ -163,10 +164,14 @@ If `φ` is later cleared, that is a replaced base: re-ANALYZE from G2.0.
 Source:
 
 ```text
-q1 ∈ {Yes}     (single option, or Yes selected)
+q1 ∈ {Yes, No}     entry
+
 q1 -Yes→ c1
 q1 -Yes→ c2
+q1 -No→ c3
 ```
+
+`c3` closes the `No` option so the source is in the compilation domain. It is not possible under `E = {q1=Yes}`.
 
 **G6.0** `E = {q1=Yes}`.
 
@@ -195,12 +200,17 @@ Must not emit `not_resolvable_by_remaining_evidence_vocabulary`. The logical res
 
 ## G8 — Unreachable admitted answers are not in `S_R`
 
-Extend G2:
+Extend the G2 fork by putting `q3` on the No path (replace `q1 -No→ c3`):
 
 ```text
+q3 ∈ {X, Y}
+
 q1 -No→ q3
 q3 -X→ c3
+q3 -Y→ c3
 ```
+
+Then `q3=X` is a legitimate admitted worksheet assignment and remains reachability-inert when `q1=Yes`.
 
 **G8.0** `E = {q1=Yes, q2=B, q3=X}`.
 
