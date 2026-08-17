@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Version** | 1.1 |
-| **Status** | **Public specification** (naming revision of v1.0) |
+| **Version** | 1.2 |
+| **Status** | **Public specification** (target Inquire added; Part I unchanged from v1.1) |
 | **Conformance baseline** | SMEme Core commits identified in Appendix B |
 | **Path** | `docs/spec/decision-dag-calculus.md` |
 
@@ -446,11 +446,11 @@ SAT(T ∧ E ∧ φ) ⇏ SAT(T ∧ E′ ∧ φ)
 
 Where `φ ≠ ∅`, a candidate edit can render `T ∧ E′ ∧ φ` unsatisfiable — for example, an answer that makes a `force_reachable_ids` node unreachable.
 
-**Rule for future modes.** Classify at design time. The classification determines the policy; no mode is exempt.
+**Rule for future modes.** Classify at design time. The classification determines the policy; no mode is exempt. Inquire (§13.9) is a target mode: each `ANALYZE` is Unchanged on its current base; conjunctive `ACQUIRE` extends `E`; `REBASE` is Replaced.
 
 ## 10. Query modes
 
-All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9. These query modes do not necessarily correspond one-for-one with public endpoints: some are selectable modes or assumption parameters on a broader tool.
+All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9. These query modes do not necessarily correspond one-for-one with public endpoints: some are selectable modes or assumption parameters on a broader tool. Inquire — evidence-demand over a growing admitted base — is specified in §13.9 and is **not** a shipped surface.
 
 | Mode | Base | Public surface | Notes |
 |---|---|---|---|
@@ -605,13 +605,137 @@ The capabilities in this part are not implemented and have no conformance rows. 
 
 **13.8 Case-unique option validation.** Reject or normalize question option sets that collide under case-insensitive admission matching. Closes the Appendix A non-obligation on colliding options.
 
+**13.9 Inquire (evidence-demand).** A query that allocates the next isolated, outcome-blind extraction over the deployed artifact's frozen worksheet vocabulary, given the formal consequences of the current admitted base. It does not retrieve evidence, assess truth, or perform probabilistic inference. Extraction and verification remain outside the trusted base (§12). No public endpoint, MCP contract, or conformance row ships (yet).
+
+Throughout §13.9, `B` denotes the **fully composed** working base: `T ∧ E` when `φ` is empty, and `T ∧ E ∧ φ` (`B_φ`) when assumptions are composed. `Resolved`, `S_R`, `D_1`, and `Resolvable` are predicates of this `B`. Minimizing admitted evidence does not drop `φ`. Let `U` be the unanswered worksheet questions of the loaded artifact. Let `A_q` be the option set of question `q`. Let `C_poss(B) = { c | SAT(B ∧ reach(c)) }` and `C_ent(B) = { c | Entailed(B, reach(c)) }`. Worksheet assignments admitted in `E` are pairs `(q, a)`; `proj(q, a)` is their Stage B unit-literal image. The epistemic object is the worksheet pair, not an individual projected literal.
+
+Normative start is `E = ∅`. Bulk initial extraction over the full worksheet is an optional latency heuristic, not the algorithm. Inquire constructs `E` on demand. Each issued extraction is a **singleton**: the stochastic extractor receives one question stem and its options, and does not receive the conclusion space, `result_kind`, why the question was selected, a prior answer or citation, sibling questions from the same support or witness, or whether the call is verification or acquisition.
+
+### 13.9.1 Resolution
+
+```text
+Resolved(B)  ⟺  Cons(B) ∧ C_poss(B) = C_ent(B) = {c}
+```
+
+for a unique conclusion `c`. Entailment of some conclusion is not resolution. Joint entailment or co-reachability of two conclusions is not resolution. Shipped Apply `SAT_UNIQUE` is not a substitute: a witness with exactly one true conclusion `c` and `UNSAT(B ∧ ¬reach(c))` does not imply `C_poss(B) = {c}`, because another conclusion may remain possible in a model that still satisfies `reach(c)`. Tightening Apply to this property is a separate Part I candidate; Inquire uses the property, not the first-model shortcut.
+
+A legitimate final **set** of jointly entailed conclusions is not a shipped Apply outcome (`SAT_AMBIGUOUS` is unresolved). `Resolved` and `S_R` must change together if that product status is ever added.
+
+### 13.9.2 Minimum-cardinality resolving worksheet support
+
+When `Resolved(B)` holds with unique `c`, write `B_S` for the base that retains `φ` and replaces `E` by a candidate subset `S` of admitted worksheet assignments:
+
+```text
+B_S  =  T ∧ φ ∧ ⋀{ proj(q,a) | (q,a) ∈ S }
+
+S_R(B) ∈ arg min_{S ⊆ admitted worksheet assignments of E} |S|
+          s.t.  Resolved(B_S)
+```
+
+Equivalently, `C_poss(B_S) = C_ent(B_S) = {c}` for that same `c`. Ties break by stable worksheet-id order. Minimum cardinality implies inclusion-minimality; this is not a MUS and is not named as one.
+
+Entailment support `T ∧ S ⊨ reach(c)` is **not** enough. A subset may still force `c` while leaving another conclusion possible, so `¬Resolved(B_S)`. VERIFY of that subset would confirm premises sufficient for entailment, not premises sufficient for the resolved decision state. Shipped `decisive_support` computes entailment support under fixed `T` and `E` (§10.4) and is not a substitute for `S_R`.
+
+One such `S_R(B)` is enough. If every member satisfies verification policy, the worksheet assignments constituting a formally resolving support have passed `P_v`, and the case may STOP. Core, not `P_v`, is what established `Resolved(B_S)`. If a member fails, rebase and reanalyze rather than treating `c` as unsupported.
+
+### 13.9.3 Myopic discrimination
+
+```text
+q ∈ D_1(B)  ⟺  q ∈ U ∧ ∃ o, o' ∈ A_q.
+                 C_poss(B ∧ q=o) ≠ C_poss(B ∧ q=o')
+```
+
+SAT already ranges over the other free variables. `D_1(B) = ∅` means no one-step question currently changes the possible-conclusion set. It does **not** mean remaining evidence cannot settle the case.
+
+### 13.9.4 Residual resolvability and resolving witnesses
+
+Let `Ω(U)` be the admissible **consistent full completions** of `U`: assignments `α` of every `q ∈ U` to a member of `A_q` such that `Cons(B ∧ α)`.
+
+```text
+Resolvable(B, U)  ⟺  ∃ α ∈ Ω(U). Resolved(B ∧ α)
+```
+
+Quantifying over full completions is enough. If a partial assignment already yields `Resolved`, conjunctive evidence extension (§7.2) preserves the unique entailed conclusion and keeps every other conclusion impossible, so some resolving full completion exists.
+
+Three objects remain distinct:
+
+| Object | Meaning |
+|---|---|
+| `D_1(B)` | immediately discriminating questions |
+| `(D, α_D)` | a **resolving witness**: `D ⊆ U` and `Resolved(B ∧ α_D)` |
+| `Resolvable(B, U)` | existence of at least one resolving full completion |
+
+A resolving witness is stronger than a joint discriminator (two assignments to `D` that merely change `C_poss`). When `D_1(B) = ∅` and `Resolvable(B, U)` is true, the implementation may search for a small resolving witness internally and issue **one** `q ∈ D` as the next singleton acquisition. Changing `C_poss` is not the same as eventually resolving the case.
+
+Semantic exhaustion is `¬Resolvable(B, U)`. Immediate when `U = ∅` and `¬Resolved(B)`. Related to, but not the same as, publish-time determinacy of `T` (§13.5): this predicate is case-level, relative to the current `E`.
+
+Operational budget failure is not semantic exhaustion. Those statuses must never collapse:
+
+```text
+no_joint_discriminator_within_budget
+    — the computation gave up; Resolvable is undecided
+
+not_resolvable_by_remaining_evidence_vocabulary
+    — ¬Resolvable(B, U) is proved; the frozen vocabulary cannot settle this base
+```
+
+How a solver establishes `Resolvable` (enumeration, SAT search, QBF, compilation) is not part of the definition.
+
+### 13.9.5 Control protocol
+
+```text
+ADMIT → ANALYZE → { VERIFY | ACQUIRE | STOP }
+
+ANALYZE
+  if ¬Cons(B):                          STOP (inconsistent; §8.3)
+  if Resolved(B):
+        VERIFY S_R(B) serially, one unverified (q, a) at a time
+        P_v says retain all members → STOP (verified resolved consequence)
+        P_v says retract/replace     → REBASE → ANALYZE
+  else if D_1(B) ≠ ∅:
+        ACQUIRE one ranked singleton from D_1 → ADMIT → ANALYZE
+  else if Resolvable(B, U):
+        ACQUIRE one member of a resolving witness → ADMIT → ANALYZE
+  else if ¬Resolvable(B, U) proved:
+        STOP (not_resolvable_by_remaining_evidence_vocabulary)
+  else:
+        STOP (no_joint_discriminator_within_budget)
+```
+
+`VERIFY` before further `ACQUIRE` when `Resolved(B)` holds and `S_R(B)` is unverified: conjunctive extension cannot undo `Resolved(B)`; the threat is that a premise already in `S_R` does not deserve to remain.
+
+Ranking among `D_1` (for example worst-case remaining `|C_poss|`) and later weighted-model-counting information gain are optimization, not semantics.
+
+### 13.9.6 Verification policy and rebase
+
+`Verified_{P_v}(artifact, q, a, p)` means worksheet assignment `(q, a)` under canonical provenance identity `p` has satisfied verification policy `P_v`. It does not mean `a` is true. Session state binds that tuple, including `P_v`'s version — not a bare `question_id`.
+
+A verification procedure returns a result `r`. Logic does not map “second extractor failed” to retraction. `P_v` interprets `r`:
+
+```text
+P_v(r) = RETAIN                 → keep e in E
+P_v(r) = RETRACT                → REBASE(E \ {e})
+P_v(r) = REPLACE(e')            → REBASE((E \ {e}) ∪ {e'})
+P_v(r) = INSUFFICIENT            → escalate or retry; do not modify E
+```
+
+`REBASE` discards `C_poss`, `D_1`, `S_R`, `Resolved`, and every witness computed from the old base (Probe 4). Retract and replace are Replaced bases (§9 Lemma 2), not conjunctive extensions. What constitutes sufficient verification remains outside the trusted base (§12).
+
+### 13.9.7 Non-goals
+
+Inquire is not Apply, Compare, Repair, or `how_to_reach`. Target-directed search would contaminate acquisition with outcome information. It is not natural-language blob grounding (§13.3). It does not extend `T(IR)` or the worksheet vocabulary at query time.
+
+**13.9.8 Target goldens.** Worked examples the Inquire kernel (`analyze_inquiry`) must satisfy are in [`decision-dag-calculus-inquire-goldens.md`](./decision-dag-calculus-inquire-goldens.md). They are not Part I conformance, not a shipped query/MCP path, and do not add Appendix B rows.
+
 ---
 
 # Part III — Informative
 
 ## 14. Correction record
 
-**v1.1 (this revision).** Retitles the document as a calculus rather than an algebra; moves the canonical path from `docs/spec/decision-dag-algebra.md` to `docs/spec/decision-dag-calculus.md`; replaces “Boolean embedding” with “Boolean interpretation”; records in §0.1 that the specification does not define DAG operations, algebraic laws, or a homomorphism. Executable Part I obligations and Appendix B evidence are unchanged. The first public snapshot remains tag `decision-dag-algebra-v1.0` (old path, at that commit).
+**v1.2 (this revision).** Adds target Inquire (§13.9): resolution over the whole conclusion space, minimum-cardinality **resolving** worksheet support `S_R` (not entailment support), myopic discrimination, residual resolvability by full completions, policy-relative rebase, and the evidence-demand control protocol. Working-base `B` is the fully composed `B_φ` throughout §13.9. Target goldens: [`decision-dag-calculus-inquire-goldens.md`](./decision-dag-calculus-inquire-goldens.md). A one-line §10 pointer and a §9 future-mode classification name the target without shipping it. Executable Part I obligations and Appendix B evidence are unchanged from v1.1 (tag `decision-dag-calculus-v1.1`).
+
+**v1.1.** Retitles the document as a calculus rather than an algebra; moves the canonical path from `docs/spec/decision-dag-algebra.md` to `docs/spec/decision-dag-calculus.md`; replaces “Boolean embedding” with “Boolean interpretation”; records in §0.1 that the specification does not define DAG operations, algebraic laws, or a homomorphism. Executable Part I obligations and Appendix B evidence are unchanged. The first public snapshot remains tag `decision-dag-algebra-v1.0` (old path, at that commit).
 
 **v1.0.** First public specification. Earlier drafts existed only in a private repository.
 
