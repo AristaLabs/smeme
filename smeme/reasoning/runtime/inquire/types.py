@@ -4,13 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, NewType
 
-from smeme.reasoning.runtime.consistency_gate import InconsistencyCause
+from smeme.reasoning.runtime.consistency_gate import (
+    InconsistencyCause,
+    PremiseInvariantError,
+)
 from smeme.reasoning.runtime.counterfactual import (
     DEFAULT_CHECK_TIMEOUT_MS,
     MAX_REPAIR_SAT_CALLS,
 )
+
+CanonicalProvenanceId = NewType("CanonicalProvenanceId", str)
 
 InquiryAction = Literal["VERIFY", "ACQUIRE", "STOP"]
 StopReason = Literal[
@@ -34,14 +39,53 @@ class WorksheetPair:
 
 
 @dataclass(frozen=True, slots=True)
+class AdmittedAssertion:
+    """Live admitted pair plus opaque provenance. SAT ``E`` is only ``(q, a)``."""
+
+    question_id: str
+    option: str
+    provenance_id: CanonicalProvenanceId
+
+    def __post_init__(self) -> None:
+        if not str(self.provenance_id).strip():
+            raise PremiseInvariantError("empty provenance_id")
+
+
+@dataclass(frozen=True, slots=True)
 class VerificationKey:
-    """§13.9.6 verification identity. Phase 1 compares equality only."""
+    """§13.9.6 verification identity: ``(artifact, q, a, p, pv_version)``."""
 
     artifact_identity: str
     question_id: str
     option: str
     provenance_identity: str
     pv_version: str
+
+
+def logical_evidence(admitted: tuple[AdmittedAssertion, ...]) -> dict[str, str]:
+    """Project SAT ``E`` as ``{q: a}``. Duplicate ``question_id`` is an invariant failure."""
+    evidence: dict[str, str] = {}
+    for item in admitted:
+        if item.question_id in evidence:
+            msg = f"duplicate admitted question_id {item.question_id!r}"
+            raise PremiseInvariantError(msg)
+        evidence[item.question_id] = item.option
+    return evidence
+
+
+def verification_key_for(
+    assertion: AdmittedAssertion,
+    *,
+    artifact_identity: str,
+    pv_version: str,
+) -> VerificationKey:
+    return VerificationKey(
+        artifact_identity=artifact_identity,
+        question_id=assertion.question_id,
+        option=assertion.option,
+        provenance_identity=str(assertion.provenance_id),
+        pv_version=pv_version,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +114,8 @@ class InquiryDirective:
 
     action: InquiryAction
     question_id: str | None = None
+    option: str | None = None
+    verification_key: VerificationKey | None = None
     stop_reason: StopReason | None = None
     inconsistency_cause: InconsistencyCause | None = None
     operational_status: OperationalStatus | None = None
