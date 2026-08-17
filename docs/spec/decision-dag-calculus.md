@@ -725,7 +725,7 @@ P_v(r) = INSUFFICIENT            → escalate or retry; do not modify E
 
 Inquire is not Apply, Compare, Repair, or `how_to_reach`. Target-directed search would contaminate acquisition with outcome information. It is not natural-language blob grounding (§13.3). It does not extend `T(IR)` or the worksheet vocabulary at query time.
 
-**13.9.8 Target goldens.** Worked examples a future implementation must satisfy are in [`decision-dag-calculus-inquire-goldens.md`](./decision-dag-calculus-inquire-goldens.md). They are not Part I conformance and do not ship.
+**13.9.8 Target goldens.** Worked examples the Inquire kernel (`analyze_inquiry`) must satisfy are in [`decision-dag-calculus-inquire-goldens.md`](./decision-dag-calculus-inquire-goldens.md). They are not Part I conformance, not a shipped query/MCP path, and do not add Appendix B rows.
 
 ---
 

@@ -1,10 +1,10 @@
 # Inquire target goldens (§13.9)
 
-**Status:** Target. Not Part I. No Appendix B row. Not shipped tests.
+**Status:** Target. Not Part I. No Appendix B row. Kernel tests exist; not a shipped query/MCP path.
 
 These examples fix expected `ANALYZE` results for graphs in the Core compilation domain (§4): one entry question, radio options, conclusions terminal, non-default guards into conclusions. Notation follows [decision-dag-calculus.md](./decision-dag-calculus.md) §13.9. `B` is the fully composed working base.
 
-When Inquire ships, each golden becomes an entry-point test of the Inquire kernel — not a helper-only SAT sketch.
+They are exercised by `analyze_inquiry` unit tests. When Inquire ships as a public surface, each golden becomes an entry-point test of that path — not a helper-only SAT sketch.
 
 ---
 
