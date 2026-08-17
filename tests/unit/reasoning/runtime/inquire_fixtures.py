@@ -16,20 +16,48 @@ from smeme.decision_tree.models import (
 from smeme.reasoning.dt_graph_bridge import compile_dt_graph_to_ir
 from smeme.reasoning.ir.types import IR
 from smeme.reasoning.ir.validate import validate_ir
-from smeme.reasoning.runtime.inquire.types import VerificationKey, WorksheetItem
+from smeme.reasoning.runtime.inquire.types import (
+    AdmittedAssertion,
+    CanonicalProvenanceId,
+    VerificationKey,
+    WorksheetItem,
+)
 
 SENTINEL_ARTIFACT = "inquire-golden-artifact"
 SENTINEL_PROVENANCE = "inquire-golden-provenance"
 SENTINEL_PV_VERSION = "pv-phase1-sentinel"
 
 
-def sentinel_key(question_id: str, option: str) -> VerificationKey:
-    return VerificationKey(
-        artifact_identity=SENTINEL_ARTIFACT,
+def sentinel_provenance(tag: str = SENTINEL_PROVENANCE) -> CanonicalProvenanceId:
+    return CanonicalProvenanceId(tag)
+
+
+def sentinel_assertion(
+    question_id: str,
+    option: str,
+    provenance: str = SENTINEL_PROVENANCE,
+) -> AdmittedAssertion:
+    return AdmittedAssertion(
         question_id=question_id,
         option=option,
-        provenance_identity=SENTINEL_PROVENANCE,
-        pv_version=SENTINEL_PV_VERSION,
+        provenance_id=sentinel_provenance(provenance),
+    )
+
+
+def sentinel_key(
+    question_id: str,
+    option: str,
+    *,
+    provenance: str = SENTINEL_PROVENANCE,
+    artifact: str = SENTINEL_ARTIFACT,
+    pv_version: str = SENTINEL_PV_VERSION,
+) -> VerificationKey:
+    return VerificationKey(
+        artifact_identity=artifact,
+        question_id=question_id,
+        option=option,
+        provenance_identity=provenance,
+        pv_version=pv_version,
     )
 
 

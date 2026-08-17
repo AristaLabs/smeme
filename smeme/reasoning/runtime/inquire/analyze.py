@@ -14,10 +14,13 @@ from smeme.reasoning.runtime.inquire.space import (
 )
 from smeme.reasoning.runtime.inquire.support import resolving_support
 from smeme.reasoning.runtime.inquire.types import (
+    AdmittedAssertion,
     InquiryBudget,
     InquiryDirective,
     VerificationKey,
     WorksheetCatalog,
+    logical_evidence,
+    verification_key_for,
 )
 
 
@@ -35,27 +38,50 @@ def _operational_stop(status: str) -> InquiryDirective:
     )
 
 
-def _pair_verified(verified: frozenset[VerificationKey], question_id: str, option: str) -> bool:
-    """Phase 1: match ``(q, a)`` against caller-supplied keys.
+def _assertion_for_pair(
+    admitted: tuple[AdmittedAssertion, ...], question_id: str, option: str
+) -> AdmittedAssertion:
+    matches = [
+        item for item in admitted if item.question_id == question_id and item.option == option
+    ]
+    if len(matches) != 1:
+        msg = f"S_R pair {(question_id, option)!r} is not a unique live assertion"
+        raise PremiseInvariantError(msg)
+    return matches[0]
 
-    Keys remain :class:`VerificationKey` (artifact + provenance + ``P_v`` version).
-    Phase 2 will match the full key against the current artifact identity.
-    """
-    return any(k.question_id == question_id and k.option == option for k in verified)
+
+def _pair_verified(
+    admitted: tuple[AdmittedAssertion, ...],
+    verified: frozenset[VerificationKey],
+    question_id: str,
+    option: str,
+    *,
+    artifact_identity: str,
+    pv_version: str,
+) -> bool:
+    assertion = _assertion_for_pair(admitted, question_id, option)
+    key = verification_key_for(
+        assertion, artifact_identity=artifact_identity, pv_version=pv_version
+    )
+    return key in verified
 
 
 def analyze_inquiry(
     ir: IR,
-    admitted: dict[str, str],
+    admitted: tuple[AdmittedAssertion, ...],
     assumptions: ReasoningAssumptions | None,
     verified: frozenset[VerificationKey],
     budget: InquiryBudget,
     worksheet_catalog: WorksheetCatalog,
+    *,
+    artifact_identity: str,
+    pv_version: str,
 ) -> InquiryDirective:
     """Stateless ANALYZE. Derived ``C_poss`` / ``S_R`` / ``D_1`` are not returned or stored."""
     _ = worksheet_catalog
     phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
-    base = compile_working_base(ir, admitted, phi, budget)
+    evidence = logical_evidence(admitted)
+    base = compile_working_base(ir, evidence, phi, budget)
 
     cons = check_cons(base)
     if cons.status in ("budget", "timeout", "unknown"):
@@ -83,8 +109,25 @@ def analyze_inquiry(
         if support.status in ("budget", "timeout", "unknown"):
             return _operational_stop(support.status)
         for pair in support.pairs:
-            if not _pair_verified(verified, pair.question_id, pair.option):
-                return InquiryDirective(action="VERIFY", question_id=pair.question_id)
+            if not _pair_verified(
+                admitted,
+                verified,
+                pair.question_id,
+                pair.option,
+                artifact_identity=artifact_identity,
+                pv_version=pv_version,
+            ):
+                assertion = _assertion_for_pair(admitted, pair.question_id, pair.option)
+                return InquiryDirective(
+                    action="VERIFY",
+                    question_id=assertion.question_id,
+                    option=assertion.option,
+                    verification_key=verification_key_for(
+                        assertion,
+                        artifact_identity=artifact_identity,
+                        pv_version=pv_version,
+                    ),
+                )
         return InquiryDirective(
             action="STOP",
             stop_reason="verified_resolved_consequence",

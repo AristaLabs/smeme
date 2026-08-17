@@ -163,7 +163,11 @@ def test_empty_u_proves_not_resolvable_without_sat() -> None:
     assert base.sat_calls[0] == start
 
 
-def test_inquire_public_exports_are_analyze_and_extractor_only() -> None:
+def test_inquire_public_exports() -> None:
     import smeme.reasoning.runtime.inquire as inquire
 
-    assert inquire.__all__ == ["analyze_inquiry", "build_extractor_issue"]
+    assert inquire.__all__ == [
+        "analyze_inquiry",
+        "build_extractor_issue",
+        "apply_verification_decision",
+    ]
