@@ -17,18 +17,30 @@ from smeme.reasoning.orchestration.inquire.types import (
     ExtractionResult,
     Extractor,
 )
+from smeme.reasoning.orchestration.inquire.verification import (
+    DEFAULT_PV_VERSION,
+    DEFAULT_VERIFICATION_POLICY,
+    BlindVerificationPolicy,
+    DefaultVerificationPolicy,
+    run_verification,
+)
 from smeme.reasoning.orchestration.inquire.verify import VerificationStep, verify_extraction
 
 __all__ = [
+    "DEFAULT_PV_VERSION",
+    "DEFAULT_VERIFICATION_POLICY",
     "AbstainedExtraction",
     "AdmissionStep",
     "AnsweredExtraction",
+    "BlindVerificationPolicy",
+    "DefaultVerificationPolicy",
     "ExecutionOutcome",
     "ExtractionResult",
     "Extractor",
     "VerificationStep",
     "admit_extraction",
     "execute_directive",
+    "run_verification",
     "step",
     "verify_extraction",
 ]

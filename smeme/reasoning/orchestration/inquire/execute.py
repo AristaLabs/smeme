@@ -13,14 +13,17 @@ from smeme.reasoning.orchestration.inquire.types import (
     ExtractionResult,
     Extractor,
 )
-from smeme.reasoning.orchestration.inquire.verify import verify_extraction
+from smeme.reasoning.orchestration.inquire.verification.policy import (
+    DEFAULT_VERIFICATION_POLICY,
+    BlindVerificationPolicy,
+)
+from smeme.reasoning.orchestration.inquire.verification.runner import run_verification
 from smeme.reasoning.runtime.assumptions import ReasoningAssumptions
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
 from smeme.reasoning.runtime.inquire import (
     analyze_inquiry,
     build_extractor_issue,
 )
-from smeme.reasoning.runtime.inquire.policy import VerificationPolicy
 from smeme.reasoning.runtime.inquire.types import (
     AdmittedAssertion,
     ExtractionTask,
@@ -84,9 +87,8 @@ def execute_directive(
     directive: InquiryDirective,
     worksheet_catalog: WorksheetCatalog,
     extractor: Extractor,
-    policy: VerificationPolicy,
     artifact_identity: str,
-    pv_version: str,
+    verification_policy: BlindVerificationPolicy = DEFAULT_VERIFICATION_POLICY,
 ) -> ExecutionOutcome:
     """Execute one already-issued directive. Does not call ``analyze_inquiry``."""
     if directive.action == "STOP":
@@ -103,11 +105,10 @@ def execute_directive(
         msg = f"{directive.action} directive missing question_id"
         raise PremiseInvariantError(msg)
 
-    task = build_extractor_issue(worksheet_catalog, directive.question_id)
-    result = extractor.extract(task)
-    _bind_result_to_issued_task(directive=directive, task=task, result=result)
-
     if directive.action == "ACQUIRE":
+        task = build_extractor_issue(worksheet_catalog, directive.question_id)
+        result = extractor.extract(task)
+        _bind_result_to_issued_task(directive=directive, task=task, result=result)
         if isinstance(result, AbstainedExtraction):
             return ExecutionOutcome(
                 admitted=admitted,
@@ -120,9 +121,9 @@ def execute_directive(
         if not isinstance(result, AnsweredExtraction):
             msg = f"unexpected extraction result type {type(result)!r}"
             raise PremiseInvariantError(msg)
-        step = admit_extraction(ir, admitted, task=task, result=result)
+        step_out = admit_extraction(ir, admitted, task=task, result=result)
         return ExecutionOutcome(
-            admitted=step.admitted,
+            admitted=step_out.admitted,
             verified=verified,
             directive=directive,
             task=task,
@@ -131,23 +132,22 @@ def execute_directive(
         )
 
     if directive.action == "VERIFY":
-        step = verify_extraction(
+        battery = run_verification(
             ir=ir,
             admitted=admitted,
             verified=verified,
             directive=directive,
-            task=task,
-            result=result,
-            policy=policy,
+            worksheet_catalog=worksheet_catalog,
+            extractor=extractor,
             artifact_identity=artifact_identity,
-            pv_version=pv_version,
+            verification_policy=verification_policy,
         )
         return ExecutionOutcome(
-            admitted=step.admitted,
-            verified=step.verified,
+            admitted=battery.step.admitted,
+            verified=battery.step.verified,
             directive=directive,
-            task=task,
-            result=result,
+            task=battery.task,
+            result=battery.result,
             status="verified",
         )
 
@@ -164,9 +164,8 @@ def step(
     budget: InquiryBudget,
     worksheet_catalog: WorksheetCatalog,
     extractor: Extractor,
-    policy: VerificationPolicy,
     artifact_identity: str,
-    pv_version: str,
+    verification_policy: BlindVerificationPolicy = DEFAULT_VERIFICATION_POLICY,
 ) -> ExecutionOutcome:
     """``ANALYZE`` then ``execute_directive``. Returns updated epistemic state."""
     directive = analyze_inquiry(
@@ -177,7 +176,7 @@ def step(
         budget,
         worksheet_catalog,
         artifact_identity=artifact_identity,
-        pv_version=pv_version,
+        pv_version=verification_policy.pv_version,
     )
     return execute_directive(
         ir=ir,
@@ -186,7 +185,6 @@ def step(
         directive=directive,
         worksheet_catalog=worksheet_catalog,
         extractor=extractor,
-        policy=policy,
         artifact_identity=artifact_identity,
-        pv_version=pv_version,
+        verification_policy=verification_policy,
     )

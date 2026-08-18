@@ -1,4 +1,4 @@
-"""Phase 3 Inquire execution-boundary tests. Fake extractor + fake ``P_v`` only."""
+"""Phase 3 Inquire execution-boundary tests (updated for Phase 4 VERIFY battery)."""
 
 from __future__ import annotations
 
@@ -6,14 +6,25 @@ from dataclasses import dataclass, field
 
 import pytest
 
+from smeme.reasoning.orchestration.inquire import (
+    DEFAULT_PV_VERSION,
+    DEFAULT_VERIFICATION_POLICY,
+    AbstainedExtraction,
+    AnsweredExtraction,
+    admit_extraction,
+    execute_directive,
+    step,
+    verify_extraction,
+)
 from smeme.reasoning.runtime.assumptions import EMPTY_ASSUMPTIONS
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
 from smeme.reasoning.runtime.inquire import (
+    admit_assertion,
     analyze_inquiry,
+    apply_verification_decision,
     build_extractor_issue,
 )
 from smeme.reasoning.runtime.inquire.policy import (
-    AlwaysInsufficientPolicy,
     AlwaysRetainPolicy,
     AlwaysRetractPolicy,
     ReplaceWith,
@@ -28,23 +39,15 @@ from smeme.reasoning.runtime.inquire.types import (
     InquiryBudget,
     InquiryDirective,
 )
-from smeme.reasoning.orchestration.inquire import (
-    AbstainedExtraction,
-    AnsweredExtraction,
-    admit_extraction,
-    execute_directive,
-    step,
-    verify_extraction,
-)
 from tests.unit.reasoning.runtime.inquire_fixtures import (
     SENTINEL_ARTIFACT,
-    SENTINEL_PV_VERSION,
     compile_golden,
     fork_g2_graph,
     sentinel_provenance,
 )
 
 _BUDGET = InquiryBudget()
+_PV = DEFAULT_PV_VERSION
 
 
 @dataclass
@@ -66,7 +69,7 @@ class ScriptedExtractor:
 
 @dataclass
 class RecordingPolicy:
-    """Wraps a real fake policy and records ``decide`` calls."""
+    """Wraps a one-shot kernel fake and records ``decide`` calls."""
 
     inner: VerificationPolicy
     calls: list[tuple[VerificationRequest, VerificationResult]] = field(default_factory=list)
@@ -100,23 +103,24 @@ def test_same_task_indistinguishability_acquire_vs_verify() -> None:
 
 def test_recording_extractor_never_sees_mode() -> None:
     fixture = compile_golden(fork_g2_graph())
+    # q1/q2 binary → N_q=2 verify trials each after acquires.
     extractor = ScriptedExtractor(
         scripts={
             "q1": [
                 _answered("q1", "Yes"),
-                _answered("q1", "Yes", tag="p-q1-verify"),
+                _answered("q1", "Yes", tag="p-q1-v0"),
+                _answered("q1", "Yes", tag="p-q1-v1"),
             ],
             "q2": [
                 _answered("q2", "B"),
-                _answered("q2", "B", tag="p-q2-verify"),
+                _answered("q2", "B", tag="p-q2-v0"),
+                _answered("q2", "B", tag="p-q2-v1"),
             ],
         }
     )
-    policy = RecordingPolicy(AlwaysRetainPolicy())
     admitted: tuple = ()
     verified: frozenset = frozenset()
 
-    # ACQUIRE q1
     out = step(
         ir=fixture.ir,
         admitted=admitted,
@@ -125,31 +129,12 @@ def test_recording_extractor_never_sees_mode() -> None:
         budget=_BUDGET,
         worksheet_catalog=fixture.catalog,
         extractor=extractor,
-        policy=policy,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
-    )
-    assert out.status == "acquired"
-    assert out.directive.action == "ACQUIRE"
-    admitted, verified = out.admitted, out.verified
-
-    # ACQUIRE q2
-    out = step(
-        ir=fixture.ir,
-        admitted=admitted,
-        assumptions=EMPTY_ASSUMPTIONS,
-        verified=verified,
-        budget=_BUDGET,
-        worksheet_catalog=fixture.catalog,
-        extractor=extractor,
-        policy=policy,
-        artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        verification_policy=DEFAULT_VERIFICATION_POLICY,
     )
     assert out.status == "acquired"
     admitted, verified = out.admitted, out.verified
 
-    # VERIFY q1 (policy runs; extractor may or may not be called depending on path)
     out = step(
         ir=fixture.ir,
         admitted=admitted,
@@ -158,9 +143,22 @@ def test_recording_extractor_never_sees_mode() -> None:
         budget=_BUDGET,
         worksheet_catalog=fixture.catalog,
         extractor=extractor,
-        policy=policy,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        verification_policy=DEFAULT_VERIFICATION_POLICY,
+    )
+    assert out.status == "acquired"
+    admitted, verified = out.admitted, out.verified
+
+    out = step(
+        ir=fixture.ir,
+        admitted=admitted,
+        assumptions=EMPTY_ASSUMPTIONS,
+        verified=verified,
+        budget=_BUDGET,
+        worksheet_catalog=fixture.catalog,
+        extractor=extractor,
+        artifact_identity=SENTINEL_ARTIFACT,
+        verification_policy=DEFAULT_VERIFICATION_POLICY,
     )
     assert out.status == "verified"
     assert out.directive.action == "VERIFY"
@@ -179,21 +177,23 @@ def test_green_loop_retain_walk_to_stop() -> None:
         scripts={
             "q1": [
                 _answered("q1", "Yes"),
-                _answered("q1", "Yes", tag="p-q1-verify"),
+                _answered("q1", "Yes", tag="p-q1-v0"),
+                _answered("q1", "Yes", tag="p-q1-v1"),
             ],
             "q2": [
                 _answered("q2", "B"),
-                _answered("q2", "B", tag="p-q2-verify"),
+                _answered("q2", "B", tag="p-q2-v0"),
+                _answered("q2", "B", tag="p-q2-v1"),
             ],
         }
     )
-    policy = AlwaysRetainPolicy()
     admitted: tuple = ()
     verified: frozenset = frozenset()
     statuses: list[str] = []
     actions: list[str] = []
+    out = None
 
-    for _ in range(6):
+    for _ in range(8):
         out = step(
             ir=fixture.ir,
             admitted=admitted,
@@ -202,9 +202,8 @@ def test_green_loop_retain_walk_to_stop() -> None:
             budget=_BUDGET,
             worksheet_catalog=fixture.catalog,
             extractor=extractor,
-            policy=policy,
             artifact_identity=SENTINEL_ARTIFACT,
-            pv_version=SENTINEL_PV_VERSION,
+            verification_policy=DEFAULT_VERIFICATION_POLICY,
         )
         statuses.append(out.status)
         actions.append(out.directive.action)
@@ -212,6 +211,7 @@ def test_green_loop_retain_walk_to_stop() -> None:
         if out.status == "stop":
             break
 
+    assert out is not None
     assert actions[0] == "ACQUIRE"
     assert actions[1] == "ACQUIRE"
     assert "VERIFY" in actions
@@ -230,7 +230,6 @@ def test_acquire_abstain_does_not_mutate_and_reissues() -> None:
             ],
         }
     )
-    policy = AlwaysRetainPolicy()
     out1 = step(
         ir=fixture.ir,
         admitted=(),
@@ -239,9 +238,7 @@ def test_acquire_abstain_does_not_mutate_and_reissues() -> None:
         budget=_BUDGET,
         worksheet_catalog=fixture.catalog,
         extractor=extractor,
-        policy=policy,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
     )
     assert out1.status == "abstained"
     assert out1.admitted == ()
@@ -256,9 +253,7 @@ def test_acquire_abstain_does_not_mutate_and_reissues() -> None:
         budget=_BUDGET,
         worksheet_catalog=fixture.catalog,
         extractor=extractor,
-        policy=policy,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
     )
     assert out2.status == "acquired"
     assert out2.directive.action == "ACQUIRE"
@@ -268,9 +263,6 @@ def test_acquire_abstain_does_not_mutate_and_reissues() -> None:
 
 def test_mismatched_result_question_id_rejected_before_policy() -> None:
     fixture = compile_golden(fork_g2_graph())
-    # Seed resolved base so ANALYZE issues VERIFY q1.
-    from smeme.reasoning.runtime.inquire import admit_assertion
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -293,7 +285,7 @@ def test_mismatched_result_question_id_rejected_before_policy() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     assert directive.action == "VERIFY"
     assert directive.question_id == "q1"
@@ -302,7 +294,6 @@ def test_mismatched_result_question_id_rejected_before_policy() -> None:
         def extract(self, task: ExtractionTask):
             return _answered("q7", "Yes")
 
-    policy = RecordingPolicy(AlwaysRetainPolicy())
     with pytest.raises(PremiseInvariantError, match="does not match"):
         execute_directive(
             ir=fixture.ir,
@@ -311,17 +302,13 @@ def test_mismatched_result_question_id_rejected_before_policy() -> None:
             directive=directive,
             worksheet_catalog=fixture.catalog,
             extractor=MismatchExtractor(),
-            policy=policy,
             artifact_identity=SENTINEL_ARTIFACT,
-            pv_version=SENTINEL_PV_VERSION,
         )
-    assert policy.calls == []
 
 
-def test_verify_constructs_verification_request_from_directive_key() -> None:
+def test_verify_extraction_constructs_request_from_directive_key() -> None:
+    """One-shot Phase-3 bridge still constructs VerificationRequest for kernel fakes."""
     fixture = compile_golden(fork_g2_graph())
-    from smeme.reasoning.runtime.inquire import admit_assertion
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -344,7 +331,7 @@ def test_verify_constructs_verification_request_from_directive_key() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     assert directive.verification_key is not None
     task = build_extractor_issue(fixture.catalog, directive.question_id)  # type: ignore[arg-type]
@@ -359,7 +346,7 @@ def test_verify_constructs_verification_request_from_directive_key() -> None:
         result=result,
         policy=policy,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     assert step_out.status == "applied"
     assert isinstance(step_out.decision, Retain)
@@ -369,10 +356,8 @@ def test_verify_constructs_verification_request_from_directive_key() -> None:
     assert kernel_result.payload is result
 
 
-def test_verify_does_not_auto_replace_on_option_disagreement() -> None:
+def test_verify_disagreement_is_insufficient_not_replace() -> None:
     fixture = compile_golden(fork_g2_graph())
-    from smeme.reasoning.runtime.inquire import admit_assertion
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -387,17 +372,14 @@ def test_verify_does_not_auto_replace_on_option_disagreement() -> None:
         option="B",
         provenance_id=sentinel_provenance("p-q2"),
     )
-    # Advance to VERIFY q2 with q1 already retained.
     q1 = next(item for item in admitted if item.question_id == "q1")
-    from smeme.reasoning.runtime.inquire import apply_verification_decision
-
     retained = apply_verification_decision(
         ir=fixture.ir,
         admitted=admitted,
         verified=frozenset(),
         assertion=q1,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
         decision=Retain(),
     )
     directive = analyze_inquiry(
@@ -408,7 +390,7 @@ def test_verify_does_not_auto_replace_on_option_disagreement() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     assert directive.action == "VERIFY"
     assert directive.question_id == "q2"
@@ -418,7 +400,6 @@ def test_verify_does_not_auto_replace_on_option_disagreement() -> None:
         def extract(self, task: ExtractionTask):
             return _answered("q2", "A", tag="p-disagree")
 
-    # AlwaysRetain ignores payload: disagreement must not become REPLACE.
     out = execute_directive(
         ir=fixture.ir,
         admitted=retained.admitted,
@@ -426,19 +407,16 @@ def test_verify_does_not_auto_replace_on_option_disagreement() -> None:
         directive=directive,
         worksheet_catalog=fixture.catalog,
         extractor=DisagreeExtractor(),
-        policy=AlwaysRetainPolicy(),
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
     )
     assert out.status == "verified"
     live_q2 = next(item for item in out.admitted if item.question_id == "q2")
     assert live_q2.option == "B"
+    assert all(key.question_id != "q2" for key in out.verified)
 
 
-def test_verify_bridge_retract_via_policy() -> None:
+def test_verify_extraction_retract_via_oneshot_policy() -> None:
     fixture = compile_golden(fork_g2_graph())
-    from smeme.reasoning.runtime.inquire import admit_assertion, apply_verification_decision
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -460,7 +438,7 @@ def test_verify_bridge_retract_via_policy() -> None:
         verified=frozenset(),
         assertion=q1,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
         decision=Retain(),
     )
     directive = analyze_inquiry(
@@ -471,26 +449,23 @@ def test_verify_bridge_retract_via_policy() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     assert directive.question_id == "q2"
-
-    class EchoExtractor:
-        def extract(self, task: ExtractionTask):
-            return _answered(task.question.question_id, "B")
-
-    out = execute_directive(
+    task = build_extractor_issue(fixture.catalog, "q2")
+    result = _answered("q2", "B")
+    step_out = verify_extraction(
         ir=fixture.ir,
         admitted=retained.admitted,
         verified=retained.verified,
         directive=directive,
-        worksheet_catalog=fixture.catalog,
-        extractor=EchoExtractor(),
+        task=task,
+        result=result,
         policy=AlwaysRetractPolicy(),
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
-    assert {item.question_id: item.option for item in out.admitted} == {"q1": "Yes"}
+    assert {item.question_id: item.option for item in step_out.admitted} == {"q1": "Yes"}
 
 
 def test_admit_extraction_rejects_option_not_in_task() -> None:
@@ -524,19 +499,15 @@ def test_stop_execute_is_identity() -> None:
         directive=directive,
         worksheet_catalog=fixture.catalog,
         extractor=Boom(),
-        policy=AlwaysRetainPolicy(),
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
     )
     assert out.status == "stop"
     assert out.task is None
     assert out.result is None
 
 
-def test_verify_insufficient_via_policy() -> None:
+def test_verify_abstain_battery_is_insufficient() -> None:
     fixture = compile_golden(fork_g2_graph())
-    from smeme.reasoning.runtime.inquire import admit_assertion
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -559,7 +530,7 @@ def test_verify_insufficient_via_policy() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
 
     class AbstainExtractor:
@@ -573,19 +544,15 @@ def test_verify_insufficient_via_policy() -> None:
         directive=directive,
         worksheet_catalog=fixture.catalog,
         extractor=AbstainExtractor(),
-        policy=AlwaysInsufficientPolicy(),
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
     )
     assert out.status == "verified"
     assert out.admitted == admitted
     assert out.verified == frozenset()
 
 
-def test_verify_replace_via_policy() -> None:
+def test_verify_extraction_replace_via_oneshot_policy() -> None:
     fixture = compile_golden(fork_g2_graph())
-    from smeme.reasoning.runtime.inquire import admit_assertion, apply_verification_decision
-
     admitted = admit_assertion(
         fixture.ir,
         (),
@@ -607,7 +574,7 @@ def test_verify_replace_via_policy() -> None:
         verified=frozenset(),
         assertion=q1,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
         decision=Retain(),
     )
     directive = analyze_inquiry(
@@ -618,25 +585,22 @@ def test_verify_replace_via_policy() -> None:
         _BUDGET,
         fixture.catalog,
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
     new_p = sentinel_provenance("p-q2-replaced")
-
-    class Echo:
-        def extract(self, task: ExtractionTask):
-            return _answered(task.question.question_id, "A")
-
-    out = execute_directive(
+    task = build_extractor_issue(fixture.catalog, "q2")
+    result = _answered("q2", "A")
+    step_out = verify_extraction(
         ir=fixture.ir,
         admitted=retained.admitted,
         verified=retained.verified,
         directive=directive,
-        worksheet_catalog=fixture.catalog,
-        extractor=Echo(),
+        task=task,
+        result=result,
         policy=ReplaceWith(option="A", provenance_id=new_p),
         artifact_identity=SENTINEL_ARTIFACT,
-        pv_version=SENTINEL_PV_VERSION,
+        pv_version=_PV,
     )
-    live_q2 = next(item for item in out.admitted if item.question_id == "q2")
+    live_q2 = next(item for item in step_out.admitted if item.question_id == "q2")
     assert live_q2.option == "A"
     assert live_q2.provenance_id == new_p
