@@ -185,6 +185,7 @@ class TestAuthoringGraphCapabilities:
 
         mock_settings = MagicMock(spec=Settings)
         mock_settings.mcp_authoring_graph_tools_enabled = False
+        mock_settings.mcp_inquire_tools_enabled = False
         doc = reasoning_capabilities_document(cap_settings=mock_settings)
         tools = doc["reasoning"]["tools"]
         assert "smeme_authoring_validate_graph" not in tools
@@ -200,6 +201,7 @@ class TestAuthoringGraphCapabilities:
 
         mock_settings = MagicMock(spec=Settings)
         mock_settings.mcp_authoring_graph_tools_enabled = True
+        mock_settings.mcp_inquire_tools_enabled = False
         doc = reasoning_capabilities_document(cap_settings=mock_settings)
         tools = doc["reasoning"]["tools"]
         assert "smeme_authoring_validate_graph" in tools
