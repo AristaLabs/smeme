@@ -13,14 +13,16 @@ from smeme.reasoning.runtime.inquire.transition import (
     VerificationDecision,
 )
 from smeme.reasoning.runtime.inquire.types import (
-    AdmittedAssertion,
     CanonicalProvenanceId,
+    VerificationKey,
 )
 
 
 @dataclass(frozen=True, slots=True)
 class VerificationRequest:
-    assertion: AdmittedAssertion
+    """Assertion under verification. Extractor must not see this; ``P_v`` may."""
+
+    verification_key: VerificationKey
 
 
 @dataclass(frozen=True, slots=True)
