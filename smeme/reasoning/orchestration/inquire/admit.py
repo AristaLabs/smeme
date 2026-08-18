@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 from smeme.reasoning.ir.types import IR
+from smeme.reasoning.orchestration.inquire.types import AnsweredExtraction
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
 from smeme.reasoning.runtime.inquire.transition import admit_assertion
 from smeme.reasoning.runtime.inquire.types import AdmittedAssertion, ExtractionTask
-from smeme.reasoning.orchestration.inquire.types import AnsweredExtraction
 
 AdmissionStatus = Literal["applied"]
 

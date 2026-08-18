@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from smeme.reasoning.ir.types import IR
+from smeme.reasoning.orchestration.inquire.types import ExtractionResult
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
 from smeme.reasoning.runtime.inquire.policy import (
     VerificationPolicy,
@@ -23,7 +24,6 @@ from smeme.reasoning.runtime.inquire.types import (
     InquiryDirective,
     VerificationKey,
 )
-from smeme.reasoning.orchestration.inquire.types import ExtractionResult
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,6 +6,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 from smeme.reasoning.ir.types import IR
+from smeme.reasoning.orchestration.inquire.admit import admit_extraction
+from smeme.reasoning.orchestration.inquire.types import (
+    AbstainedExtraction,
+    AnsweredExtraction,
+    ExtractionResult,
+    Extractor,
+)
+from smeme.reasoning.orchestration.inquire.verify import verify_extraction
 from smeme.reasoning.runtime.assumptions import ReasoningAssumptions
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
 from smeme.reasoning.runtime.inquire import (
@@ -21,14 +29,6 @@ from smeme.reasoning.runtime.inquire.types import (
     VerificationKey,
     WorksheetCatalog,
 )
-from smeme.reasoning.orchestration.inquire.admit import admit_extraction
-from smeme.reasoning.orchestration.inquire.types import (
-    AbstainedExtraction,
-    AnsweredExtraction,
-    ExtractionResult,
-    Extractor,
-)
-from smeme.reasoning.orchestration.inquire.verify import verify_extraction
 
 ExecutionStatus = Literal[
     "stop",
@@ -100,7 +100,8 @@ def execute_directive(
         )
 
     if directive.question_id is None:
-        raise PremiseInvariantError(f"{directive.action} directive missing question_id")
+        msg = f"{directive.action} directive missing question_id"
+        raise PremiseInvariantError(msg)
 
     task = build_extractor_issue(worksheet_catalog, directive.question_id)
     result = extractor.extract(task)
