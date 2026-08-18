@@ -5,6 +5,7 @@ from __future__ import annotations
 from smeme.reasoning.runtime.assumptions import EMPTY_ASSUMPTIONS, assumptions_from_lists
 from smeme.reasoning.runtime.evaluate import evaluate_reasoning
 from smeme.reasoning.runtime.inquire import (
+    admit_assertion,
     analyze_inquiry,
     apply_verification_decision,
     build_extractor_issue,
@@ -17,8 +18,11 @@ from smeme.reasoning.runtime.inquire.policy import (
     VerificationRequest,
     VerificationResult,
 )
-from smeme.reasoning.runtime.inquire.transition import admit_assertion
-from smeme.reasoning.runtime.inquire.types import InquiryBudget, VerificationKey
+from smeme.reasoning.runtime.inquire.types import (
+    InquiryBudget,
+    VerificationKey,
+    verification_key_for,
+)
 from tests.unit.reasoning.runtime.inquire_fixtures import (
     SENTINEL_ARTIFACT,
     SENTINEL_PV_VERSION,
@@ -32,6 +36,16 @@ from tests.unit.reasoning.runtime.inquire_fixtures import (
 )
 
 _BUDGET = InquiryBudget()
+
+
+def _request(assertion) -> VerificationRequest:
+    return VerificationRequest(
+        verification_key=verification_key_for(
+            assertion,
+            artifact_identity=SENTINEL_ARTIFACT,
+            pv_version=SENTINEL_PV_VERSION,
+        )
+    )
 
 
 def _admit(ir, raw: dict[str, str], *, provenance: str | None = None):
@@ -259,7 +273,7 @@ def _g3_after_retain_q1():
         assertion=q1,
         artifact_identity=SENTINEL_ARTIFACT,
         pv_version=SENTINEL_PV_VERSION,
-        decision=AlwaysRetainPolicy().decide(VerificationRequest(q1), VerificationResult()),
+        decision=AlwaysRetainPolicy().decide(_request(q1), VerificationResult()),
     )
     assert transition.status == "applied"
     _fixture, live, directive = _analyze(
@@ -277,7 +291,7 @@ def _g3_after_retain_q1():
 def test_g4_0_retract_rebases_to_g2() -> None:
     """RETRACT (q2,B) → new E as G2.0; fresh analyze_inquiry; do not STOP unsupported."""
     fixture, admitted, verified, q2, _directive = _g3_after_retain_q1()
-    decision = AlwaysRetractPolicy().decide(VerificationRequest(q2), VerificationResult())
+    decision = AlwaysRetractPolicy().decide(_request(q2), VerificationResult())
     transition = apply_verification_decision(
         ir=fixture.ir,
         admitted=admitted,
@@ -305,7 +319,7 @@ def test_g4_0_retract_rebases_to_g2() -> None:
 def test_g4_1_insufficient_keeps_verify() -> None:
     """INSUFFICIENT: E unchanged, still VERIFY the same assertion."""
     fixture, admitted, verified, q2, before = _g3_after_retain_q1()
-    decision = AlwaysInsufficientPolicy().decide(VerificationRequest(q2), VerificationResult())
+    decision = AlwaysInsufficientPolicy().decide(_request(q2), VerificationResult())
     transition = apply_verification_decision(
         ir=fixture.ir,
         admitted=admitted,
@@ -335,7 +349,7 @@ def test_g4_2_replace_is_semantic_exhaustion() -> None:
     fixture, admitted, verified, q2, _before = _g3_after_retain_q1()
     new_p = sentinel_provenance("p-q2-replaced")
     decision = ReplaceWith(option="A", provenance_id=new_p).decide(
-        VerificationRequest(q2), VerificationResult()
+        _request(q2), VerificationResult()
     )
     transition = apply_verification_decision(
         ir=fixture.ir,
@@ -373,7 +387,7 @@ def test_p2_retain_walk_stops_when_sr_verified() -> None:
         assertion=q1,
         artifact_identity=SENTINEL_ARTIFACT,
         pv_version=SENTINEL_PV_VERSION,
-        decision=AlwaysRetainPolicy().decide(VerificationRequest(q1), VerificationResult()),
+        decision=AlwaysRetainPolicy().decide(_request(q1), VerificationResult()),
     )
     _fixture, live, after_q1 = _analyze(
         fork_g2_graph(),
@@ -391,7 +405,7 @@ def test_p2_retain_walk_stops_when_sr_verified() -> None:
         assertion=q2,
         artifact_identity=SENTINEL_ARTIFACT,
         pv_version=SENTINEL_PV_VERSION,
-        decision=AlwaysRetainPolicy().decide(VerificationRequest(q2), VerificationResult()),
+        decision=AlwaysRetainPolicy().decide(_request(q2), VerificationResult()),
     )
     _fixture, _live, done = _analyze(
         fork_g2_graph(),

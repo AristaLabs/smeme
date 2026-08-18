@@ -169,5 +169,6 @@ def test_inquire_public_exports() -> None:
     assert inquire.__all__ == [
         "analyze_inquiry",
         "build_extractor_issue",
+        "admit_assertion",
         "apply_verification_decision",
     ]
