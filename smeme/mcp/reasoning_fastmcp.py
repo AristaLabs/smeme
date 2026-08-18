@@ -55,6 +55,10 @@ Tools
   ``smeme_authoring_update_draft`` — (optional) chat-authored design standard +
   graph validate → create or revise a dashboard draft; gated by
   ``Settings.mcp_authoring_graph_tools_enabled``.
+- ``smeme_inquire_analyze`` / ``smeme_inquire_get_task`` / ``smeme_inquire_admit`` /
+  ``smeme_inquire_verify`` — (optional) Inquire protocol; gated by
+  ``Settings.mcp_inquire_tools_enabled`` (default false). Stateless; server-owned
+  ``pv_version``; client submits verification observations, not decisions.
 
 DR-3 P2 adds Bearer-authenticated reasoning tools.
 
@@ -182,7 +186,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.5.0"
+REASONING_CAPABILITIES_VERSION = "3.6.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -288,6 +292,15 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "smeme_authoring_update_draft",
             ]
         )
+    if s.mcp_inquire_tools_enabled:
+        tools.extend(
+            [
+                "smeme_inquire_analyze",
+                "smeme_inquire_get_task",
+                "smeme_inquire_admit",
+                "smeme_inquire_verify",
+            ]
+        )
     cap: dict[str, Any] = {
         "service": "smeme",
         "version": REASONING_CAPABILITIES_VERSION,
@@ -379,6 +392,30 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
             "note": (
                 "Authoring helper — not an evaluation tool. "
                 "Returns the standard for designing branching decision trees in chat."
+            ),
+        }
+    if s.mcp_inquire_tools_enabled:
+        cap["inquire"] = {
+            "note": (
+                "Trusted-orchestrator Inquire protocol (calculus §13.9). "
+                "Stateless: caller carries admitted/verified state. "
+                "Server owns pv_version and evaluates verification observation "
+                "transcripts. Do not forward directive or verification metadata "
+                "to extractors. See docs/guides/inquire-mcp-contract.md."
+            ),
+            "tools": [
+                "smeme_inquire_analyze",
+                "smeme_inquire_get_task",
+                "smeme_inquire_admit",
+                "smeme_inquire_verify",
+            ],
+            "persist_v1": False,
+            "pv_authority": "server",
+            "verification_battery": "core",
+            "blindness": (
+                "Extractor-facing task JSON is only {question_id, stem, options}. "
+                "Control channel (directive, verification_key, evaluations[]) is "
+                "orchestrator-only."
             ),
         }
     return cap
@@ -688,6 +725,14 @@ def _build_mcp_instructions(cfg: Settings) -> str:
             "smeme_authoring_get_draft → edit → smeme_authoring_validate_graph → "
             "smeme_authoring_update_draft with expected_graph_hash; on graph_conflict, "
             "fetch again and retry. Do not auto-Deploy."
+        )
+    if cfg.mcp_inquire_tools_enabled:
+        base += (
+            "\n\nInquire (experimental, gated): trusted orchestrator only. "
+            "Drive smeme_inquire_analyze → get_task/admit for ACQUIRE, or run "
+            "blind evaluations from analyze evaluations[] then smeme_inquire_verify "
+            "with observations. Never forward VERIFY metadata to extractors. "
+            "No session persistence; caller carries admitted/verified state."
         )
     return base
 
@@ -2597,6 +2642,229 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+        if cfg.mcp_inquire_tools_enabled:
+            from smeme.mcp.inquire.handlers import (
+                InquireHandlerError,
+            )
+            from smeme.mcp.inquire.handlers import (
+                admit as inquire_admit,
+            )
+            from smeme.mcp.inquire.handlers import (
+                analyze as inquire_analyze,
+            )
+            from smeme.mcp.inquire.handlers import (
+                get_task as inquire_get_task,
+            )
+            from smeme.mcp.inquire.handlers import (
+                verify as inquire_verify,
+            )
+
+            async def _inquire_auth(ctx: Context, tool_name: str) -> str | None:
+                """Auth-only gate (no quota). Returns error JSON or None."""
+                request = request_from_mcp_context(ctx)
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        return user_or_err
+                return None
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Inquire: analyze next directive",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                )
+            )
+            async def smeme_inquire_analyze(
+                ir_json: str,
+                worksheet_catalog_json: str,
+                admitted_json: str,
+                verified_json: str,
+                artifact_identity: str,
+                ctx: Context,
+                force_reachable_ids: list[str] | None = None,
+                force_unreachable_ids: list[str] | None = None,
+                budget_json: str | None = None,
+            ) -> str:
+                """Trusted orchestrator: run Inquire ANALYZE (server-owned pv_version).
+
+                Returns a directive (ACQUIRE | VERIFY | STOP). On VERIFY, also returns
+                derived ``evaluations[]`` (blind tasks + evaluation_id). Forward only
+                each evaluation's inner ``task`` to extractors — never the directive,
+                verification_key, or evaluation_id wrappers.
+
+                Stateless: pass admitted_json / verified_json on every call. No session id.
+                """
+                try:
+                    async with mcp_invocation_scope("smeme_inquire_analyze", ctx) as rec:
+                        auth_err = await _inquire_auth(ctx, "smeme_inquire_analyze")
+                        if auth_err is not None:
+                            rec.note_json_response(auth_err)
+                            return auth_err
+                        try:
+                            payload = inquire_analyze(
+                                ir_json=ir_json,
+                                worksheet_catalog_json=worksheet_catalog_json,
+                                admitted_json=admitted_json,
+                                verified_json=verified_json,
+                                artifact_identity=artifact_identity,
+                                force_reachable_ids=force_reachable_ids,
+                                force_unreachable_ids=force_unreachable_ids,
+                                budget_json=budget_json,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        out = _tool_json(payload)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_inquire_analyze failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Inquire: get blind extraction task",
+                    readOnlyHint=True,
+                )
+            )
+            async def smeme_inquire_get_task(
+                worksheet_catalog_json: str,
+                question_id: str,
+                ctx: Context,
+            ) -> str:
+                """Trusted orchestrator: render one blind worksheet question.
+
+                Returns only ``{question_id, stem, options}``. Catalog render only —
+                not directive authorization. Do not pass ir_json. Safe to forward the
+                returned object to an extractor.
+                """
+                try:
+                    async with mcp_invocation_scope("smeme_inquire_get_task", ctx) as rec:
+                        auth_err = await _inquire_auth(ctx, "smeme_inquire_get_task")
+                        if auth_err is not None:
+                            rec.note_json_response(auth_err)
+                            return auth_err
+                        try:
+                            payload = inquire_get_task(
+                                worksheet_catalog_json=worksheet_catalog_json,
+                                question_id=question_id,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        out = _tool_json(payload)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_inquire_get_task failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Inquire: admit extraction",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                )
+            )
+            async def smeme_inquire_admit(
+                ir_json: str,
+                worksheet_catalog_json: str,
+                admitted_json: str,
+                question_id: str,
+                ctx: Context,
+                selected_option: str | None = None,
+                provenance_id: str | None = None,
+            ) -> str:
+                """Trusted orchestrator: admit an ACQUIRE answer (or abstain).
+
+                Pass selected_option=null to abstain (no state mutation). Answered
+                admissions require provenance_id. Returns updated admitted list.
+                """
+                try:
+                    async with mcp_invocation_scope("smeme_inquire_admit", ctx) as rec:
+                        auth_err = await _inquire_auth(ctx, "smeme_inquire_admit")
+                        if auth_err is not None:
+                            rec.note_json_response(auth_err)
+                            return auth_err
+                        try:
+                            payload = inquire_admit(
+                                ir_json=ir_json,
+                                worksheet_catalog_json=worksheet_catalog_json,
+                                admitted_json=admitted_json,
+                                question_id=question_id,
+                                selected_option=selected_option,
+                                provenance_id=provenance_id,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        out = _tool_json(payload)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_inquire_admit failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+            @_holder.tool(
+                annotations=ToolAnnotations(
+                    title="Inquire: verify observation transcript",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                )
+            )
+            async def smeme_inquire_verify(
+                ir_json: str,
+                worksheet_catalog_json: str,
+                admitted_json: str,
+                verified_json: str,
+                artifact_identity: str,
+                verification_key_json: str,
+                observations_json: str,
+                ctx: Context,
+                force_reachable_ids: list[str] | None = None,
+                force_unreachable_ids: list[str] | None = None,
+                budget_json: str | None = None,
+            ) -> str:
+                """Trusted orchestrator: submit VERIFY observations; Core runs P_v.
+
+                Must match the currently issued VERIFY directive (re-ANALYZE gate).
+                Client supplies observations only — never a VerificationDecision.
+                Server reconstructs the expected battery and mints Retain/Insufficient.
+                """
+                try:
+                    async with mcp_invocation_scope("smeme_inquire_verify", ctx) as rec:
+                        auth_err = await _inquire_auth(ctx, "smeme_inquire_verify")
+                        if auth_err is not None:
+                            rec.note_json_response(auth_err)
+                            return auth_err
+                        try:
+                            payload = inquire_verify(
+                                ir_json=ir_json,
+                                worksheet_catalog_json=worksheet_catalog_json,
+                                admitted_json=admitted_json,
+                                verified_json=verified_json,
+                                artifact_identity=artifact_identity,
+                                verification_key_json=verification_key_json,
+                                observations_json=observations_json,
+                                force_reachable_ids=force_reachable_ids,
+                                force_unreachable_ids=force_unreachable_ids,
+                                budget_json=budget_json,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        out = _tool_json(payload)
+                        rec.note_json_response(out)
+                        return out
+                except Exception:
+                    logger.exception("smeme_inquire_verify failed")
+                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
     return _holder
 

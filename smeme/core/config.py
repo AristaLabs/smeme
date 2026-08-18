@@ -324,6 +324,18 @@ class Settings(BaseSettings):
     lenient (may persist intermediate graphs) and never Deploy or List.
     """
 
+    mcp_inquire_tools_enabled: bool = Field(
+        default=False,
+        alias="MCP_INQUIRE_TOOLS_ENABLED",
+    )
+    """When true, register Inquire protocol tools (analyze / get_task / admit / verify).
+
+    Default **off**: Inquire MCP is a §13.9 target surface, not the Cowork evaluate path.
+    Stateless: caller carries admitted/verified state; no session DB. Server owns
+    ``pv_version`` and evaluates verification observation transcripts. Independent of
+    ``MCP_AUTHORING_GRAPH_TOOLS_ENABLED``.
+    """
+
     # D026 — MCP-first local User provision (temporary operational rollout switch; not licensing).
     mcp_first_provisioning_enabled: bool = Field(
         default=False,

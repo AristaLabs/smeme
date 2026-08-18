@@ -1,12 +1,15 @@
 # Inquire execution boundary
 
-Design note for calculus §13.9 caller wiring. **Not a shipped MCP contract.**
-No FastMCP tools, agent-skills, or Cloud overlay are registered from this note.
+Design note for calculus §13.9 caller wiring. Layer ownership for kernel,
+orchestrator, and extractors. **Shipped MCP wire contract:**
+[`inquire-mcp-contract.md`](./inquire-mcp-contract.md) (gated by
+`MCP_INQUIRE_TOOLS_ENABLED`, default off). No Cowork agent-skills for Inquire
+in Phase 5.
 
 ## Layers
 
 ```text
-MCP / LangGraph / CLI / tests     # transport (future)
+MCP / LangGraph / CLI / tests     # transport
         |
         v
 smeme.reasoning.orchestration.inquire   # trusted execution
@@ -18,7 +21,7 @@ smeme.reasoning.runtime.inquire         # deterministic kernel
 | Layer | Owns | Must not |
 | ----- | ---- | -------- |
 | Kernel | `ANALYZE` → `InquiryDirective`; `admit_assertion`; `apply_verification_decision`; blind `ExtractionTask` builder | Run extractors, hold session loops, interpret citations |
-| Orchestrator | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest` | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
+| Orchestrator | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest`; prepare/evaluate verification transcripts | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
 | Extractor | Propose an empirical judgment over sources | See mode, verification keys, conclusions, or prior answers |
 
 Corpus and source access stay on the `Extractor` implementation. `ExtractionTask`
@@ -40,6 +43,12 @@ ACQUIRE result  →  admit_assertion
 VERIFY  result  →  apply_verification_decision   # after P_v
 ```
 
+**Python vs MCP:** `apply_verification_decision` is a Core Python primitive for
+self-hosters and in-process orchestration. Remotely trustworthy MCP does **not**
+accept a client-supplied `VerificationDecision`. MCP clients submit observation
+transcripts; Core runs `DefaultVerificationPolicy` then applies the decision.
+See [`inquire-mcp-contract.md`](./inquire-mcp-contract.md).
+
 ## Blindness (G9)
 
 ACQUIRE and VERIFY share one extractor-facing shape:
@@ -53,7 +62,7 @@ Executable indistinguishability:
 ```text
 build_extractor_issue(catalog, q)  # from ACQUIRE
     ==
-build_extractor_issue(catalog, q)  # from VERIFY
+build_extractor_issue(catalog, q)  # from VERIFY (eval-0 / identity presentation)
 ```
 
 The trusted controller may know `VERIFY q17` and the live `verification_key`.
@@ -68,7 +77,7 @@ AbstainedExtraction  — no assertion, therefore no p
 
 Abstention on ACQUIRE does not call the kernel. A later `ANALYZE` re-issues the
 same ACQUIRE. Abstention on VERIFY is evidence for `P_v` (typically INSUFFICIENT
-under a later real policy).
+under the default policy).
 
 ## Two identity checks on VERIFY
 
@@ -80,6 +89,8 @@ under a later real policy).
    before anything reaches `P_v`.
 
 `execute_directive` owns the bind because it has directive, task, and result.
+MCP `smeme_inquire_verify` additionally requires the submitted key to be the
+**currently issued** VERIFY target from re-ANALYZE.
 
 ## `VerificationRequest` seam
 
@@ -124,6 +135,14 @@ verification_policy: BlindVerificationPolicy = DEFAULT_VERIFICATION_POLICY
 
 Core ships one policy; self-hosters may replace the argument. `pv_version`
 encodes the algorithm and parameters; schedule or decision rule changes bump it.
+On MCP, `pv_version` is **server-owned** (named and executed by this process).
+
+Transcript helpers (no Extractor):
+
+```text
+prepare_verification_battery
+evaluate_verification_transcript
+```
 
 ## Forbidden MCP shape
 
@@ -133,15 +152,17 @@ If the same model is expected to perform extraction, do **not** expose:
 {"action": "verify", "question": "..."}
 ```
 
-That leaks mode and breaks G9.
+That leaks mode and breaks G9. Also do **not** expose a tool that accepts a
+client-minted `Retain` / `VerificationDecision`.
 
-## Safe later MCP surface (orchestrator-facing)
+## Shipped MCP surface (orchestrator-facing)
 
-Minimum tools, once the in-process loop stays the source of truth:
+See [`inquire-mcp-contract.md`](./inquire-mcp-contract.md). Summary:
 
-- analyze / next-directive
-- get blind extractor task
-- admit `(q, a, p)` or apply a `VerificationDecision`
+- `smeme_inquire_analyze` (VERIFY responses include derived `evaluations[]`)
+- `smeme_inquire_get_task` (catalog + `question_id` only)
+- `smeme_inquire_admit`
+- `smeme_inquire_verify` (observation transcript → Core \(P_v\))
 
 MCP is one transport over `smeme.reasoning.orchestration.inquire`. It is not a
 second kernel. LangGraph, CLI, and unit tests should drive the same package.
@@ -149,5 +170,5 @@ second kernel. LangGraph, CLI, and unit tests should drive the same package.
 ## Out of scope here
 
 Approved paraphrases, cross-family evaluator slots, automated RETRACT/REPLACE,
-LLM clients, CEVI corpus wiring, session persistence, and shipped MCP
-registration.
+LLM clients, CEVI corpus wiring, session persistence, Cowork Inquire skills,
+and Cloud overlay billing/quota policy.
