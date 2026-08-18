@@ -49,6 +49,15 @@ def test_reasoning_capabilities_document_shape() -> None:
                 "smeme_authoring_update_draft",
             ]
         )
+    if settings.mcp_inquire_tools_enabled:
+        expected_tools.extend(
+            [
+                "smeme_inquire_analyze",
+                "smeme_inquire_get_task",
+                "smeme_inquire_admit",
+                "smeme_inquire_verify",
+            ]
+        )
     assert doc["reasoning"]["tools"] == expected_tools
     assert doc["reasoning"]["harness_next_enum"] == [
         "phase_1_continue",
@@ -105,6 +114,8 @@ def test_reasoning_capabilities_document_has_stable_top_level_keys() -> None:
     }
     if settings.mcp_authoring_graph_tools_enabled:
         expected_keys |= {"authoring_graph", "authoring_design"}
+    if settings.mcp_inquire_tools_enabled:
+        expected_keys |= {"inquire"}
     assert set(doc.keys()) == expected_keys
     # latest_plugin_version is an unambiguous alias for skill-side version comparison.
     assert doc["latest_plugin_version"] == doc["version"]

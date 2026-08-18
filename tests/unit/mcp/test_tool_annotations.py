@@ -32,6 +32,7 @@ READ_ONLY_TOOLS = {
     "smeme_authoring_design_guidance",
     "smeme_authoring_validate_graph",
     "smeme_authoring_get_draft",
+    "smeme_inquire_get_task",
 }
 
 # Compute/metered tools: not read-only, but not destructive (no data is
@@ -44,6 +45,9 @@ COMPUTE_TOOLS = {
     "smeme_reasoning_edit_affects_path",
     "smeme_authoring_create_draft",
     "smeme_authoring_update_draft",
+    "smeme_inquire_analyze",
+    "smeme_inquire_admit",
+    "smeme_inquire_verify",
 }
 
 
@@ -53,6 +57,7 @@ def _test_settings():
             "environment": "testing",
             "mcp_enabled": True,
             "mcp_authoring_graph_tools_enabled": True,
+            "mcp_inquire_tools_enabled": True,
         }
     )
 
