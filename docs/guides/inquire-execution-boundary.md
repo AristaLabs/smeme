@@ -83,14 +83,47 @@ under a later real policy).
 
 ## `VerificationRequest` seam
 
+Kernel `VerificationRequest(verification_key=...)` names the assertion under
+check. Phase 4’s stateful policy uses that request in `initial_state`; the
+extractor never sees it. Disagreement between live option and a fresh extraction
+is evidence for `P_v`, not an automatic REPLACE. One-shot kernel fakes still use
+`policy.decide(request, result)` for transition goldens.
+
+## Blind verification policy (Phase 4)
+
+VERIFY runs a bounded battery of fresh **ISOLATED** evaluations — fresh
+invocations that receive only the blind `ExtractionTask` (no prior result, live
+assertion, policy state, or outcome info). This is not a claim of statistically
+independent errors; the host may map every `ISOLATED` request to the same model.
+
+Schedule size is adaptive:
+
 ```text
-request = VerificationRequest(verification_key=directive.verification_key)
-result  = VerificationResult(payload=extraction_result)
-decision = policy.decide(request, result)
+N_q = min(3, |A_q|!)
 ```
 
-The extractor must not know the live assertion. The **policy may**. Disagreement
-(`live = B`, `fresh = A`) is evidence for `P_v`, not an automatic REPLACE.
+so binary questions get 2 trials, three-or-more-option questions get 3, and
+one-option questions get 1 (no option-order robustness; recorded as
+`len(schedule) == 1`).
+
+Each trial has a deterministic `evaluation_id` (`eval-0`, `eval-1`, …).
+`observe` rejects unbound/duplicate ids, presentation mismatches, wrong
+`question_id`, and non-canonical `selected_option` — these are **protocol
+errors** (fail closed), not `Insufficient`.
+
+**Retain** iff every scheduled observation answered, matches the live canonical
+option, and has `provenance_present` (non-empty `provenance_id`). Otherwise
+**Insufficient**. Unanimous agreement on an alternative is still Insufficient —
+not Replace. Core does not claim grounding or truth.
+
+`execute_directive` injects the policy:
+
+```python
+verification_policy: BlindVerificationPolicy = DEFAULT_VERIFICATION_POLICY
+```
+
+Core ships one policy; self-hosters may replace the argument. `pv_version`
+encodes the algorithm and parameters; schedule or decision rule changes bump it.
 
 ## Forbidden MCP shape
 
@@ -115,6 +148,6 @@ second kernel. LangGraph, CLI, and unit tests should drive the same package.
 
 ## Out of scope here
 
-Real Ding-inspired `P_v`, LLM clients, CEVI corpus wiring, session persistence,
-and shipped MCP registration. Those belong to later phases after this boundary
-is stable.
+Approved paraphrases, cross-family evaluator slots, automated RETRACT/REPLACE,
+LLM clients, CEVI corpus wiring, session persistence, and shipped MCP
+registration.
