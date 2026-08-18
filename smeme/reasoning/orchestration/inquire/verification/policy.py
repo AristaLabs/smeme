@@ -18,9 +18,7 @@ from smeme.reasoning.runtime.inquire.policy import VerificationRequest
 from smeme.reasoning.runtime.inquire.transition import Insufficient, Retain
 
 # Encodes algorithm + parameters. Bump when schedule or decision rule changes.
-DEFAULT_PV_VERSION = (
-    "pv-blind-option-order-v1-max3-retain-insufficient-isolated-provenance-present"
-)
+DEFAULT_PV_VERSION = "pv-blind-option-order-v1-max3-retain-insufficient-isolated-provenance-present"
 
 
 class BlindVerificationPolicy(Protocol):
