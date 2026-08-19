@@ -1,22 +1,23 @@
 ---
 name: smeme-reasoning
 description: >-
-  SMEme reasoning — OAuth MCP, list your decision trees, build provenance
-  ingest, validate then evaluate, logical analysis tools (what_if / how_to_reach /
-  decisive_support / edit_affects_path; often after evaluate, not required).
+  SMEme reasoning — OAuth MCP, list your decision trees, guided Inquire gather
+  (evaluate / evaluate_continue), bulk Apply (evaluate_answers), logical analysis
+  tools (what_if / how_to_reach / decisive_support / edit_affects_path).
   Call smeme_reasoning_capabilities for authoritative reasoning.tools catalog;
   deferred client tool lists may omit smeme_reasoning_evaluate.
-  Slot-fill: smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
+  Slot-fill (bulk): smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.6.0 -->
+<!-- installed_plugin_version: 3.8.0 -->
 
 # SMEme reasoning
 
 ## What SMEme reasoning does
 
-- **Deterministic** evaluation: a published **decision tree** + provenance ingest (answers + evidence) → a server **`report`** (brief memo, reasoning path, candidates).
-- **Logical analysis** on the same \(T\) and envelope: what-if, how-to-reach, decisive support, path-under-edit, list conclusions — **often after evaluate**, but **not required** to run evaluate first.
+- **Guided case evaluation (default):** start with **`smeme_reasoning_evaluate`**, continue with **`smeme_reasoning_evaluate_continue`** until a **`report`** or ``isolated_evaluations_required``. Do **not** download the full worksheet first.
+- **Bulk/audit Apply:** **`template_get` → validate → `smeme_reasoning_evaluate_answers`** when the user wants a full worksheet snapshot.
+- **Logical analysis** on a provenance envelope: what-if, how-to-reach, decisive support, path-under-edit, list conclusions — **not** during an active guided gather loop in the same chat thread.
 - The decision tree's decision logic lives on SMEme. You are an **answer mapper**, not a reasoner — you **do not** reinterpret branches, infer hidden rules, or fix the decision tree.
 
 ## Assumptions (do not pre-confirm with the user)
@@ -26,66 +27,61 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 1. The user has **published** a reasoning-eligible **decision tree** in the **SMEme web app**.
 2. The **MCP connector** is connected (OAuth in your MCP client). On **`auth_error`**, reconnect once; do **not** retry in a loop.
 3. **The user has logged into SMEme web at least once** so their account is linked (Bearer `sub` matches their SMEme account).
-4. Pick the decision tree via **`smeme_reasoning_list`**. Load the worksheet via **`smeme_reasoning_template_get`** (or a filled manifest skill).
+4. Pick the decision tree via **`smeme_reasoning_list`**. For ordinary chat evaluation, call **`smeme_reasoning_evaluate`** next — **not** ``template_get``.
 
-### Worksheet: `template_check` vs `template_get`
+### Worksheet: `template_check` vs `template_get` (bulk/audit only)
 
 | Tool | Returns | When |
 |------|---------|------|
 | **`smeme_reasoning_template_check`** | `decision_tree_id`, `slug`, `in_sync`, `manifest_core_digest` | Cheap drift gate |
-| **`smeme_reasoning_template_get`** | `manifest_markdown` + envelope metadata | Authoritative checklist |
+| **`smeme_reasoning_template_get`** | `manifest_markdown` + envelope metadata | Full checklist for bulk Apply |
 
 ### Capabilities version check
 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.6.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.8.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.6.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.8.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
 | Intent | When | Path |
 |--------|------|------|
-| **Case evaluation** | User wants a conclusion / report for a case | validate → evaluate → read `report` |
-| **Logical analysis** | User asks what-if / how to reach C / what locked it in / would this edit affect the path | same provenance envelope → analysis tools; **reuse envelope after evaluate when available**; evaluate first is **common, not required** |
+| **Case evaluation** | User wants a conclusion / report for a case | `evaluate` → loop `evaluate_continue` → read `report` |
+| **Logical analysis** | User asks what-if / how to reach C / what locked it in / would this edit affect the path | provenance envelope → analysis tools; **not while still gathering in this chat thread** |
 
 When the user asks **what these tools let them do**, call **`smeme_reasoning_capabilities`**, summarize **both** intents, and ask which they want — do **not** default to evaluate unless the open thread is already a case run.
 
-## Case evaluation happy path
+**Do not** use the explicit Inquire orchestrator protocol (`smeme_inquire_*`) from ordinary chat. That protocol requires isolated evaluators; chat cannot provide them.
+
+## Case evaluation happy path (guided Inquire)
 
 1. **`smeme_reasoning_capabilities`** — session bootstrap; `reasoning.tools` is the authoritative tool list. See [Tool catalog](#tool-catalog).
 2. **`smeme_reasoning_list`** — your discoverable decision trees. **If this is empty, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
-3. **`smeme_reasoning_template_get`** — question ids, labels, exact option strings.
-4. **`smeme-reasoning-slot-fill`** — establish the subject, gather sources, build **`raw_answers_json`** (provenance envelope).
-5. **`smeme_reasoning_validate_answers`** — same envelope. Branch on **`harness_next`** (authoritative server routing):
+3. **`smeme_reasoning_evaluate(decision_tree_id)`** — starts a durable inquiry. Returns a blind **`task`** (`question_id`, `stem`, `options`) and **`inquiry_session_id`**, or a terminal **`report`**, or **`isolated_evaluations_required`**.
+4. Gather evidence for **only that task** (subject-scoped files/chat). Do not dump the full worksheet.
+5. **`smeme_reasoning_evaluate_continue`** — pass `inquiry_session_id`, `question_id`, `selected_option`, `provenance_id` (omit option to abstain). Repeat until:
+   - **`report`** — present `brief_memo` / path / candidates; branch on **`report.result_kind` only**.
+   - **`isolated_evaluations_required`** — stop this chat gather loop. The inquiry session remains ACTIVE for an isolated orchestrator; **do not** invent VERIFY trials in chat.
+6. While still gathering (`harness_next: continue_evaluate`), do **not** call `what_if` / `how_to_reach` / `decisive_support` / `edit_affects_path` / `list_conclusions` / `template_get` in this thread.
 
-   | `harness_next` | Meaning | Action |
-   |----------------|---------|--------|
-   | **`phase_2_ok`** | Ingest clean | Safe to call evaluate (or logical analysis on this envelope) |
-   | **`user_input_needed`** | Needs the human (commonly **`missing_evidence_ref`** only) | Ask the user for sources; re-validate; **do not** evaluate yet |
-   | **`phase_1_continue`** | Other ingest warnings | Stay in gather/validate; fix warnings; re-validate |
+### Bulk/audit path (optional)
 
-6. **`smeme_reasoning_evaluate`** — same envelope. Use **`persist=false`** only for dry runs. Success also returns **`harness_next`** / **`warnings`** from the same ingest gate. If `decision_tree_warnings` contains `review_overdue`, tell the user the result came from a tree past its author-set review date; do not silently present it as current.
-7. Read the **`report`** — present **`brief_memo`**, **`reasoning_path`**, **`candidates`**, and **`answer_sheet`** to the user. Branch on **`report.result_kind` only**. The conclusion **title** names the **terminal outcome**, not the previous question's wording — follow **`reasoning_path`** order; do not infer branch logic from headlines alone.
+When the user wants a full worksheet snapshot (not the default):
 
-### Provenance envelope (`raw_answers_json`)
+1. **`smeme_reasoning_template_get`**
+2. **`smeme-reasoning-slot-fill`** → provenance envelope
+3. **`smeme_reasoning_validate_answers`**
+4. **`smeme_reasoning_evaluate_answers`** — Apply; returns **`report`**
 
-Set **`raw_answers_json`** to a serialized JSON object with **`answers`**, **`evidence_items`**, and **`evidence_refs`**. Use the same value for validate and evaluate. Do not double-encode (pass the object, not a JSON string of a JSON string).
+### Provenance for continue / bulk
 
-```json
-{
-  "answers": { "q1": "Yes" },
-  "evidence_items": [{ "id": "e1", "title": "...", "locator": "...", "locator_kind": "file", "excerpt": "..." }],
-  "evidence_refs": { "q1": ["e1"] }
-}
-```
-
-See **`smeme-reasoning-slot-fill`** for field rules.
+For **`evaluate_continue`**, cite a stable `provenance_id` for the source you used. For bulk **`evaluate_answers`**, use the full provenance envelope (see **`smeme-reasoning-slot-fill`**).
 
 | `report.result_kind` | Meaning |
 |----------------------|---------|
@@ -103,7 +99,7 @@ If **`result_kind`** is not **`concluded`**, load **`smeme-reasoning-outcomes`**
 
 | Tools | Availability |
 |-------|-------------|
-| `smeme_reasoning_list`, `smeme_reasoning_validate_answers`, `smeme_reasoning_evaluate`, `smeme_reasoning_what_if`, `smeme_reasoning_edit_affects_path`, `smeme_reasoning_how_to_reach`, `smeme_reasoning_decisive_support`, `smeme_reasoning_list_conclusions`, `smeme_reasoning_template_*` | Always in `reasoning.tools` when the server exposes logical analysis tools. If a tool is absent from the client UI, deferred loading is the cause — call it by name. |
+| `smeme_reasoning_list`, `smeme_reasoning_evaluate`, `smeme_reasoning_evaluate_continue`, `smeme_reasoning_evaluate_answers`, `smeme_reasoning_validate_answers`, `smeme_reasoning_what_if`, `smeme_reasoning_edit_affects_path`, `smeme_reasoning_how_to_reach`, `smeme_reasoning_decisive_support`, `smeme_reasoning_list_conclusions`, `smeme_reasoning_template_*` | Always in `reasoning.tools` when the server exposes logical analysis tools. If a tool is absent from the client UI, deferred loading is the cause — call it by name. |
 
 `capabilities` has quota weight 0.
 
@@ -140,7 +136,7 @@ Optional reach assumptions \(\phi\): `force_reachable_ids` / `force_unreachable_
 | `workflow_rules_consistent` | `false` when branching rules cannot all hold together |
 | `hint` | Present when rules are inconsistent or some conclusions are unreachable |
 
-Reachability is **structural** (some valid answer path could reach the conclusion), not case-specific. For a particular user's answers, use **`smeme_reasoning_evaluate`**.
+Reachability is **structural** (some valid answer path could reach the conclusion), not case-specific. For a particular user's answers, use **`smeme_reasoning_evaluate`** (guided) or **`smeme_reasoning_evaluate_answers`** (bulk).
 
 **`how_to_reach` input:** copy **`conclusion_id`** from a row here into **`target_conclusion_id`**. Show **`conclusion_title`** to the user when choosing a target. Do **not** take ids from evaluate **`report.candidates`** or guess from titles alone.
 

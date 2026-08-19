@@ -16,7 +16,10 @@ from smeme.mcp.reasoning_fastmcp import StripLastEventIdMiddleware, reset_mcp_ru
 from smeme.mcp.urls import (
     mcp_connect_template_context,
     mcp_connector_url,
+    mcp_orchestrator_http_path,
+    mcp_orchestrator_resource_url,
     mcp_resource_url,
+    oauth_orchestrator_protected_resource_metadata_path,
     oauth_protected_resource_metadata_path,
 )
 
@@ -95,6 +98,16 @@ def test_mcp_connect_context_omits_client_id_when_dcr_or_unconfigured(
 def test_oauth_protected_resource_metadata_path(monkeypatch: pytest.MonkeyPatch) -> None:
     s = _minimal_settings(monkeypatch, mcp_http_path="/api/v1/mcp")
     assert oauth_protected_resource_metadata_path(s) == "/.well-known/oauth-protected-resource/api/v1/mcp"
+
+
+def test_orchestrator_mcp_urls(monkeypatch: pytest.MonkeyPatch) -> None:
+    s = _minimal_settings(monkeypatch, mcp_http_path="/api/v1/mcp")
+    assert mcp_orchestrator_http_path(s) == "/api/v1/mcp/orchestrator"
+    assert mcp_orchestrator_resource_url(s) == "https://api.example.com/api/v1/mcp/orchestrator"
+    assert (
+        oauth_orchestrator_protected_resource_metadata_path(s)
+        == "/.well-known/oauth-protected-resource/api/v1/mcp/orchestrator"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +255,70 @@ async def test_mcp_mount_path_normalize_middleware_adds_slash() -> None:
         send,
     )
     assert captured == ["/api/v1/mcp/"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_mount_path_normalize_middleware_orchestrator_prefix() -> None:
+    from smeme.mcp.reasoning_fastmcp import McpMountPathNormalizeMiddleware
+
+    captured: list[str] = []
+
+    async def inner(scope, receive, send):
+        captured.append(scope["path"])
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-length", b"0")],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    async def receive():
+        return {"type": "http.disconnect"}
+
+    async def send(_msg):
+        pass
+
+    mw = McpMountPathNormalizeMiddleware(
+        inner,
+        mcp_path="/api/v1/mcp",
+        orchestrator_path="/api/v1/mcp/orchestrator",
+    )
+    await mw(
+        {"type": "http", "path": "/api/v1/mcp/orchestrator", "headers": []},
+        receive,
+        send,
+    )
+    assert captured == ["/api/v1/mcp/orchestrator/"]
+    captured.clear()
+    await mw(
+        {"type": "http", "path": "/api/v1/mcp", "headers": []},
+        receive,
+        send,
+    )
+    assert captured == ["/api/v1/mcp/"]
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_protected_resource_route_when_inquire_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reset_mcp_runtime_for_tests()
+    s = _minimal_settings_with_clerk(
+        monkeypatch,
+        mcp_enabled=True,
+        mcp_inquire_tools_enabled=True,
+    )
+    app = create_app(_register_settings=s)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://test") as client:
+        pr = await client.get(
+            "/.well-known/oauth-protected-resource/api/v1/mcp/orchestrator"
+        )
+        assert pr.status_code == 200
+        body = pr.json()
+        assert body["resource"] == "https://api.example.com/api/v1/mcp/orchestrator"
 
 
 @pytest.mark.asyncio

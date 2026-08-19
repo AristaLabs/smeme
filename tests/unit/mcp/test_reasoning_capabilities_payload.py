@@ -29,6 +29,8 @@ def test_reasoning_capabilities_document_shape() -> None:
         "smeme_reasoning_list",
         "smeme_reasoning_validate_answers",
         "smeme_reasoning_evaluate",
+        "smeme_reasoning_evaluate_continue",
+        "smeme_reasoning_evaluate_answers",
         "smeme_reasoning_what_if",
         "smeme_reasoning_how_to_reach",
         "smeme_reasoning_decisive_support",
@@ -49,16 +51,9 @@ def test_reasoning_capabilities_document_shape() -> None:
                 "smeme_authoring_update_draft",
             ]
         )
-    if settings.mcp_inquire_tools_enabled:
-        expected_tools.extend(
-            [
-                "smeme_inquire_analyze",
-                "smeme_inquire_get_task",
-                "smeme_inquire_admit",
-                "smeme_inquire_verify",
-            ]
-        )
+    # Inquire protocol tools live on the orchestrator mount, not chat capabilities.
     assert doc["reasoning"]["tools"] == expected_tools
+    assert "inquire" not in doc
     assert doc["reasoning"]["harness_next_enum"] == [
         "phase_1_continue",
         "phase_2_ok",
@@ -69,6 +64,7 @@ def test_reasoning_capabilities_document_shape() -> None:
     assert doc["reasoning"]["ingest_envelope"]["grounding_error_details_v1"] is True
     assert doc["reasoning"]["evaluate_response"]["report_v1"] is True
     assert doc["reasoning"]["evaluate_response"]["decision_tree_warnings_review_v1"] is True
+    assert doc["reasoning"]["evaluate_response"]["inquire_chat_facade_v1"] is True
     assert doc["reasoning"]["list_response"]["review_metadata_v1"] is True
     assert doc["reasoning"]["counterfactual"]["how_to_reach_reach_mode"] == [
         "entailed",
@@ -78,12 +74,13 @@ def test_reasoning_capabilities_document_shape() -> None:
     assert doc["reasoning"]["counterfactual"]["edit_affects_path"] is True
     assert doc["reasoning"]["counterfactual"]["assumptions"]["force_unreachable_ids"] is True
     assert doc["reasoning"]["counterfactual"]["assumptions"]["tools"] == [
-        "smeme_reasoning_evaluate",
+        "smeme_reasoning_evaluate_answers",
         "smeme_reasoning_what_if",
         "smeme_reasoning_how_to_reach",
         "smeme_reasoning_decisive_support",
         "smeme_reasoning_edit_affects_path",
     ]
+    assert doc["reasoning"]["query_modes"]["apply"] == "smeme_reasoning_evaluate_answers"
     assert "what_if" in doc["reasoning"]["query_modes"]["assume"]
     assert doc["reasoning"]["query_modes"]["path_under_edit"] == (
         "smeme_reasoning_edit_affects_path"
@@ -114,8 +111,7 @@ def test_reasoning_capabilities_document_has_stable_top_level_keys() -> None:
     }
     if settings.mcp_authoring_graph_tools_enabled:
         expected_keys |= {"authoring_graph", "authoring_design"}
-    if settings.mcp_inquire_tools_enabled:
-        expected_keys |= {"inquire"}
+    # Inquire protocol metadata is on the orchestrator mount, not chat capabilities.
     assert set(doc.keys()) == expected_keys
     # latest_plugin_version is an unambiguous alias for skill-side version comparison.
     assert doc["latest_plugin_version"] == doc["version"]

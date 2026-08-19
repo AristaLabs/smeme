@@ -68,10 +68,20 @@ from mcp.shared.auth import ProtectedResourceMetadata
 from pydantic import AnyHttpUrl
 
 from smeme.core.config import Settings, settings
-from smeme.mcp.urls import mcp_resource_url, oauth_protected_resource_metadata_path
+from smeme.mcp.urls import (
+    mcp_orchestrator_resource_url,
+    mcp_resource_url,
+    oauth_orchestrator_protected_resource_metadata_path,
+    oauth_protected_resource_metadata_path,
+)
 
 
-def _protected_resource_payload(s: Settings) -> dict[str, Any]:
+def _protected_resource_payload(
+    s: Settings,
+    *,
+    resource: str | None = None,
+    resource_name: str = "SMEme MCP",
+) -> dict[str, Any]:
     """Build the RFC 9728 Protected Resource Metadata document.
 
     The ``resource`` field must exactly match the MCP endpoint URL that
@@ -92,7 +102,7 @@ def _protected_resource_payload(s: Settings) -> dict[str, Any]:
     MCP access control remains ``sub`` + local ``User`` (see D016); custom
     ``reasoning:*`` token scopes at the RS are P3.
     """
-    resource = mcp_resource_url(s)
+    resource_url = resource or mcp_resource_url(s)
 
     # P1-Clerk: point at Clerk's issuer.
     # Falls back to SMEme's own origin only when Clerk is not configured
@@ -100,12 +110,12 @@ def _protected_resource_payload(s: Settings) -> dict[str, Any]:
     issuer = s.clerk_oauth_issuer or s.effective_base_url.rstrip("/")
 
     meta = ProtectedResourceMetadata(
-        resource=AnyHttpUrl(resource),
+        resource=AnyHttpUrl(resource_url),
         authorization_servers=[AnyHttpUrl(issuer)],
         # Clerk OAuth apps often allow these without ``openid`` (DCR clients may
         # not be permitted to request ``openid`` — invalid_scope).
         scopes_supported=["profile", "email", "offline_access"],
-        resource_name="SMEme MCP",
+        resource_name=resource_name,
     )
     payload = meta.model_dump(mode="json", exclude_none=True)
 
@@ -355,3 +365,22 @@ def register_mcp_oauth_discovery_routes(app: FastAPI, s: Settings | None = None)
         methods=["GET"],
         include_in_schema=False,
     )
+
+    if cfg.mcp_inquire_tools_enabled:
+        orch_sub_path = oauth_orchestrator_protected_resource_metadata_path(cfg)
+
+        async def orchestrator_protected_resource_metadata() -> JSONResponse:
+            return JSONResponse(
+                _protected_resource_payload(
+                    cfg,
+                    resource=mcp_orchestrator_resource_url(cfg),
+                    resource_name="SMEme MCP Inquire Orchestrator",
+                )
+            )
+
+        app.add_api_route(
+            orch_sub_path,
+            orchestrator_protected_resource_metadata,
+            methods=["GET"],
+            include_in_schema=False,
+        )

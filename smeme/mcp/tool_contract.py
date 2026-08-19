@@ -78,13 +78,21 @@ REASONING_TOOL_ERROR_CODES: frozenset[str] = frozenset(
         "assumptions_cap_exceeded",
         # Path under edit (``smeme_reasoning_edit_affects_path``)
         "path_not_entailed_at_baseline",
-        # Inquire MCP (Phase 5)
+        # Inquire MCP (Phase 5 + Phase 6 persist)
         "assertion_mismatch",
         "admission_rejected",
         "inquire_invalid_payload",
         "inquire_unknown_question",
         "inquire_verification_protocol",
         "inquire_verify_target_mismatch",
+        "inquire_revision_conflict",
+        "inquire_idempotency_conflict",
+        "inquire_policy_mismatch",
+        "inquire_session_not_active",
+        "inquire_artifact_mismatch",
+        "inquire_artifact_unavailable",
+        "inquire_session_invariant",
+        "isolated_evaluations_required",
     }
 )
 

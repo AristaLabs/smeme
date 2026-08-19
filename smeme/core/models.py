@@ -830,6 +830,229 @@ class ReasoningEvaluationRun(BaseSQLModel, table=True):
     )
 
 
+class InquirySession(BaseSQLModel, table=True):
+    """Durable Inquire case: ANALYZE preimage only (Phase 6). Not DecisionTreeSession."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    __tablename__ = "inquiry_sessions"
+    __table_args__ = (
+        Index("ix_inquiry_sessions_owner_status", "owner_user_id", "status"),
+        Index("ix_inquiry_sessions_tree_created", "decision_tree_id", "created_at"),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    owner_user_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    decision_tree_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("decision_trees.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    # FrozenArtifactSnapshot (nullable FK; identity + catalog are authoritative)
+    artifact_id: UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey("reasoning_compiled_artifacts.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+        description="Navigation to compiled row; SET NULL on delete. Execution needs matching row.",
+    )
+    artifact_identity: str = Field(
+        sa_column=Column(String(64), nullable=False),
+        description="D025 artifact_hash frozen at start; never retargeted.",
+    )
+    worksheet_catalog: dict[str, Any] = Field(
+        sa_column=Column(JSONB, nullable=False),
+        description="Frozen extractor vocabulary; never rebuilt from live graph_data.",
+    )
+    pv_version: str = Field(sa_column=Column(String(255), nullable=False))
+    assumptions: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")),
+        description="Pinned φ: force_reachable_ids / force_unreachable_ids.",
+    )
+    status: str = Field(
+        sa_column=Column(String(20), nullable=False, index=True),
+        description="ACTIVE | STOPPED | ABANDONED",
+    )
+    stop_reason: str | None = Field(
+        default=None,
+        sa_column=Column(String(80), nullable=True),
+    )
+    revision: int = Field(
+        default=1,
+        sa_column=Column(sa.BigInteger(), nullable=False, server_default="1"),
+        description="Option A: version(E, verified, assumptions, status).",
+    )
+    created_at: Mapped[datetime] = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+    )
+    updated_at: Mapped[datetime] = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+            onupdate=sa.func.now(),
+        ),
+    )
+    stopped_at: Mapped[datetime] | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+
+
+class InquiryAdmittedAssertion(BaseSQLModel, table=True):
+    """Live admitted (q, a, p) for one inquiry session."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    __tablename__ = "inquiry_admitted_assertions"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "question_id",
+            name="uq_inquiry_admitted_assertions_session_question",
+        ),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("inquiry_sessions.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    question_id: str = Field(sa_column=Column(String(255), nullable=False))
+    option: str = Field(sa_column=Column(String(512), nullable=False))
+    provenance_id: str = Field(sa_column=Column(String(512), nullable=False))
+
+
+class InquiryVerifiedAssertion(BaseSQLModel, table=True):
+    """Server-issued VerificationKey retained under session-pinned pv_version."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    __tablename__ = "inquiry_verified_assertions"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "artifact_identity",
+            "question_id",
+            "option",
+            "provenance_identity",
+            "pv_version",
+            name="uq_inquiry_verified_assertions_key",
+        ),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("inquiry_sessions.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    artifact_identity: str = Field(sa_column=Column(String(64), nullable=False))
+    question_id: str = Field(sa_column=Column(String(255), nullable=False))
+    option: str = Field(sa_column=Column(String(512), nullable=False))
+    provenance_identity: str = Field(sa_column=Column(String(512), nullable=False))
+    pv_version: str = Field(sa_column=Column(String(255), nullable=False))
+
+
+class InquiryMutationReceipt(BaseSQLModel, table=True):
+    """Idempotency receipt for admit/verify (request_hash + response)."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    __tablename__ = "inquiry_mutation_receipts"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "idempotency_key",
+            name="uq_inquiry_mutation_receipts_session_key",
+        ),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("inquiry_sessions.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    idempotency_key: str = Field(sa_column=Column(String(128), nullable=False))
+    operation: str = Field(sa_column=Column(String(32), nullable=False))
+    request_hash: str = Field(sa_column=Column(String(64), nullable=False))
+    response_json: dict[str, Any] = Field(sa_column=Column(JSONB, nullable=False))
+    created_at: Mapped[datetime] = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+    )
+
+
+class InquirySessionEvent(BaseSQLModel, table=True):
+    """Append-only audit for an inquiry session (not ANALYZE input)."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    __tablename__ = "inquiry_session_events"
+    __table_args__ = (
+        Index("ix_inquiry_session_events_session_created", "session_id", "created_at"),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: UUID = Field(
+        sa_column=Column(
+            ForeignKey("inquiry_sessions.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+    )
+    event_type: str = Field(sa_column=Column(String(64), nullable=False))
+    revision: int = Field(sa_column=Column(sa.BigInteger(), nullable=False))
+    receipt_id: UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey("inquiry_mutation_receipts.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+    )
+    payload: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")),
+    )
+    created_at: Mapped[datetime] = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+    )
+
+
 class DecisionTreeSession(BaseSQLModel, table=True):
     """User session for completing a DecisionTree."""
 

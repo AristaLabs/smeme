@@ -42,7 +42,9 @@ Tools
 - ``smeme_reasoning_capabilities`` — same Bearer + user-row requirements as other reasoning tools.
 - ``smeme_reasoning_list`` — lists the caller's deployed + current + MCP-discoverable decision trees (owner-scoped).
 - ``smeme_reasoning_validate_answers`` — Phase 1 ingest gate only (provenance envelope + answer checks); no persistence.
-- ``smeme_reasoning_evaluate`` — runs evaluation; persists audit row; returns ``report`` JSON (product memo).
+- ``smeme_reasoning_evaluate`` — chat Inquire gather **start** (durable session; blind task).
+- ``smeme_reasoning_evaluate_continue`` — chat Inquire gather **continue** (admit; next blind task).
+- ``smeme_reasoning_evaluate_answers`` — bulk Apply on a worksheet envelope; returns ``report``.
 - ``smeme_reasoning_what_if`` — compare baseline vs override assignments; report-vocabulary delta; optional shared reach assumptions.
 - ``smeme_reasoning_how_to_reach`` — bounded answer-edit repair plans for a target conclusion.
 - ``smeme_reasoning_decisive_support`` — minimal sufficient evidence: inclusion-minimal answered-question supports that force a target conclusion (fixed ``T`` and ``E``).
@@ -55,10 +57,9 @@ Tools
   ``smeme_authoring_update_draft`` — (optional) chat-authored design standard +
   graph validate → create or revise a dashboard draft; gated by
   ``Settings.mcp_authoring_graph_tools_enabled``.
-- ``smeme_inquire_analyze`` / ``smeme_inquire_get_task`` / ``smeme_inquire_admit`` /
-  ``smeme_inquire_verify`` — (optional) Inquire protocol; gated by
-  ``Settings.mcp_inquire_tools_enabled`` (default false). Stateless; server-owned
-  ``pv_version``; client submits verification observations, not decisions.
+- On ``{MCP_HTTP_PATH}/orchestrator`` when ``MCP_INQUIRE_TOOLS_ENABLED``:
+  ``smeme_inquire_*`` + ``smeme_inquire_guidance_*`` — explicit Inquire protocol
+  for isolated-evaluator orchestrators (not the chat gather path).
 
 DR-3 P2 adds Bearer-authenticated reasoning tools.
 
@@ -124,6 +125,12 @@ from smeme.mcp.bearer_auth import (
     auth_error_tool_json,
     get_mcp_user,
 )
+from smeme.mcp.inquire_guidance_artifact import (
+    INQUIRE_GUIDANCE_CONTENT_DIGEST,
+    INQUIRE_GUIDANCE_CONTENT_VERSION,
+    inquire_guidance_check_payload,
+    inquire_guidance_payload,
+)
 from smeme.mcp.invocation_telemetry import (
     bind_invocation_id,
     bind_mcp_user,
@@ -143,7 +150,11 @@ from smeme.mcp.tool_contract import (
     INTERNAL_ERROR_MESSAGE,
     tool_error_json,
 )
-from smeme.mcp.urls import mcp_resource_url, transport_security_allowed_hosts
+from smeme.mcp.urls import (
+    mcp_orchestrator_http_path,
+    mcp_resource_url,
+    transport_security_allowed_hosts,
+)
 from smeme.reasoning.graph_hash import canonical_graph_hash
 from smeme.reasoning.ir.serialize import ir_from_json
 from smeme.reasoning.ir.types import IR_FORMAT_VERSION, IRNodeKind
@@ -186,7 +197,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.6.0"
+REASONING_CAPABILITIES_VERSION = "3.8.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -257,17 +268,75 @@ async def _mcp_authenticate_billable_tool(
     return user_or_err
 
 
-def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> dict[str, Any]:
+def reasoning_capabilities_document(
+    *,
+    cap_settings: Settings | None = None,
+    surface: str = "chat",
+) -> dict[str, Any]:
     """JSON object returned by ``smeme_reasoning_capabilities`` (tests and release docs).
 
     ``cap_settings`` should match the ``Settings`` used when building the FastMCP singleton
     (see ``get_or_create_fastmcp``); defaults to the process ``settings`` object.
+
+    ``surface`` is ``\"chat\"`` (default ``/mcp``) or ``\"orchestrator\"`` (Inquire protocol mount).
     """
     s = cap_settings or settings
-    tools: list[str] = [
+    if surface == "orchestrator":
+        tools: list[str] = [
+            "smeme_reasoning_capabilities",
+            "smeme_reasoning_list",
+            "smeme_inquire_guidance_check",
+            "smeme_inquire_guidance_get",
+            "smeme_inquire_start",
+            "smeme_inquire_next",
+            "smeme_inquire_get_task",
+            "smeme_inquire_admit",
+            "smeme_inquire_verify",
+        ]
+        return {
+            "service": "smeme",
+            "version": REASONING_CAPABILITIES_VERSION,
+            "latest_plugin_version": REASONING_CAPABILITIES_VERSION,
+            "reasoning_mcp_surface": "DR-3-transport-inquire-orchestrator",
+            "inquire_guidance": {
+                "content_version": INQUIRE_GUIDANCE_CONTENT_VERSION,
+                "content_digest": INQUIRE_GUIDANCE_CONTENT_DIGEST,
+            },
+            "reasoning": {
+                "tools": tools,
+                "auth": "OAuth 2.1 Bearer (Clerk)",
+            },
+            "inquire": {
+                "protocol": "explicit_orchestration",
+                "isolated_evaluations_required": True,
+                "task_blindness": "server_enforced",
+                "evaluator_isolation": "caller_responsibility",
+                "verification_battery": "core",
+                "persist_v1": True,
+                "pv_authority": "server",
+                "tools": [
+                    "smeme_inquire_start",
+                    "smeme_inquire_next",
+                    "smeme_inquire_get_task",
+                    "smeme_inquire_admit",
+                    "smeme_inquire_verify",
+                ],
+                "note": (
+                    "Explicit Inquire orchestration. VERIFY requires a fresh isolated "
+                    "evaluator context per trial. SMEme enforces task-payload blindness "
+                    "and Core P_v; evaluator isolation is the caller's responsibility. "
+                    "See smeme_inquire_guidance_get."
+                ),
+            },
+            "docs": "docs/guides/inquire-mcp-contract.md",
+        }
+
+    tools = [
         "smeme_reasoning_list",
         "smeme_reasoning_validate_answers",
         "smeme_reasoning_evaluate",
+        "smeme_reasoning_evaluate_continue",
+        "smeme_reasoning_evaluate_answers",
         "smeme_reasoning_what_if",
         "smeme_reasoning_how_to_reach",
         "smeme_reasoning_decisive_support",
@@ -290,15 +359,6 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "smeme_authoring_create_draft",
                 "smeme_authoring_get_draft",
                 "smeme_authoring_update_draft",
-            ]
-        )
-    if s.mcp_inquire_tools_enabled:
-        tools.extend(
-            [
-                "smeme_inquire_analyze",
-                "smeme_inquire_get_task",
-                "smeme_inquire_admit",
-                "smeme_inquire_verify",
             ]
         )
     cap: dict[str, Any] = {
@@ -327,6 +387,7 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "report_v1": True,
                 "report_theory_v1": True,
                 "decision_tree_warnings_review_v1": True,
+                "inquire_chat_facade_v1": True,
             },
             "list_response": {"review_metadata_v1": True},
             "counterfactual": {
@@ -341,7 +402,7 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                     "force_reachable_ids": True,
                     "force_unreachable_ids": True,
                     "tools": [
-                        "smeme_reasoning_evaluate",
+                        "smeme_reasoning_evaluate_answers",
                         "smeme_reasoning_what_if",
                         "smeme_reasoning_how_to_reach",
                         "smeme_reasoning_decisive_support",
@@ -350,7 +411,8 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 },
             },
             "query_modes": {
-                "apply": "smeme_reasoning_evaluate",
+                "apply": "smeme_reasoning_evaluate_answers",
+                "inquire_chat": ("smeme_reasoning_evaluate / smeme_reasoning_evaluate_continue"),
                 "compare": "smeme_reasoning_what_if",
                 "path_under_edit": "smeme_reasoning_edit_affects_path",
                 "entail": "smeme_reasoning_how_to_reach (reach_mode=entailed)",
@@ -361,9 +423,16 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 ),
                 "assume": (
                     "force_reachable_ids / force_unreachable_ids on "
-                    "evaluate + what_if + how_to_reach + decisive_support + edit_affects_path"
+                    "evaluate_answers + what_if + how_to_reach + decisive_support + edit_affects_path"
                 ),
             },
+            "note": (
+                "Ordinary chat evaluation: smeme_reasoning_evaluate then "
+                "smeme_reasoning_evaluate_continue. Do not use the explicit Inquire "
+                "orchestrator protocol from conversational context; that protocol "
+                "requires evaluator isolation that ordinary chat does not provide. "
+                "Bulk/audit: template_get → validate_answers → evaluate_answers."
+            ),
         },
         "docs": "docs/guides/dr3-mcp-oauth-authoritative-sources.md",
     }
@@ -394,30 +463,7 @@ def reasoning_capabilities_document(*, cap_settings: Settings | None = None) -> 
                 "Returns the standard for designing branching decision trees in chat."
             ),
         }
-    if s.mcp_inquire_tools_enabled:
-        cap["inquire"] = {
-            "note": (
-                "Trusted-orchestrator Inquire protocol (calculus §13.9). "
-                "Stateless: caller carries admitted/verified state. "
-                "Server owns pv_version and evaluates verification observation "
-                "transcripts. Do not forward directive or verification metadata "
-                "to extractors. See docs/guides/inquire-mcp-contract.md."
-            ),
-            "tools": [
-                "smeme_inquire_analyze",
-                "smeme_inquire_get_task",
-                "smeme_inquire_admit",
-                "smeme_inquire_verify",
-            ],
-            "persist_v1": False,
-            "pv_authority": "server",
-            "verification_battery": "core",
-            "blindness": (
-                "Extractor-facing task JSON is only {question_id, stem, options}. "
-                "Control channel (directive, verification_key, evaluations[]) is "
-                "orchestrator-only."
-            ),
-        }
+    # Inquire protocol tools are on the orchestrator mount only — never listed here.
     return cap
 
 
@@ -521,6 +567,8 @@ async def _mcp_load_owner_compiled_artifact(
 # reset_mcp_runtime_for_tests() between test cases.
 _holder: FastMCP | None = None
 _starlette_mcp: Starlette | None = None
+_orchestrator_holder: FastMCP | None = None
+_starlette_orchestrator_mcp: Starlette | None = None
 
 # Byte-string used to match the Last-Event-ID header in ASGI scope headers.
 # Must be bytes because ASGI headers are always (bytes, bytes) pairs.
@@ -566,7 +614,7 @@ class StripLastEventIdMiddleware:
 
 
 class McpMountPathNormalizeMiddleware:
-    """Map bare MCP mount path to the trailing-slash form Starlette ``Mount`` matches.
+    """Map bare MCP mount path(s) to the trailing-slash form Starlette ``Mount`` matches.
 
     ``Mount`` is registered with ``/api/v1/mcp`` but its path regex only matches
     ``/api/v1/mcp/...`` (``/api/v1/mcp`` alone does not match). Starlette's router
@@ -576,17 +624,32 @@ class McpMountPathNormalizeMiddleware:
 
     Normalizing here avoids the redirect entirely when clients omit the trailing slash
     (Claude Desktop, some OAuth control-plane probes, etc.).
+
+    When Inquire orchestrator is enabled, also normalize
+    ``{mcp_path}/orchestrator`` the same way.
     """
 
-    def __init__(self, app: ASGIApp, mcp_path: str = "/api/v1/mcp") -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        mcp_path: str = "/api/v1/mcp",
+        *,
+        orchestrator_path: str | None = None,
+    ) -> None:
         self.app = app
         raw = (mcp_path or "/api/v1/mcp").rstrip("/")
-        self._prefix = raw if raw else "/api/v1/mcp"
+        self._prefixes = [raw if raw else "/api/v1/mcp"]
+        if orchestrator_path:
+            orch = orchestrator_path.rstrip("/")
+            if orch:
+                self._prefixes.append(orch)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         # Shallow-copy scope when mutating: ASGI may share the dict across layers.
-        if scope["type"] == "http" and scope.get("path") == self._prefix:
-            scope = {**scope, "path": f"{self._prefix}/"}
+        if scope["type"] == "http":
+            path = scope.get("path")
+            if path in self._prefixes:
+                scope = {**scope, "path": f"{path}/"}
         await self.app(scope, receive, send)
 
 
@@ -596,9 +659,11 @@ def reset_mcp_runtime_for_tests() -> None:
     Without this, test A may create a FastMCP instance with MCP_ENABLED=True,
     and test B that expects MCP_ENABLED=False would still get the old instance.
     """
-    global _holder, _starlette_mcp
+    global _holder, _starlette_mcp, _orchestrator_holder, _starlette_orchestrator_mcp
     _holder = None
     _starlette_mcp = None
+    _orchestrator_holder = None
+    _starlette_orchestrator_mcp = None
 
 
 def _build_transport_security(s: Settings) -> TransportSecuritySettings | None:
@@ -703,9 +768,14 @@ def _build_mcp_instructions(cfg: Settings) -> str:
         "1. smeme_reasoning_capabilities (check guidance.content_digest)\n"
         "2. If no cached guidance or digest mismatch: smeme_reasoning_guidance_get "
         "(full calling contract — cache it)\n"
-        "3. smeme_reasoning_list → smeme_reasoning_template_get → build answers → "
-        "smeme_reasoning_validate_answers → "
-        "smeme_reasoning_evaluate\n\n"
+        "3. smeme_reasoning_list → smeme_reasoning_evaluate(decision_tree_id) → "
+        "loop smeme_reasoning_evaluate_continue until report or "
+        "isolated_evaluations_required\n\n"
+        "Do not call template_get first for ordinary chat evaluation. "
+        "Do not invoke the explicit Inquire orchestrator protocol from this "
+        "chat connector; that protocol requires isolated evaluators.\n\n"
+        "Bulk/audit worksheet path: smeme_reasoning_template_get → "
+        "smeme_reasoning_validate_answers → smeme_reasoning_evaluate_answers.\n\n"
         "smeme_reasoning_list returns only decision trees you can invoke now. "
         "If empty, the user has not yet published/shared a decision tree — "
         "do not guess decision tree ids."
@@ -726,15 +796,21 @@ def _build_mcp_instructions(cfg: Settings) -> str:
             "smeme_authoring_update_draft with expected_graph_hash; on graph_conflict, "
             "fetch again and retry. Do not auto-Deploy."
         )
-    if cfg.mcp_inquire_tools_enabled:
-        base += (
-            "\n\nInquire (experimental, gated): trusted orchestrator only. "
-            "Drive smeme_inquire_analyze → get_task/admit for ACQUIRE, or run "
-            "blind evaluations from analyze evaluations[] then smeme_inquire_verify "
-            "with observations. Never forward VERIFY metadata to extractors. "
-            "No session persistence; caller carries admitted/verified state."
-        )
     return base
+
+
+def _build_orchestrator_mcp_instructions(_cfg: Settings) -> str:
+    """Instructions for the Inquire orchestrator MCP mount."""
+    return (
+        "SMEme Inquire orchestrator MCP — explicit durable Inquire protocol.\n\n"
+        "Not for ordinary chat evaluation. Call smeme_inquire_guidance_get once and "
+        "follow VERIFY isolation: each trial in a fresh evaluator context; forward only "
+        "{question_id, stem, options}; return observations to smeme_inquire_verify; "
+        "never decide Retain yourself. SMEme enforces task blindness and Core P_v; "
+        "evaluator isolation is your responsibility.\n\n"
+        "Protocol: smeme_inquire_start → get_task → admit/verify with "
+        "expected_revision and idempotency_key."
+    )
 
 
 def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
@@ -1409,13 +1485,253 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
         @_holder.tool(
             annotations=ToolAnnotations(
-                title="Run reasoning evaluation",
+                title="Start guided case evaluation",
+                readOnlyHint=False,
+                destructiveHint=False,
+                idempotentHint=False,
+            )
+        )
+        async def smeme_reasoning_evaluate(
+            decision_tree_id: str,
+            ctx: Context,
+        ) -> str:
+            """Start guided Inquire gather on a deployed decision tree (chat default).
+
+            Starts from empty admitted evidence. Returns a blind task
+            ``{question_id, stem, options}`` plus ``inquiry_session_id``, or a
+            terminal ``report`` if Inquire already STOPs, or
+            ``isolated_evaluations_required`` if VERIFY is needed (session stays
+            ACTIVE — do not fake VERIFY in chat).
+
+            Continue with ``smeme_reasoning_evaluate_continue``. Do **not** call
+            ``template_get`` first. For bulk worksheet Apply use
+            ``smeme_reasoning_evaluate_answers``.
+            """
+            from smeme.decision_tree.helpers.db_queries import parse_graph_data
+            from smeme.mcp.inquire.chat_facade import (
+                admitted_flat_answers_for_session,
+                chat_evaluate_start,
+                flat_answers_to_legacy_raw_json,
+            )
+            from smeme.mcp.inquire.handlers import InquireHandlerError
+
+            try:
+                async with mcp_invocation_scope("smeme_reasoning_evaluate", ctx) as rec:
+                    rec.note_decision_tree_id(decision_tree_id)
+                    try:
+                        decision_tree_uuid = UUID(decision_tree_id)
+                    except ValueError:
+                        out = tool_error_json(
+                            "invalid_decision_tree_id",
+                            f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
+                        )
+                        rec.note_json_response(out)
+                        return out
+                    request = request_from_mcp_context(ctx)
+                    async with AsyncSessionLocal() as db:
+                        user_or_err = await _mcp_auth_user_only(request, db)
+                        if isinstance(user_or_err, str):
+                            rec.note_json_response(user_or_err)
+                            return user_or_err
+                        user = user_or_err
+                        loaded = await _mcp_load_owner_compiled_artifact(
+                            db, user=user, decision_tree_uuid=decision_tree_uuid
+                        )
+                        if isinstance(loaded, str):
+                            rec.note_json_response(loaded)
+                            return loaded
+                        decision_tree, artifact = loaded
+                        try:
+                            graph = parse_graph_data(decision_tree)
+                        except Exception as exc:
+                            out = tool_error_json("invalid_graph", f"Graph data invalid: {exc}")
+                            rec.note_json_response(out)
+                            return out
+                        quota_err = await _mcp_reserve_quota_and_bind(
+                            request,
+                            db,
+                            user,
+                            tool_name="smeme_reasoning_evaluate",
+                        )
+                        if quota_err is not None:
+                            rec.note_json_response(quota_err)
+                            return quota_err
+                        try:
+                            facade = await chat_evaluate_start(
+                                db,
+                                user=user,
+                                decision_tree=decision_tree,
+                                artifact=artifact,
+                                graph=graph,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        if "error" in facade:
+                            out = _tool_json(facade)
+                            rec.note_json_response(out)
+                            return out
+                        if facade.get("_chat_stop"):
+                            session_id = UUID(str(facade["inquiry_session_id"]))
+                            flat = await admitted_flat_answers_for_session(
+                                db,
+                                user=user,
+                                inquiry_session_id=session_id,
+                            )
+                            apply_out = await _smeme_reasoning_evaluate_body(
+                                decision_tree_id=decision_tree_id,
+                                raw_answers_json=flat_answers_to_legacy_raw_json(flat),
+                                ctx=ctx,
+                                persist=True,
+                            )
+                            # Merge stop_reason onto Apply success when possible
+                            try:
+                                apply_payload = json.loads(apply_out)
+                            except json.JSONDecodeError:
+                                rec.note_json_response(apply_out)
+                                return apply_out
+                            if isinstance(apply_payload, dict) and "error" not in apply_payload:
+                                apply_payload["inquiry_session_id"] = str(session_id)
+                                apply_payload["stop_reason"] = facade.get("stop_reason")
+                                apply_payload["status"] = "STOPPED"
+                                apply_out = _tool_json(apply_payload)
+                            rec.note_json_response(apply_out)
+                            return apply_out
+                        out = _tool_json(facade)
+                        rec.note_json_response(out)
+                        return out
+            except Exception:
+                logger.exception(
+                    "smeme_reasoning_evaluate failed",
+                    extra={"decision_tree_id": decision_tree_id},
+                )
+                return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+        @_holder.tool(
+            annotations=ToolAnnotations(
+                title="Continue guided case evaluation",
+                readOnlyHint=False,
+                destructiveHint=False,
+                idempotentHint=False,
+            )
+        )
+        async def smeme_reasoning_evaluate_continue(
+            inquiry_session_id: str,
+            question_id: str,
+            ctx: Context,
+            selected_option: str | None = None,
+            provenance_id: str | None = None,
+        ) -> str:
+            """Continue guided Inquire gather: admit one answer, return next blind task.
+
+            Pass ``inquiry_session_id`` from ``smeme_reasoning_evaluate``. Provide
+            ``selected_option`` + ``provenance_id`` to admit, or omit option to abstain.
+            Never runs VERIFY — if the server needs isolated verification, returns
+            ``isolated_evaluations_required`` and leaves the session ACTIVE.
+            """
+            from smeme.mcp.inquire.chat_facade import (
+                admitted_flat_answers_for_session,
+                chat_evaluate_continue,
+                flat_answers_to_legacy_raw_json,
+            )
+            from smeme.mcp.inquire.handlers import InquireHandlerError
+
+            try:
+                async with mcp_invocation_scope("smeme_reasoning_evaluate_continue", ctx) as rec:
+                    try:
+                        session_uuid = UUID(inquiry_session_id)
+                    except ValueError:
+                        out = tool_error_json(
+                            "inquire_invalid_payload",
+                            f"inquiry_session_id must be a valid UUID, got {inquiry_session_id!r}",
+                        )
+                        rec.note_json_response(out)
+                        return out
+                    request = request_from_mcp_context(ctx)
+                    async with AsyncSessionLocal() as db:
+                        user_or_err = await _mcp_auth_user_only(request, db)
+                        if isinstance(user_or_err, str):
+                            rec.note_json_response(user_or_err)
+                            return user_or_err
+                        user = user_or_err
+                        quota_err = await _mcp_reserve_quota_and_bind(
+                            request,
+                            db,
+                            user,
+                            tool_name="smeme_reasoning_evaluate_continue",
+                        )
+                        if quota_err is not None:
+                            rec.note_json_response(quota_err)
+                            return quota_err
+                        try:
+                            facade = await chat_evaluate_continue(
+                                db,
+                                user=user,
+                                inquiry_session_id=session_uuid,
+                                question_id=question_id,
+                                selected_option=selected_option,
+                                provenance_id=provenance_id,
+                            )
+                        except InquireHandlerError as exc:
+                            out = tool_error_json(exc.code, exc.message)
+                            rec.note_json_response(out)
+                            return out
+                        if "error" in facade:
+                            out = _tool_json(facade)
+                            rec.note_json_response(out)
+                            return out
+                        if facade.get("_chat_stop"):
+                            from smeme.reasoning.orchestration.inquire.persist.auth import (
+                                load_owned_session,
+                            )
+
+                            session_row = await load_owned_session(
+                                db,
+                                user=user,
+                                inquiry_session_id=session_uuid,
+                                for_update=False,
+                            )
+                            tree_id = str(session_row.decision_tree_id)
+                            flat = await admitted_flat_answers_for_session(
+                                db,
+                                user=user,
+                                inquiry_session_id=session_uuid,
+                            )
+                            apply_out = await _smeme_reasoning_evaluate_body(
+                                decision_tree_id=tree_id,
+                                raw_answers_json=flat_answers_to_legacy_raw_json(flat),
+                                ctx=ctx,
+                                persist=True,
+                            )
+                            try:
+                                apply_payload = json.loads(apply_out)
+                            except json.JSONDecodeError:
+                                rec.note_json_response(apply_out)
+                                return apply_out
+                            if isinstance(apply_payload, dict) and "error" not in apply_payload:
+                                apply_payload["inquiry_session_id"] = str(session_uuid)
+                                apply_payload["stop_reason"] = facade.get("stop_reason")
+                                apply_payload["status"] = "STOPPED"
+                                apply_out = _tool_json(apply_payload)
+                            rec.note_json_response(apply_out)
+                            return apply_out
+                        out = _tool_json(facade)
+                        rec.note_json_response(out)
+                        return out
+            except Exception:
+                logger.exception("smeme_reasoning_evaluate_continue failed")
+                return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+        @_holder.tool(
+            annotations=ToolAnnotations(
+                title="Apply answers (bulk)",
                 readOnlyHint=False,
                 destructiveHint=False,
                 idempotentHint=True,
             )
         )
-        async def smeme_reasoning_evaluate(
+        async def smeme_reasoning_evaluate_answers(
             decision_tree_id: str,
             raw_answers_json: str,
             ctx: Context,
@@ -1423,7 +1739,11 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             force_reachable_ids: list[str] | None = None,
             force_unreachable_ids: list[str] | None = None,
         ) -> str:
-            """Evaluate a published decision tree using its deployed reasoning model.
+            """Bulk Apply: evaluate a published decision tree from a worksheet answer envelope.
+
+            Prefer ``smeme_reasoning_evaluate`` / ``smeme_reasoning_evaluate_continue`` for
+            ordinary chat case evaluation (targeted evidence gather). Use this tool for
+            intentional bulk/audit snapshots after ``template_get`` + ``validate_answers``.
 
             Args:
                 decision_tree_id: UUID of the decision tree (from smeme_reasoning_list).
@@ -1471,7 +1791,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             """
             try:
-                async with mcp_invocation_scope("smeme_reasoning_evaluate", ctx) as rec:
+                async with mcp_invocation_scope("smeme_reasoning_evaluate_answers", ctx) as rec:
                     rec.note_decision_tree_id(decision_tree_id)
                     out = await _smeme_reasoning_evaluate_body(
                         decision_tree_id=decision_tree_id,
@@ -1485,7 +1805,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     return out
             except Exception:
                 logger.exception(
-                    "smeme_reasoning_evaluate failed", extra={"decision_tree_id": decision_tree_id}
+                    "smeme_reasoning_evaluate_answers failed",
+                    extra={"decision_tree_id": decision_tree_id},
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
@@ -1566,7 +1887,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     request,
                     db,
                     user,
-                    tool_name="smeme_reasoning_evaluate",
+                    tool_name="smeme_reasoning_evaluate_answers",
                 )
                 if quota_err is not None:
                     return quota_err
@@ -1830,7 +2151,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """Compare baseline vs hypothetical assignments on the same published decision tree.
 
             Ingests ``base_raw_answers_json`` and ``override_raw_answers_json`` independently
-            (same provenance envelope shape as ``smeme_reasoning_evaluate``), merges answers
+            (same provenance envelope shape as ``smeme_reasoning_evaluate_answers``), merges answers
             with override winning per ``question_id``, and returns ``before`` / ``after`` reports
             plus a structured ``delta`` in report vocabulary only.
 
@@ -2416,12 +2737,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             Returns each conclusion's ``conclusion_id`` and ``conclusion_title`` plus whether it is
             **reachable** under the published branching rules. Use this before probing with
-            ``smeme_reasoning_evaluate`` when the user asks what outcomes exist, or to obtain
+            ``smeme_reasoning_evaluate`` / ``smeme_reasoning_evaluate_answers`` when the user asks what outcomes exist, or to obtain
             ``target_conclusion_id`` values for ``smeme_reasoning_how_to_reach`` or
             ``smeme_reasoning_decisive_support``.
 
             Reachability is **structural** (whether some valid answer path can reach the conclusion),
-            not case-specific. For a particular user's answers, call ``smeme_reasoning_evaluate``.
+            not case-specific. For a particular user's answers, call ``smeme_reasoning_evaluate``
+            (guided) or ``smeme_reasoning_evaluate_answers`` (bulk worksheet).
 
             Args:
                 decision_tree_id: UUID from ``smeme_reasoning_list``.
@@ -2643,230 +2965,517 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 )
                 return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
-        if cfg.mcp_inquire_tools_enabled:
-            from smeme.mcp.inquire.handlers import (
-                InquireHandlerError,
-            )
-            from smeme.mcp.inquire.handlers import (
-                admit as inquire_admit,
-            )
-            from smeme.mcp.inquire.handlers import (
-                analyze as inquire_analyze,
-            )
-            from smeme.mcp.inquire.handlers import (
-                get_task as inquire_get_task,
-            )
-            from smeme.mcp.inquire.handlers import (
-                verify as inquire_verify,
-            )
+    return _holder
 
-            async def _inquire_auth(ctx: Context, tool_name: str) -> str | None:
-                """Auth-only gate (no quota). Returns error JSON or None."""
+
+def get_or_create_orchestrator_fastmcp(s: Settings | None = None) -> FastMCP | None:
+    """Create Inquire orchestrator FastMCP when ``MCP_INQUIRE_TOOLS_ENABLED``.
+
+    Mounted at ``{mcp_http_path}/orchestrator``. Returns None when the flag is off.
+    """
+    global _orchestrator_holder
+    cfg = s or settings
+    if not cfg.mcp_inquire_tools_enabled:
+        return None
+    if _orchestrator_holder is not None:
+        return _orchestrator_holder
+
+    auth_settings, token_verifier = _fastmcp_clerk_auth(cfg)
+    auth_kw: dict[str, Any] = {}
+    if auth_settings is not None and token_verifier is not None:
+        auth_kw["auth"] = auth_settings
+        auth_kw["token_verifier"] = token_verifier
+
+    transport_security = _build_transport_security(cfg)
+    _orch = FastMCP(
+        name="smeme-inquire-orchestrator",
+        instructions=_build_orchestrator_mcp_instructions(cfg),
+        stateless_http=True,
+        transport_security=transport_security,
+        **auth_kw,
+    )
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Reasoning capabilities (orchestrator)",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_reasoning_capabilities(ctx: Context) -> str:
+        """Orchestrator surface capabilities (Inquire protocol contract)."""
+        request = request_from_mcp_context(ctx)
+        try:
+            async with mcp_invocation_scope("smeme_reasoning_capabilities", ctx) as rec:
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                out = _tool_json(
+                    reasoning_capabilities_document(cap_settings=cfg, surface="orchestrator")
+                )
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("orchestrator smeme_reasoning_capabilities failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="List decision trees",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_reasoning_list(ctx: Context) -> str:
+        """List the caller's Listed + deployed decision trees (owner-scoped)."""
+        request = request_from_mcp_context(ctx)
+        try:
+            async with (
+                mcp_invocation_scope("smeme_reasoning_list", ctx) as rec,
+                AsyncSessionLocal() as db,
+            ):
+                user_or_err = await _mcp_auth_user_only(request, db)
+                if isinstance(user_or_err, str):
+                    rec.note_json_response(user_or_err)
+                    return user_or_err
+                user = user_or_err
+                result = await db.execute(select_decision_trees_for_assistant_tools_list(user.id))
+                listed_rows = result.scalars().all()
+                decision_trees = serialize_decision_trees_for_assistant_list(user, listed_rows)
+                payload: dict[str, Any] = {
+                    "decision_trees": decision_trees,
+                    "count": len(decision_trees),
+                }
+                if not decision_trees:
+                    payload["hint"] = (
+                        "No decision trees are currently discoverable for your account. "
+                        "Publish for reasoning and set Listed on the dashboard."
+                    )
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("orchestrator smeme_reasoning_list failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire guidance digest",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_inquire_guidance_check(ctx: Context) -> str:
+        """Return Inquire orchestrator guidance content_version + content_digest."""
+        request = request_from_mcp_context(ctx)
+        try:
+            async with mcp_invocation_scope("smeme_inquire_guidance_check", ctx) as rec:
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                out = _tool_json(inquire_guidance_check_payload())
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_guidance_check failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire orchestrator guidance",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_inquire_guidance_get(ctx: Context) -> str:
+        """Fetch the Inquire orchestrator protocol contract (VERIFY isolation)."""
+        request = request_from_mcp_context(ctx)
+        try:
+            async with mcp_invocation_scope("smeme_inquire_guidance_get", ctx) as rec:
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                out = _tool_json(inquire_guidance_payload())
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_guidance_get failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    from smeme.mcp.inquire.handlers import InquireHandlerError
+    from smeme.reasoning.orchestration.inquire.persist import (
+        admit_to_session,
+        get_task_for_session,
+        next_directive,
+        start_inquiry,
+        verify_session,
+    )
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire: start session",
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+        )
+    )
+    async def smeme_inquire_start(
+        decision_tree_id: str,
+        ctx: Context,
+        force_reachable_ids: list[str] | None = None,
+        force_unreachable_ids: list[str] | None = None,
+    ) -> str:
+        """Trusted orchestrator: start a durable Inquire session on a deployed tree.
+
+        Loads the current compiled artifact (in-sync), freezes worksheet catalog
+        and artifact identity, runs ANALYZE, and returns inquiry_session_id,
+        revision, and directive. Later calls carry only the session id.
+        """
+        try:
+            async with mcp_invocation_scope("smeme_inquire_start", ctx) as rec:
+                try:
+                    decision_tree_uuid = UUID(decision_tree_id)
+                except ValueError:
+                    out = tool_error_json(
+                        "invalid_decision_tree_id",
+                        f"decision_tree_id must be a valid UUID, got {decision_tree_id!r}",
+                    )
+                    rec.note_json_response(out)
+                    return out
                 request = request_from_mcp_context(ctx)
                 async with AsyncSessionLocal() as db:
                     user_or_err = await _mcp_auth_user_only(request, db)
                     if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
                         return user_or_err
-                return None
-
-            @_holder.tool(
-                annotations=ToolAnnotations(
-                    title="Inquire: analyze next directive",
-                    readOnlyHint=False,
-                    destructiveHint=False,
-                )
-            )
-            async def smeme_inquire_analyze(
-                ir_json: str,
-                worksheet_catalog_json: str,
-                admitted_json: str,
-                verified_json: str,
-                artifact_identity: str,
-                ctx: Context,
-                force_reachable_ids: list[str] | None = None,
-                force_unreachable_ids: list[str] | None = None,
-                budget_json: str | None = None,
-            ) -> str:
-                """Trusted orchestrator: run Inquire ANALYZE (server-owned pv_version).
-
-                Returns a directive (ACQUIRE | VERIFY | STOP). On VERIFY, also returns
-                derived ``evaluations[]`` (blind tasks + evaluation_id). Forward only
-                each evaluation's inner ``task`` to extractors — never the directive,
-                verification_key, or evaluation_id wrappers.
-
-                Stateless: pass admitted_json / verified_json on every call. No session id.
-                """
-                try:
-                    async with mcp_invocation_scope("smeme_inquire_analyze", ctx) as rec:
-                        auth_err = await _inquire_auth(ctx, "smeme_inquire_analyze")
-                        if auth_err is not None:
-                            rec.note_json_response(auth_err)
-                            return auth_err
-                        try:
-                            payload = inquire_analyze(
-                                ir_json=ir_json,
-                                worksheet_catalog_json=worksheet_catalog_json,
-                                admitted_json=admitted_json,
-                                verified_json=verified_json,
-                                artifact_identity=artifact_identity,
-                                force_reachable_ids=force_reachable_ids,
-                                force_unreachable_ids=force_unreachable_ids,
-                                budget_json=budget_json,
-                            )
-                        except InquireHandlerError as exc:
-                            out = tool_error_json(exc.code, exc.message)
-                            rec.note_json_response(out)
-                            return out
-                        out = _tool_json(payload)
+                    user = user_or_err
+                    loaded = await _mcp_load_owner_compiled_artifact(
+                        db, user=user, decision_tree_uuid=decision_tree_uuid
+                    )
+                    if isinstance(loaded, str):
+                        rec.note_json_response(loaded)
+                        return loaded
+                    decision_tree, artifact = loaded
+                    try:
+                        graph = parse_graph_data(decision_tree)
+                    except Exception as exc:
+                        out = tool_error_json("invalid_graph", f"Graph data invalid: {exc}")
                         rec.note_json_response(out)
                         return out
-                except Exception:
-                    logger.exception("smeme_inquire_analyze failed")
-                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
-
-            @_holder.tool(
-                annotations=ToolAnnotations(
-                    title="Inquire: get blind extraction task",
-                    readOnlyHint=True,
-                )
-            )
-            async def smeme_inquire_get_task(
-                worksheet_catalog_json: str,
-                question_id: str,
-                ctx: Context,
-            ) -> str:
-                """Trusted orchestrator: render one blind worksheet question.
-
-                Returns only ``{question_id, stem, options}``. Catalog render only —
-                not directive authorization. Do not pass ir_json. Safe to forward the
-                returned object to an extractor.
-                """
-                try:
-                    async with mcp_invocation_scope("smeme_inquire_get_task", ctx) as rec:
-                        auth_err = await _inquire_auth(ctx, "smeme_inquire_get_task")
-                        if auth_err is not None:
-                            rec.note_json_response(auth_err)
-                            return auth_err
-                        try:
-                            payload = inquire_get_task(
-                                worksheet_catalog_json=worksheet_catalog_json,
-                                question_id=question_id,
-                            )
-                        except InquireHandlerError as exc:
-                            out = tool_error_json(exc.code, exc.message)
-                            rec.note_json_response(out)
-                            return out
-                        out = _tool_json(payload)
+                    quota_err = await _mcp_reserve_quota_and_bind(
+                        request,
+                        db,
+                        user,
+                        tool_name="smeme_inquire_start",
+                    )
+                    if quota_err is not None:
+                        rec.note_json_response(quota_err)
+                        return quota_err
+                    try:
+                        payload = await start_inquiry(
+                            db,
+                            user=user,
+                            decision_tree=decision_tree,
+                            artifact=artifact,
+                            graph=graph,
+                            force_reachable_ids=force_reachable_ids,
+                            force_unreachable_ids=force_unreachable_ids,
+                        )
+                    except InquireHandlerError as exc:
+                        out = tool_error_json(exc.code, exc.message)
                         rec.note_json_response(out)
                         return out
-                except Exception:
-                    logger.exception("smeme_inquire_get_task failed")
-                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_start failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
-            @_holder.tool(
-                annotations=ToolAnnotations(
-                    title="Inquire: admit extraction",
-                    readOnlyHint=False,
-                    destructiveHint=False,
-                )
-            )
-            async def smeme_inquire_admit(
-                ir_json: str,
-                worksheet_catalog_json: str,
-                admitted_json: str,
-                question_id: str,
-                ctx: Context,
-                selected_option: str | None = None,
-                provenance_id: str | None = None,
-            ) -> str:
-                """Trusted orchestrator: admit an ACQUIRE answer (or abstain).
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire: next directive",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_inquire_next(
+        inquiry_session_id: str,
+        ctx: Context,
+        expected_revision: int | None = None,
+    ) -> str:
+        """Trusted orchestrator: re-ANALYZE persisted session state (read-only).
 
-                Pass selected_option=null to abstain (no state mutation). Answered
-                admissions require provenance_id. Returns updated admitted list.
-                """
+        Does not mutate session status or revision. Returns directive and
+        optional evaluations[] when VERIFY.
+        """
+        try:
+            async with mcp_invocation_scope("smeme_inquire_next", ctx) as rec:
                 try:
-                    async with mcp_invocation_scope("smeme_inquire_admit", ctx) as rec:
-                        auth_err = await _inquire_auth(ctx, "smeme_inquire_admit")
-                        if auth_err is not None:
-                            rec.note_json_response(auth_err)
-                            return auth_err
-                        try:
-                            payload = inquire_admit(
-                                ir_json=ir_json,
-                                worksheet_catalog_json=worksheet_catalog_json,
-                                admitted_json=admitted_json,
-                                question_id=question_id,
-                                selected_option=selected_option,
-                                provenance_id=provenance_id,
-                            )
-                        except InquireHandlerError as exc:
-                            out = tool_error_json(exc.code, exc.message)
-                            rec.note_json_response(out)
-                            return out
-                        out = _tool_json(payload)
+                    session_uuid = UUID(inquiry_session_id)
+                except ValueError:
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "inquiry_session_id must be a valid UUID",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                request = request_from_mcp_context(ctx)
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                    try:
+                        payload = await next_directive(
+                            db,
+                            user=user_or_err,
+                            inquiry_session_id=session_uuid,
+                            expected_revision=expected_revision,
+                        )
+                    except InquireHandlerError as exc:
+                        out = tool_error_json(exc.code, exc.message)
                         rec.note_json_response(out)
                         return out
-                except Exception:
-                    logger.exception("smeme_inquire_admit failed")
-                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_next failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
-            @_holder.tool(
-                annotations=ToolAnnotations(
-                    title="Inquire: verify observation transcript",
-                    readOnlyHint=False,
-                    destructiveHint=False,
-                )
-            )
-            async def smeme_inquire_verify(
-                ir_json: str,
-                worksheet_catalog_json: str,
-                admitted_json: str,
-                verified_json: str,
-                artifact_identity: str,
-                verification_key_json: str,
-                observations_json: str,
-                ctx: Context,
-                force_reachable_ids: list[str] | None = None,
-                force_unreachable_ids: list[str] | None = None,
-                budget_json: str | None = None,
-            ) -> str:
-                """Trusted orchestrator: submit VERIFY observations; Core runs P_v.
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire: get blind extraction task",
+            readOnlyHint=True,
+        )
+    )
+    async def smeme_inquire_get_task(
+        inquiry_session_id: str,
+        question_id: str,
+        ctx: Context,
+    ) -> str:
+        """Trusted orchestrator: render one blind worksheet question.
 
-                Must match the currently issued VERIFY directive (re-ANALYZE gate).
-                Client supplies observations only — never a VerificationDecision.
-                Server reconstructs the expected battery and mints Retain/Insufficient.
-                """
+        Catalog comes from the session's frozen snapshot. Returns only
+        ``{question_id, stem, options}``. Safe to forward to an extractor.
+        """
+        try:
+            async with mcp_invocation_scope("smeme_inquire_get_task", ctx) as rec:
                 try:
-                    async with mcp_invocation_scope("smeme_inquire_verify", ctx) as rec:
-                        auth_err = await _inquire_auth(ctx, "smeme_inquire_verify")
-                        if auth_err is not None:
-                            rec.note_json_response(auth_err)
-                            return auth_err
-                        try:
-                            payload = inquire_verify(
-                                ir_json=ir_json,
-                                worksheet_catalog_json=worksheet_catalog_json,
-                                admitted_json=admitted_json,
-                                verified_json=verified_json,
-                                artifact_identity=artifact_identity,
-                                verification_key_json=verification_key_json,
-                                observations_json=observations_json,
-                                force_reachable_ids=force_reachable_ids,
-                                force_unreachable_ids=force_unreachable_ids,
-                                budget_json=budget_json,
-                            )
-                        except InquireHandlerError as exc:
-                            out = tool_error_json(exc.code, exc.message)
-                            rec.note_json_response(out)
-                            return out
-                        out = _tool_json(payload)
+                    session_uuid = UUID(inquiry_session_id)
+                except ValueError:
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "inquiry_session_id must be a valid UUID",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                request = request_from_mcp_context(ctx)
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                    try:
+                        payload = await get_task_for_session(
+                            db,
+                            user=user_or_err,
+                            inquiry_session_id=session_uuid,
+                            question_id=question_id,
+                        )
+                    except InquireHandlerError as exc:
+                        out = tool_error_json(exc.code, exc.message)
                         rec.note_json_response(out)
                         return out
-                except Exception:
-                    logger.exception("smeme_inquire_verify failed")
-                    return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_get_task failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
 
-    return _holder
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire: admit extraction",
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+        )
+    )
+    async def smeme_inquire_admit(
+        inquiry_session_id: str,
+        expected_revision: int,
+        question_id: str,
+        idempotency_key: str,
+        ctx: Context,
+        selected_option: str | None = None,
+        provenance_id: str | None = None,
+    ) -> str:
+        """Trusted orchestrator: admit an ACQUIRE answer (or abstain) on a session.
+
+        Requires expected_revision and idempotency_key. Returns updated revision
+        and the next directive from post-mutation ANALYZE.
+        """
+        try:
+            async with mcp_invocation_scope("smeme_inquire_admit", ctx) as rec:
+                try:
+                    session_uuid = UUID(inquiry_session_id)
+                except ValueError:
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "inquiry_session_id must be a valid UUID",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                request = request_from_mcp_context(ctx)
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                    user = user_or_err
+                    quota_err = await _mcp_reserve_quota_and_bind(
+                        request,
+                        db,
+                        user,
+                        tool_name="smeme_inquire_admit",
+                    )
+                    if quota_err is not None:
+                        rec.note_json_response(quota_err)
+                        return quota_err
+                    try:
+                        payload = await admit_to_session(
+                            db,
+                            user=user,
+                            inquiry_session_id=session_uuid,
+                            expected_revision=expected_revision,
+                            question_id=question_id,
+                            selected_option=selected_option,
+                            provenance_id=provenance_id,
+                            idempotency_key=idempotency_key,
+                        )
+                    except InquireHandlerError as exc:
+                        out = tool_error_json(exc.code, exc.message)
+                        rec.note_json_response(out)
+                        return out
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_admit failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    @_orch.tool(
+        annotations=ToolAnnotations(
+            title="Inquire: verify observation transcript",
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+        )
+    )
+    async def smeme_inquire_verify(
+        inquiry_session_id: str,
+        expected_revision: int,
+        verification_key_json: str,
+        observations_json: str,
+        idempotency_key: str,
+        ctx: Context,
+    ) -> str:
+        """Submit VERIFY observations; Core runs P_v. Do not decide Retain.
+
+        Isolation required: each evaluations[] trial in a fresh evaluator
+        context; forward only {question_id, stem, options}; no prior answers,
+        verification_key, or sibling trial results in that context.
+        """
+        try:
+            async with mcp_invocation_scope("smeme_inquire_verify", ctx) as rec:
+                try:
+                    session_uuid = UUID(inquiry_session_id)
+                except ValueError:
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "inquiry_session_id must be a valid UUID",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                import json as _json
+
+                try:
+                    verification_key = _json.loads(verification_key_json)
+                    observations = _json.loads(observations_json)
+                except _json.JSONDecodeError as exc:
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        f"verification_key_json or observations_json invalid: {exc}",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                if not isinstance(verification_key, dict):
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "verification_key_json must be a JSON object",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                if not isinstance(observations, list):
+                    out = tool_error_json(
+                        "inquire_invalid_payload",
+                        "observations_json must be a JSON array",
+                    )
+                    rec.note_json_response(out)
+                    return out
+                request = request_from_mcp_context(ctx)
+                async with AsyncSessionLocal() as db:
+                    user_or_err = await _mcp_auth_user_only(request, db)
+                    if isinstance(user_or_err, str):
+                        rec.note_json_response(user_or_err)
+                        return user_or_err
+                    user = user_or_err
+                    quota_err = await _mcp_reserve_quota_and_bind(
+                        request,
+                        db,
+                        user,
+                        tool_name="smeme_inquire_verify",
+                    )
+                    if quota_err is not None:
+                        rec.note_json_response(quota_err)
+                        return quota_err
+                    try:
+                        payload = await verify_session(
+                            db,
+                            user=user,
+                            inquiry_session_id=session_uuid,
+                            expected_revision=expected_revision,
+                            verification_key=verification_key,
+                            observations=observations,
+                            idempotency_key=idempotency_key,
+                        )
+                    except InquireHandlerError as exc:
+                        out = tool_error_json(exc.code, exc.message)
+                        rec.note_json_response(out)
+                        return out
+                out = _tool_json(payload)
+                rec.note_json_response(out)
+                return out
+        except Exception:
+            logger.exception("smeme_inquire_verify failed")
+            return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    _orchestrator_holder = _orch
+    return _orchestrator_holder
+
+
+def get_orchestrator_mcp_starlette_app(s: Settings | None = None) -> Starlette | None:
+    """Starlette sub-app for the Inquire orchestrator mount, or None if disabled."""
+    global _starlette_orchestrator_mcp
+    fm = get_or_create_orchestrator_fastmcp(s)
+    if fm is None:
+        return None
+    if _starlette_orchestrator_mcp is None:
+        _starlette_orchestrator_mcp = fm.streamable_http_app()
+    return _starlette_orchestrator_mcp
 
 
 def get_mcp_starlette_app(s: Settings | None = None) -> Starlette:
@@ -2887,45 +3496,37 @@ def get_mcp_starlette_app(s: Settings | None = None) -> Starlette:
 
 @asynccontextmanager
 async def mcp_lifespan() -> AsyncIterator[None]:
-    """Drive the FastMCP session manager lifecycle.
+    """Drive FastMCP session manager lifecycle(s).
 
     ``StreamableHTTPSessionManager.run()`` must be active for the duration of the
     process even in stateless mode — it initializes internal state and runs cleanup
     hooks.  Without this, the first MCP request may fail with an "uninitialized
     session manager" error.
 
-    Usage: include this in the FastAPI app's lifespan context manager.
-    See ``smeme/main.py`` for the integration.
+    When Inquire orchestrator is enabled, both chat and orchestrator session
+    managers run for the process lifetime.
     """
     fm = get_or_create_fastmcp()
-    async with fm.session_manager.run():
+    orch = get_or_create_orchestrator_fastmcp()
+    if orch is None:
+        async with fm.session_manager.run():
+            yield
+        return
+    async with fm.session_manager.run(), orch.session_manager.run():
         yield
 
 
 def mount_mcp_on_app(app: FastAPI, s: Settings | None = None) -> None:
-    """Mount the MCP Streamable HTTP sub-app onto the FastAPI app.
+    """Mount chat MCP and (optionally) Inquire orchestrator MCP sub-apps.
 
-    The mount path (e.g. ``/api/v1/mcp``) is taken from ``settings.mcp_http_path``.
-    The ``StripLastEventIdMiddleware`` is wrapped around the Starlette sub-app to
-    prevent 500 errors when SSE clients reconnect with a ``Last-Event-ID`` header.
-
-    When Clerk auth is enabled, FastMCP also registers RFC 9728 routes on the
-    **inner** Starlette app under the mount prefix; clients should use the
-    **FastAPI** handlers in ``discovery_routes.py`` (unchanged).
-
-    **Trailing slash:** Starlette ``Mount`` matches ``{path}/…`` only. Bare
-    ``{path}`` is normalized on the **parent** app by ``McpMountPathNormalizeMiddleware``
-    in ``smeme.main`` (not inside this mount) so clients are not forced through a
-    redirect that drops Streamable HTTP ``Accept`` headers.
-
-    FastAPI's ``app.mount()`` uses Starlette's routing — all requests whose path
-    starts with ``mcp_http_path`` are routed to the MCP sub-app directly, bypassing
-    FastAPI's OpenAPI router.  This is intentional: MCP uses JSON-RPC over HTTP,
-    not REST, and should not appear in the OpenAPI schema.
+    Register the **longer** orchestrator path first so ``/api/v1/mcp`` does not
+    swallow ``/api/v1/mcp/orchestrator``.
     """
     cfg = s or settings
     path = cfg.mcp_http_path.rstrip("/") or "/api/v1/mcp"
+    orch_app = get_orchestrator_mcp_starlette_app(cfg)
+    if orch_app is not None:
+        orch_path = mcp_orchestrator_http_path(cfg)
+        app.mount(orch_path, StripLastEventIdMiddleware(orch_app))
     starlette_app = get_mcp_starlette_app(cfg)
-    # Wrap with StripLastEventIdMiddleware before mounting.
-    # The middleware only affects the MCP sub-app, not the rest of the FastAPI app.
     app.mount(path, StripLastEventIdMiddleware(starlette_app))

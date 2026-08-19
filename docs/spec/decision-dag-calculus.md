@@ -454,7 +454,7 @@ All modes query the same `T(IR)`. Their consistency policy follows §8.2 and §9
 
 | Mode | Base | Public surface | Notes |
 |---|---|---|---|
-| **Apply** | `B_E`, or `B_φ` when assumptions are composed | `smeme_reasoning_evaluate` | Case evaluation; conclusion-uniqueness check yields `multiple_outcomes_possible` |
+| **Apply** | `B_E`, or `B_φ` when assumptions are composed | `smeme_reasoning_evaluate_answers` | Case evaluation; conclusion-uniqueness check yields `multiple_outcomes_possible` |
 | **Compare** | `B₁`, `B₂` | `smeme_reasoning_what_if` | **Per side.** Each side has its own base; a witness for one proves nothing about the other |
 | **Entail** | `B_φ` | `smeme_reasoning_how_to_reach` with `reach_mode="entailed"`; also used by path and support analysis | Witness-first per §8.2 |
 | **Possible** | `B_φ` | `smeme_reasoning_how_to_reach` with `reach_mode="possible"` | Witness-first per §8.2; shipped as a mode, not a separate endpoint |

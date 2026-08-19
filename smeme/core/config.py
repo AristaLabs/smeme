@@ -328,12 +328,14 @@ class Settings(BaseSettings):
         default=False,
         alias="MCP_INQUIRE_TOOLS_ENABLED",
     )
-    """When true, register Inquire protocol tools (analyze / get_task / admit / verify).
+    """When true, mount the Inquire **orchestrator** MCP surface at
+    ``{MCP_HTTP_PATH}/orchestrator`` with durable session tools
+    (``smeme_inquire_*``) and ``smeme_inquire_guidance_*``.
 
-    Default **off**: Inquire MCP is a §13.9 target surface, not the Cowork evaluate path.
-    Stateless: caller carries admitted/verified state; no session DB. Server owns
-    ``pv_version`` and evaluates verification observation transcripts. Independent of
-    ``MCP_AUTHORING_GRAPH_TOOLS_ENABLED``.
+    Default **off**: chat ``/mcp`` uses the Inquire gather facade
+    (``smeme_reasoning_evaluate`` / ``evaluate_continue``) without VERIFY.
+    Explicit protocol tools require an isolated-evaluator harness.
+    Independent of ``MCP_AUTHORING_GRAPH_TOOLS_ENABLED``.
     """
 
     # D026 — MCP-first local User provision (temporary operational rollout switch; not licensing).

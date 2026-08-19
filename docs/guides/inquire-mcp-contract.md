@@ -1,14 +1,42 @@
 # Inquire MCP contract
 
-Frozen Phase 5 wire contract for calculus §13.9 Inquire over Core MCP.
-**Not** a Cowork skill. **Not** Cloud overlay. Gated by ``MCP_INQUIRE_TOOLS_ENABLED``
-(default **false**).
+Frozen Phase 6 wire contract for calculus §13.9 Inquire over Core MCP.
+**Not** a Cowork skill. **Not** Cloud overlay.
 
 Authoritative implementation:
 
-- Handlers: [`smeme/mcp/inquire/`](../../smeme/mcp/inquire/)
+- Persist service: [`smeme/reasoning/orchestration/inquire/persist/`](../../smeme/reasoning/orchestration/inquire/persist/)
+- Chat facade: [`smeme/mcp/inquire/chat_facade.py`](../../smeme/mcp/inquire/chat_facade.py)
+- Phase 5 blob handlers (tests / in-process): [`smeme/mcp/inquire/`](../../smeme/mcp/inquire/)
 - Battery prepare/evaluate: [`smeme/reasoning/orchestration/inquire/verification/transcript.py`](../../smeme/reasoning/orchestration/inquire/verification/transcript.py)
 - Layer ownership: [`inquire-execution-boundary.md`](./inquire-execution-boundary.md)
+
+## Product surfaces
+
+| Surface | URL | Gate | Tools |
+|---------|-----|------|-------|
+| Chat (default) | `settings.mcp_http_path` (`/api/v1/mcp`) | Always (when MCP on) | Reasoning tools **except** `smeme_inquire_*`. Guided gather: `smeme_reasoning_evaluate` (start) + `smeme_reasoning_evaluate_continue` (admit). Bulk Apply: `smeme_reasoning_evaluate_answers`. |
+| Orchestrator | `{mcp_http_path}/orchestrator` | `MCP_INQUIRE_TOOLS_ENABLED` (default **false**) | `smeme_reasoning_capabilities`, `smeme_reasoning_list`, inquire guidance, five `smeme_inquire_*` |
+
+Chat capabilities **omit** the inquire tools list and the top-level `inquire` block.
+Orchestrator capabilities include:
+
+```json
+"inquire": {
+  "protocol": "explicit_orchestration",
+  "isolated_evaluations_required": true,
+  "task_blindness": "server_enforced",
+  "evaluator_isolation": "caller_responsibility",
+  "verification_battery": "core",
+  "persist_v1": true,
+  "pv_authority": "server",
+  "tools": ["smeme_inquire_start", "smeme_inquire_next", "smeme_inquire_get_task", "smeme_inquire_admit", "smeme_inquire_verify"]
+}
+```
+
+Do **not** put the orchestrator URL in chat `guidance_get` — name the protocol only.
+Starlette mounts the **longer** path first so `/api/v1/mcp` does not swallow `/orchestrator`.
+Both mounts get RFC 9728 protected-resource metadata (`resource` = each mount URL).
 
 ## Authority
 
@@ -16,9 +44,11 @@ Authoritative implementation:
 pv\_version := \texttt{DEFAULT\_VERIFICATION\_POLICY.pv\_version}
 \]
 
-on the server. The client may **echo** a `verification_key` (including its
-`pv_version` field as identity). The client must not choose which \(P_v\) runs
-and must not submit a `VerificationDecision`.
+on the server, **pinned on the session at** ``start``. Later calls require
+``session.pv_version == server_pv_version()`` or fail with ``inquire_policy_mismatch``.
+
+The client must not choose which \(P_v\) runs and must not submit a
+``VerificationDecision``.
 
 \[
 Verified_{pv}(e)
@@ -27,96 +57,120 @@ Verified_{pv}(e)
 may exist only if this server's \(P_v\) both named \(pv\) and evaluated the
 observation transcript to `Retain`.
 
-VERIFY flow:
-
-```text
-Core issues the experiment (analyze → evaluations[])
-  → client performs blind trials (forward task only)
-  → Core validates the transcript against the currently issued VERIFY directive
-  → P_v
-  → Core mutates verification state
-```
-
 Invariant:
 
 \[
 \text{MCP VERIFY may satisfy only the currently issued VERIFY directive}
 \]
 
-## Tools (four)
+## Chat facade (blind gather)
+
+| Tool | Args | Persist |
+|------|------|---------|
+| `smeme_reasoning_evaluate` | `decision_tree_id` only | `start_inquiry` |
+| `smeme_reasoning_evaluate_continue` | `inquiry_session_id`, `question_id`, `option` (or abstain), provenance | `admit` only |
+
+Server mints `expected_revision` / idempotency. Never map continue onto `verify`.
+
+**ACTIVE response:** strip control channel (`directive`, `evaluations[]`, `verification_key`,
+`pv_version`, `C_poss`). Return `inquiry_session_id`, `status: ACTIVE`,
+`harness_next: continue_evaluate`, and one `{question_id, stem, options}` task.
+
+**VERIFY is a chat-invocation terminal, not an Inquire STOP.** If ANALYZE action is VERIFY:
+do not return a task, do not run \(P_v\), do **not** call persist STOP, do **not** set
+`stop_reason`. Return structured `isolated_evaluations_required`. Session remains `ACTIVE`
+and resumable on `/orchestrator`.
+
+**Inquire STOP:** persist STOPs only on true STOP. Then run Apply on admitted
+`(q → option)` and return `report` + `stop_reason`.
+
+Many `ACTIVE` sessions per tree are normal — there is **no** tree-level ACTIVE lock.
+Analysis tools and `evaluate_answers` are not refused merely because another inquiry on
+that tree is ACTIVE. Chat blindness is facade + guidance (same thread), not a global lock.
+
+## Tools (five — orchestrator session-scoped)
 
 | Tool | Role |
 |------|------|
-| `smeme_inquire_analyze` | ANALYZE with server `pv_version`; on VERIFY, attach derived `evaluations[]` |
-| `smeme_inquire_get_task` | Blind catalog render: `{question_id, stem, options}` only |
-| `smeme_inquire_admit` | Admit ACQUIRE answer or abstain |
-| `smeme_inquire_verify` | Re-ANALYZE gate + evaluate observation transcript under Core \(P_v\) |
+| `smeme_inquire_start` | Create session on deployed tree; freeze artifact snapshot; ANALYZE; return session id |
+| `smeme_inquire_next` | Re-ANALYZE persisted state (read-only) |
+| `smeme_inquire_get_task` | Blind render from **session-frozen catalog** |
+| `smeme_inquire_admit` | Admit / abstain; persist; ANALYZE; return next directive |
+| `smeme_inquire_verify` | Re-ANALYZE gate + Core \(P_v\); persist; ANALYZE; return decision + next directive |
 
 `apply_verification_decision` remains a **Core Python primitive**, not an MCP tool.
-Self-hosters customize by replacing `DEFAULT_VERIFICATION_POLICY` in source
-(which changes the server's `pv_version`). They do not get a remote “trust my
-Retain” endpoint.
 
-## Stateless request context
+Phase 5 blob-signature handlers remain in Python for unit tests; they are **not**
+registered on FastMCP.
 
-Every analyze / admit / verify call carries inquiry state. The server stores
-**no** case/session state.
+Evaluator isolation for VERIFY is **caller_responsibility** on the orchestrator mount.
+If the caller cannot isolate, do not use VERIFY there (chat `evaluate` will not fake a battery).
 
-Shared (analyze / admit / verify):
+## Durable session (persist_v1)
 
-- `ir_json`
-- `worksheet_catalog_json` — `{question_id: {stem, options}}`
-- `admitted_json` — `[{question_id, option, provenance_id}, ...]`
-- `verified_json` — server-issued keys
-- `artifact_identity`
-- optional `force_reachable_ids` / `force_unreachable_ids`
-- optional `budget_json`
+`start(decision_tree_id, force_*?)` is the only call that sees a tree id.
+Core authenticates the owner, loads the in-sync compiled artifact, and captures
+one atomic **FrozenArtifactSnapshot**:
 
-**Not caller input:** `pv_version` as a policy selector.
+\[
+(artifact\_id,\ artifact\_identity,\ worksheet\_catalog,\ compiled\_IR)
+\]
 
-`smeme_inquire_get_task` accepts **only**:
+- `artifact_identity` = D025 `artifact_hash` (immutable)
+- `worksheet_catalog` is snapshotted at start; **never** rebuilt from live `graph_data`
+- compiled IR is reloaded from the artifact row on ANALYZE (not duplicated on the session)
+- `artifact_id` is nullable FK (`ON DELETE SET NULL`); execution requires the row still match identity
+
+Persisted ANALYZE preimage only:
 
 ```text
-worksheet_catalog_json
-question_id
+admitted assertions
+verified keys
+assumptions (pinned)
+pv_version (pinned)
+status / revision
 ```
 
-No `ir_json`. It is a weakly bound catalog render, not directive authorization.
+**Not** persisted as authoritative: `C_poss`, `D_1`, `S_R`, directive, VERIFY battery.
 
-## Trusted directive
+\[
+directive = analyze(session\ state)
+\]
 
-`analyze` returns `directive` matching `InquiryDirective`:
+every time.
 
-- `action`: `ACQUIRE` | `VERIFY` | `STOP`
-- `question_id`, `option`, `verification_key` (VERIFY)
-- `stop_reason`, `inconsistency_cause`, `operational_status` when applicable
+### Revision (Option A)
 
-Orchestrator-facing. May contain VERIFY metadata. Never forward to extractors.
+\[
+revision = version(E,\ verified,\ assumptions,\ status)
+\]
 
-## Derived `evaluations[]`
+| Outcome | Bump? |
+|---------|-------|
+| Admit applied | yes |
+| VERIFY Retain | yes |
+| VERIFY Insufficient | **no** |
+| ACQUIRE abstain | **no** |
+| ACTIVE → STOPPED | yes |
 
-When `action == VERIFY`, `analyze` also returns:
+Mutations require `expected_revision`. Mismatch → `inquire_revision_conflict`.
 
-```json
-{
-  "evaluations": [
-    {
-      "evaluation_id": "eval-0",
-      "task": { "question_id": "q", "stem": "...", "options": ["A", "B"] }
-    }
-  ]
-}
+### Idempotency
+
+`admit` / `verify` require `idempotency_key`. Receipts store `request_hash`
+(canonical JSON; array order preserved). Same key + same hash → replay. Same key
++ different hash → `inquire_idempotency_conflict`.
+
+### Lifecycle
+
+```text
+ACTIVE | STOPPED | ABANDONED
 ```
 
-`evaluations[]` is **derived data, not caller state**. Identical inputs
-(same IR, admitted, verified, assumptions, catalog, artifact identity, server
-policy) reproduce the same directive and the same `evaluations[]` byte-for-byte
-modulo ordinary JSON key ordering.
+Mutations persist STOP immediately after post-mutation ANALYZE. `next` is
+**write-free**; STOP while status is still ACTIVE → `inquire_session_invariant`.
 
-\(N_q = \min(3, |A_q|!)\). Tasks are flattened and built from the server catalog.
-`eval-0` is the identity permutation: `evaluations[0].task == get_task(q)` at
-JSON level. Forward only the inner `task` to extractors — never `evaluation_id`,
-the directive, or `verification_key`.
+`INSUFFICIENT` does not STOP the session.
 
 ## Blind task shape
 
@@ -126,87 +180,19 @@ Extractor-facing JSON is exactly:
 { "question_id", "stem", "options" }
 ```
 
-Must not contain: `VERIFY`, `ACQUIRE`, `verification_key`, `live_option`,
-`pv_version`, `support`, `resolved`, `conclusion`, `stop_reason`, `action`,
-`evaluation_id`.
+`get_task(session, q)` uses the frozen catalog. Control channel ≠ extractor channel.
+`eval-0` identity permutation still holds against that catalog.
 
-Control channel ≠ extractor channel.
+## D022 / D023 split
 
-## Admission
-
-```text
-question_id
-selected_option | null
-provenance_id | null
-```
-
-`null` option = abstain (no kernel call). Answered path rebuilds the task via
-`build_extractor_issue` then `admit_extraction`.
-
-## Verification transcript
-
-`smeme_inquire_verify` accepts observations, not a decision:
-
-```text
-verification_key          # echo of current analyze VERIFY key
-observations: [
-  { evaluation_id, question_id, selected_option | null, provenance_id | null },
-  ...
-]
-```
-
-plus the shared analyze-class state so the handler can re-ANALYZE.
-
-Core:
-
-1. Run `analyze_inquiry` with **server** `pv_version`.
-2. Require `action == VERIFY` and `directive.verification_key == submitted key`.
-3. Confirm the assertion is live and `pv_version` matches the server policy.
-4. Reconstruct \(ExpectedBattery = f(verification\_key, catalog, server\_policy)\).
-5. Bind observations; fill presentation from the schedule.
-6. `DefaultVerificationPolicy` → `Retain` | `Insufficient` → `apply_verification_decision`.
-7. Return `{admitted, verified, status, base_changed, decision}` where `decision`
-   is Core-authored.
-
-## Failure statuses vs Insufficient
-
-| Situation | Result |
-|-----------|--------|
-| Valid completed battery that fails Retain rules | `decision.kind = insufficient` |
-| Incomplete / unscheduled / duplicate / wrong question / non-canonical option | protocol error (`inquire_verification_protocol`) |
-| Submitted key ≠ current VERIFY target | `inquire_verify_target_mismatch` |
-| Live assertion identity stale | `assertion_mismatch` |
-| Invalid admission | `admission_rejected` |
-| Malformed JSON / catalog | `inquire_invalid_payload` / `inquire_unknown_question` |
-
-Protocol faults are never converted into `Insufficient`.
-
-## Capabilities
-
-When `MCP_INQUIRE_TOOLS_ENABLED=true`, `smeme_reasoning_capabilities` includes:
-
-```text
-inquire.persist_v1: false
-inquire.pv_authority: "server"
-inquire.verification_battery: "core"
-```
-
-## Phase 6 deferred (Core product)
-
-```text
-- decision_tree_id / deployed-artifact lookup
-- inquiry_session_id
-- durable admitted / verified state
-- auth / ownership
-- product UI / resume behavior
-```
-
-## Cloud overlay later
-
-Per D022 / D023 (public Core vs private SaaS overlay):
-
-```text
-- hosted quotas / billing / COGS / SaaS policy
-```
+| KEEP (Core) | SAAS-ONLY (overlay later) |
+|-------------|---------------------------|
+| Session tables, ownership, MCP persist tools, metering via `reserve_mcp_quota` | Hosted Free/Pro caps, Stripe, COGS, upgrade CTAs |
+| FLAG-GATED orchestrator: `MCP_INQUIRE_TOOLS_ENABLED` | |
 
 Do not change calculus §13.9 for this contract.
+
+## UI / dashboard
+
+Schema supports later inspect (status, revision, artifact binding, admitted /
+verified, stop reason, typed event log). **No** HTMX dashboard in Phase 6.
