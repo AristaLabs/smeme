@@ -65,7 +65,7 @@ For each radio question `q`:
 
 ### 3.2 MCP / REST: structured answers only
 
-**Policy:** Product evaluate entry points (`smeme_reasoning_evaluate`, opt-in REST evaluate) accept **structured** ingest, not arbitrary canonical-fact lists.
+**Policy:** Product evaluate entry points (`smeme_reasoning_evaluate_answers`, opt-in REST evaluate) accept **structured** ingest, not arbitrary canonical-fact lists.
 
 ```text
 raw_answers_json  →  prepare_evaluate_ingest  →  flat answers map  →  evaluate_reasoning
@@ -188,11 +188,11 @@ The same compiled \(T(\mathrm{IR})\) supports different query modes.
 
 | Mode | Tool | Notes |
 | ---- | ---- | ----- |
-| Apply | `smeme_reasoning_evaluate` | \(SAT(T \wedge E)\) + report |
+| Apply | `smeme_reasoning_evaluate_answers` | \(SAT(T \wedge E)\) + report |
 | Compare | `smeme_reasoning_what_if` | Two answer maps (open alternate world) |
 | Path under edit | `smeme_reasoning_edit_affects_path` | \(T \wedge E' \wedge \phi \models \bigwedge_{n \in R} reach(n)\) + conclusion side-car; not a `what_if` flag |
 | Entail / Possible / Repair | `smeme_reasoning_how_to_reach` | `reach_mode=entailed\|possible`; plans are cardinality-minimal **answer edits**, not minimal sufficient evidence |
-| Assume | `force_reachable_ids` / `force_unreachable_ids` on evaluate + what_if + how_to_reach + decisive_support + edit_affects_path | [Decision-DAG calculus](../../docs/spec/decision-dag-calculus.md) §7 / §10 (cite a tag); locks remain how_to_reach-only |
+| Assume | `force_reachable_ids` / `force_unreachable_ids` on evaluate_answers + what_if + how_to_reach + decisive_support + edit_affects_path | [Decision-DAG calculus](../../docs/spec/decision-dag-calculus.md) §7 / §10 (cite a tag); locks remain how_to_reach-only |
 | Minimal sufficient evidence | `smeme_reasoning_decisive_support` | Inclusion-minimal \(S \subseteq E\) that still forces \(c\) under fixed \(T\); **not** abduction |
 
 **Grounding:** callers supply structured `raw_answers` (LLM extract client-side). Deploy freezes a `PublishedEvidenceContract` for `fact_projection`; free-form blob grounding is **not** shipped. Optional reach assumptions \(\phi\) compose as \(SAT(T \wedge E \wedge \phi)\). Logical analysis tools often follow evaluate on the same envelope but do not require a prior evaluate.

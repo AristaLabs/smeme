@@ -4,12 +4,13 @@ description: >-
   Phase 1 slot-fill: establish the subject, gather sources, build the provenance
   envelope (answers + evidence_items + evidence_refs), validate (branch on
   harness_next) before evaluate or logical analysis.
-  Load after template_get and before smeme_reasoning_evaluate / analysis tools.
+  Load after template_get and before smeme_reasoning_evaluate_answers / analysis tools
+  (bulk/audit path). Ordinary chat uses smeme_reasoning_evaluate instead.
 ---
 
 # SMEme reasoning — slot-fill (Phase 1)
 
-Use this skill **after** a **worksheet** is loaded and **before** **`smeme_reasoning_evaluate`** or logical analysis tools that need a baseline envelope.
+Use this skill **after** a **worksheet** is loaded and **before** **`smeme_reasoning_evaluate_answers`** or logical analysis tools that need a baseline envelope. For ordinary chat case runs, prefer **`smeme_reasoning_evaluate`** / **`evaluate_continue`** (no full worksheet dump).
 
 You are a **slot-filler**, not a reasoner. The server owns the decision tree's decision logic; you supply structured answers plus **provenance** so each answered question cites where the answer came from.
 
@@ -61,9 +62,9 @@ Establish **one subject** (case, patient, vendor, matter, etc.) before wide sear
    - **`phase_2_ok`** — proceed to evaluate or logical analysis.
    - **`user_input_needed`** — usually **`missing_evidence_ref`** in **`warnings`**: **stop and ask the user** which questions need a source (use the question text from the worksheet, not just ids). Offer to accept a file path, URL, or pasted excerpt. Re-gather and re-validate until **`phase_2_ok`**.
    - **`phase_1_continue`** — other warnings; stay in Phase 1, fix, re-validate.
-6. **`smeme_reasoning_evaluate`** — Same envelope only when **`harness_next` is `phase_2_ok`**. Read the **`report`** only (see **`smeme-reasoning`**). For logical analysis without a case report, keep the same envelope and call analysis tools from **`smeme-reasoning`**.
+6. **`smeme_reasoning_evaluate_answers`** — Same envelope only when **`harness_next` is `phase_2_ok`**. Read the **`report`** only (see **`smeme-reasoning`**). For logical analysis without a case report, keep the same envelope and call analysis tools from **`smeme-reasoning`**.
 
-   > `smeme_reasoning_evaluate` may not appear in the client's visible tool list due to deferred loading. If `reasoning.tools` from `smeme_reasoning_capabilities` includes it, call it by name — it is available.
+   > `smeme_reasoning_evaluate_answers` may not appear in the client's visible tool list due to deferred loading. If `reasoning.tools` from `smeme_reasoning_capabilities` includes it, call it by name — it is available.
 
 For **hypothetical reruns** (user asks "what if X were Y?"), add an evidence item with **`locator_kind`: `other`**, **`locator`**: `user-instruction`, and an **`excerpt`** quoting the user's instruction so provenance stays honest and validate stays clean.
 

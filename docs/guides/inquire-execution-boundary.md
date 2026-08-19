@@ -2,30 +2,44 @@
 
 Design note for calculus §13.9 caller wiring. Layer ownership for kernel,
 orchestrator, and extractors. **Shipped MCP wire contract:**
-[`inquire-mcp-contract.md`](./inquire-mcp-contract.md) (gated by
-`MCP_INQUIRE_TOOLS_ENABLED`, default off). No Cowork agent-skills for Inquire
-in Phase 5.
+[`inquire-mcp-contract.md`](./inquire-mcp-contract.md).
+
+`MCP_INQUIRE_TOOLS_ENABLED` (default off) gates the **orchestrator** FastMCP mount
+(`/api/v1/mcp/orchestrator`), not the chat gather facade. Chat always uses persist
+for `smeme_reasoning_evaluate` / `evaluate_continue` when MCP is on (requires Phase 6
+tables in the deployed database). No Cowork agent-skills for the explicit Inquire
+protocol; chat guidance describes guided evaluate only.
 
 ## Layers
 
 ```text
-MCP / LangGraph / CLI / tests     # transport
+Chat /mcp                       # evaluate start + continue (blind facade)
+Orchestrator /mcp/orchestrator  # explicit smeme_inquire_* (flag-gated)
         |
         v
-smeme.reasoning.orchestration.inquire   # trusted execution
+smeme.reasoning.orchestration.inquire.persist   # Phase 6 durable sessions
         |
         v
-smeme.reasoning.runtime.inquire         # deterministic kernel
+smeme.reasoning.orchestration.inquire           # trusted execution
+        |
+        v
+smeme.reasoning.runtime.inquire                 # deterministic kernel
 ```
 
 | Layer | Owns | Must not |
 | ----- | ---- | -------- |
 | Kernel | `ANALYZE` → `InquiryDirective`; `admit_assertion`; `apply_verification_decision`; blind `ExtractionTask` builder | Run extractors, hold session loops, interpret citations |
-| Orchestrator | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest`; prepare/evaluate verification transcripts | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
+| Orchestrator (protocol) | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest`; prepare/evaluate verification transcripts | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
+| Chat facade | Strip control channel; ACQUIRE-only continue; fail-closed VERIFY → `isolated_evaluations_required` without STOP | Fake a VERIFY battery; invent STOP on VERIFY |
+| Persist (Phase 6) | `inquiry_session_id`, frozen artifact snapshot, admitted/verified rows, revision, idempotency receipts | Put DB sessions in kernel state; persist `C_poss` / `D_1` / `S_R` / directive / battery |
 | Extractor | Propose an empirical judgment over sources | See mode, verification keys, conclusions, or prior answers |
 
 Corpus and source access stay on the `Extractor` implementation. `ExtractionTask`
 describes the question SMEme demands answered; it is not a document transport.
+
+Evaluator isolation for orchestrator VERIFY is **caller_responsibility**. Chat never
+runs \(P_v\); when ANALYZE asks VERIFY, the facade returns `isolated_evaluations_required`
+and leaves the session `ACTIVE` for an isolated orchestrator.
 
 ## Kernel primitives
 
@@ -155,20 +169,20 @@ If the same model is expected to perform extraction, do **not** expose:
 That leaks mode and breaks G9. Also do **not** expose a tool that accepts a
 client-minted `Retain` / `VerificationDecision`.
 
-## Shipped MCP surface (orchestrator-facing)
+## Shipped MCP surface
 
 See [`inquire-mcp-contract.md`](./inquire-mcp-contract.md). Summary:
 
-- `smeme_inquire_analyze` (VERIFY responses include derived `evaluations[]`)
-- `smeme_inquire_get_task` (catalog + `question_id` only)
-- `smeme_inquire_admit`
-- `smeme_inquire_verify` (observation transcript → Core \(P_v\))
+- **Chat:** `smeme_reasoning_evaluate` / `evaluate_continue` (ACQUIRE-only facade; VERIFY → `isolated_evaluations_required`)
+- **Bulk Apply:** `smeme_reasoning_evaluate_answers`
+- **Orchestrator (flag-gated):** five `smeme_inquire_*` + inquire guidance
 
-MCP is one transport over `smeme.reasoning.orchestration.inquire`. It is not a
-second kernel. LangGraph, CLI, and unit tests should drive the same package.
+MCP is one transport over `smeme.reasoning.orchestration.inquire` (+ persist).
+It is not a second kernel. LangGraph, CLI, and unit tests should drive the same
+package.
 
 ## Out of scope here
 
 Approved paraphrases, cross-family evaluator slots, automated RETRACT/REPLACE,
-LLM clients, CEVI corpus wiring, session persistence, Cowork Inquire skills,
+LLM clients, CEVI corpus wiring, Cowork Inquire skills, dashboard HTMX,
 and Cloud overlay billing/quota policy.

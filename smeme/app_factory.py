@@ -201,7 +201,16 @@ def create_core_app(
     app.add_middleware(CsrfProtectionMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     if reg.mcp_enabled:
-        app.add_middleware(McpMountPathNormalizeMiddleware, mcp_path=reg.mcp_http_path)
+        orch_path = None
+        if reg.mcp_inquire_tools_enabled:
+            from smeme.mcp.urls import mcp_orchestrator_http_path
+
+            orch_path = mcp_orchestrator_http_path(reg)
+        app.add_middleware(
+            McpMountPathNormalizeMiddleware,
+            mcp_path=reg.mcp_http_path,
+            orchestrator_path=orch_path,
+        )
         app.add_middleware(McpInboundAuthTelemetryMiddleware)
         app.add_middleware(
             McpTransportRateLimitMiddleware,

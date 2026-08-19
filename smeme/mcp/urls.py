@@ -37,6 +37,21 @@ def mcp_resource_url(settings: Settings) -> str:
     return f"{base}{path}"
 
 
+def mcp_orchestrator_http_path(settings: Settings) -> str:
+    """Path of the Inquire orchestrator MCP mount (sibling under chat MCP path)."""
+    base = (
+        settings.mcp_http_path
+        if settings.mcp_http_path.startswith("/")
+        else f"/{settings.mcp_http_path}"
+    ).rstrip("/")
+    return f"{base}/orchestrator"
+
+
+def mcp_orchestrator_resource_url(settings: Settings) -> str:
+    """Absolute URL of the Inquire orchestrator MCP endpoint (OAuth ``resource``)."""
+    return f"{settings.effective_base_url.rstrip('/')}{mcp_orchestrator_http_path(settings)}"
+
+
 def oauth_protected_resource_metadata_path(settings: Settings) -> str:
     """Path only: ``/.well-known/oauth-protected-resource`` + resource path (RFC 9728 §3)."""
     path = (
@@ -45,6 +60,11 @@ def oauth_protected_resource_metadata_path(settings: Settings) -> str:
         else f"/{settings.mcp_http_path}"
     )
     return f"/.well-known/oauth-protected-resource{path}"
+
+
+def oauth_orchestrator_protected_resource_metadata_path(settings: Settings) -> str:
+    """RFC 9728 well-known path for the orchestrator MCP resource."""
+    return f"/.well-known/oauth-protected-resource{mcp_orchestrator_http_path(settings)}"
 
 
 def transport_security_allowed_hosts(settings: Settings) -> tuple[list[str], list[str]]:

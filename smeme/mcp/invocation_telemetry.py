@@ -39,7 +39,11 @@ DEFAULT_QUOTA_WEIGHT_BY_TOOL: dict[str, float] = {
     "smeme_reasoning_capabilities": 0.0,
     "smeme_reasoning_list": 0.0,
     "smeme_reasoning_validate_answers": 1.0,
+    # Chat Inquire facade (start / continue admit)
     "smeme_reasoning_evaluate": 1.0,
+    "smeme_reasoning_evaluate_continue": 1.0,
+    # Bulk Apply (former evaluate)
+    "smeme_reasoning_evaluate_answers": 1.0,
     "smeme_reasoning_what_if": 2.0,
     "smeme_reasoning_how_to_reach": 2.5,
     "smeme_reasoning_decisive_support": 2.0,
@@ -54,6 +58,13 @@ DEFAULT_QUOTA_WEIGHT_BY_TOOL: dict[str, float] = {
     "smeme_authoring_create_draft": 0.0,
     "smeme_authoring_get_draft": 0.0,
     "smeme_authoring_update_draft": 0.0,
+    "smeme_inquire_guidance_check": 0.0,
+    "smeme_inquire_guidance_get": 0.0,
+    "smeme_inquire_start": 1.0,
+    "smeme_inquire_next": 0.0,
+    "smeme_inquire_get_task": 0.0,
+    "smeme_inquire_admit": 1.0,
+    "smeme_inquire_verify": 1.0,
 }
 
 # Internal COGS unit multipliers (ops / margin analysis — not shown on landing).
@@ -63,6 +74,8 @@ INTERNAL_COST_UNITS_BY_TOOL: dict[str, float] = {
     "smeme_reasoning_list": 0.0,
     "smeme_reasoning_validate_answers": 0.3,
     "smeme_reasoning_evaluate": 1.0,
+    "smeme_reasoning_evaluate_continue": 1.0,
+    "smeme_reasoning_evaluate_answers": 1.0,
     "smeme_reasoning_what_if": 2.2,
     "smeme_reasoning_how_to_reach": 3.0,
     "smeme_reasoning_decisive_support": 2.2,
@@ -77,6 +90,13 @@ INTERNAL_COST_UNITS_BY_TOOL: dict[str, float] = {
     "smeme_authoring_create_draft": 0.1,
     "smeme_authoring_get_draft": 0.0,
     "smeme_authoring_update_draft": 0.1,
+    "smeme_inquire_guidance_check": 0.0,
+    "smeme_inquire_guidance_get": 0.0,
+    "smeme_inquire_start": 1.0,
+    "smeme_inquire_next": 0.2,
+    "smeme_inquire_get_task": 0.0,
+    "smeme_inquire_admit": 1.0,
+    "smeme_inquire_verify": 1.2,
 }
 
 _active_recorder: ContextVar[McpInvocationRecorder | None] = ContextVar(

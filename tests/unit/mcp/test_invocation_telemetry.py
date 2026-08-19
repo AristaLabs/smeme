@@ -27,11 +27,19 @@ def test_quota_weight_vs_internal_cost_units_for_what_if() -> None:
     assert quota_weight_for_tool("smeme_reasoning_what_if") == 2.0
     assert internal_cost_units_for_tool("smeme_reasoning_what_if") == 2.2
     assert quota_weight_for_tool("smeme_reasoning_evaluate") == 1.0
+    assert quota_weight_for_tool("smeme_reasoning_evaluate_continue") == 1.0
+    assert quota_weight_for_tool("smeme_reasoning_evaluate_answers") == 1.0
     assert quota_weight_for_tool("smeme_reasoning_validate_answers") == 1.0
     assert quota_weight_for_tool("smeme_reasoning_how_to_reach") == 2.5
     assert quota_weight_for_tool("smeme_reasoning_list") == 0.0
     assert quota_weight_for_tool("smeme_reasoning_guidance_check") == 0.0
     assert quota_weight_for_tool("smeme_reasoning_guidance_get") == 0.0
+    assert quota_weight_for_tool("smeme_inquire_guidance_get") == 0.0
+    assert quota_weight_for_tool("smeme_inquire_start") == 1.0
+    assert quota_weight_for_tool("smeme_inquire_admit") == 1.0
+    assert quota_weight_for_tool("smeme_inquire_verify") == 1.0
+    assert quota_weight_for_tool("smeme_inquire_next") == 0.0
+    assert quota_weight_for_tool("smeme_inquire_get_task") == 0.0
 
 
 def test_effective_quota_weight_hybrid_policy() -> None:
