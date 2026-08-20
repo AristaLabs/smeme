@@ -83,3 +83,14 @@ def test_inquire_orchestrator_absent_when_disabled() -> None:
         reset_mcp_runtime_for_tests()
     assert names.isdisjoint(INQUIRE_TOOLS)
     assert CHAT_FACADE_TOOLS <= names
+
+
+def test_guided_stop_skips_evaluate_answers_quota_reserve() -> None:
+    """Guided STOP must not double-reserve as evaluate_answers (contract lock)."""
+    import inspect
+
+    from smeme.mcp import reasoning_fastmcp as mod
+
+    src = inspect.getsource(mod)
+    assert "reserve_quota: bool = True" in src
+    assert src.count("reserve_quota=False") >= 2

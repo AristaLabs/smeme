@@ -265,7 +265,8 @@
               <ol class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
                 <li><code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_capabilities</code> — read <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">guidance.content_digest</code> and the tool list.</li>
                 <li>If there is no cached guidance or the digest changed → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code> — cache <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">content_markdown</code> (full calling contract).</li>
-                <li><code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_template_get</code> → validate → evaluate.</li>
+                <li><strong class="font-medium text-ui-ink">Guided (default):</strong> <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate</code> → loop <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate_continue</code> until <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">report</code> or <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">isolated_evaluations_required</code>.</li>
+                <li><strong class="font-medium text-ui-ink">Bulk/audit:</strong> <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_template_get</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_validate_answers</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate_answers</code>.</li>
               </ol>
               <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
                 Public tool reference: <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a>.
@@ -386,7 +387,7 @@
             </div>
           </div>
           <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
-            Your agent should: bootstrap guidance → list decision trees → fetch the worksheet → gather evidence → validate → evaluate → return the report.
+            Your agent should: bootstrap guidance → list decision trees → guided <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate</code> / <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_continue</code> until a report (or, for bulk/audit: worksheet → validate → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_answers</code>).
           </p>
         </section>
 

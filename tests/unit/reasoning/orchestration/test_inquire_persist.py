@@ -452,3 +452,169 @@ async def test_abandon_session(test_session_factory) -> None:
             inquiry_session_id=UUID(started["inquiry_session_id"]),
         )
     assert out["status"] == "ABANDONED"
+
+
+async def test_reject_stale_replay_on_admit(test_session_factory) -> None:
+    """Chat-style mutation-identity keys: replay immediate retries, reject after advance."""
+    user, tree, artifact, _ = await _seed_deployed_inquire_tree(test_session_factory)
+    graph = DTGraph.model_validate(tree.graph_data)
+    async with test_session_factory() as db:
+        started = await start_inquiry(
+            db, user=user, decision_tree=tree, artifact=artifact, graph=graph
+        )
+    session_id = UUID(started["inquiry_session_id"])
+    qid = started["directive"]["question_id"]
+    rev = started["revision"]
+    async with test_session_factory() as db:
+        row = await db.get(InquirySession, session_id)
+        assert row is not None
+        choice = _choice_for(row.worksheet_catalog, qid)
+
+    stable_key = "chat-stable-admit-1"
+    async with test_session_factory() as db:
+        first = await admit_to_session(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            expected_revision=rev,
+            question_id=qid,
+            selected_option=choice,
+            provenance_id="p-stale-1",
+            idempotency_key=stable_key,
+            reject_stale_replay=True,
+        )
+    assert first["revision"] > rev
+
+    async with test_session_factory() as db:
+        replay = await admit_to_session(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            expected_revision=first["revision"],
+            question_id=qid,
+            selected_option=choice,
+            provenance_id="p-stale-1",
+            idempotency_key=stable_key,
+            reject_stale_replay=True,
+        )
+    assert replay == first
+
+    # Advance session with a different admit (new key / different question).
+    async with test_session_factory() as db:
+        nxt = await next_directive(db, user=user, inquiry_session_id=session_id)
+    if nxt["directive"]["action"] == "ACQUIRE":
+        q2 = nxt["directive"]["question_id"]
+        async with test_session_factory() as db:
+            row = await db.get(InquirySession, session_id)
+            assert row is not None
+            choice2 = _choice_for(row.worksheet_catalog, q2)
+            await admit_to_session(
+                db,
+                user=user,
+                inquiry_session_id=session_id,
+                expected_revision=nxt["revision"],
+                question_id=q2,
+                selected_option=choice2,
+                provenance_id="p-advance",
+                idempotency_key="advance-key",
+            )
+    elif nxt["status"] == STATUS_STOPPED or nxt["directive"]["action"] == "STOP":
+        pytest.skip("fixture stopped after first admit; cannot advance for stale test")
+    else:
+        pytest.skip(f"unexpected directive {nxt['directive']['action']!r} after first admit")
+
+    async with test_session_factory() as db:
+        with pytest.raises(InquireHandlerError) as exc:
+            await admit_to_session(
+                db,
+                user=user,
+                inquiry_session_id=session_id,
+                expected_revision=nxt["revision"],
+                question_id=qid,
+                selected_option=choice,
+                provenance_id="p-stale-1",
+                idempotency_key=stable_key,
+                reject_stale_replay=True,
+            )
+    assert exc.value.code == "inquire_idempotency_conflict"
+
+
+async def test_chat_evaluate_continue_replay_and_stale(test_session_factory) -> None:
+    from smeme.mcp.inquire.chat_facade import (
+        chat_admit_idempotency_key,
+        chat_evaluate_continue,
+    )
+
+    user, tree, artifact, _ = await _seed_deployed_inquire_tree(test_session_factory)
+    graph = DTGraph.model_validate(tree.graph_data)
+    async with test_session_factory() as db:
+        started = await start_inquiry(
+            db, user=user, decision_tree=tree, artifact=artifact, graph=graph
+        )
+    session_id = UUID(started["inquiry_session_id"])
+    qid = started["directive"]["question_id"]
+    async with test_session_factory() as db:
+        row = await db.get(InquirySession, session_id)
+        assert row is not None
+        choice = _choice_for(row.worksheet_catalog, qid)
+
+    key = chat_admit_idempotency_key(
+        inquiry_session_id=session_id,
+        question_id=qid,
+        selected_option=choice,
+        provenance_id="p-chat-1",
+    )
+    assert key.startswith("chat-")
+    assert len(key) > 10
+
+    async with test_session_factory() as db:
+        first = await chat_evaluate_continue(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            question_id=qid,
+            selected_option=choice,
+            provenance_id="p-chat-1",
+        )
+    async with test_session_factory() as db:
+        replay = await chat_evaluate_continue(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            question_id=qid,
+            selected_option=choice,
+            provenance_id="p-chat-1",
+        )
+    assert replay == first
+    assert "error" not in first or first.get("error", {}).get("code") != "inquire_idempotency_conflict"
+
+    if first.get("_chat_stop") or first.get("error"):
+        pytest.skip("session ended after first continue; cannot advance for stale test")
+
+    # Advance with a different answer identity.
+    q2 = first["task"]["question_id"]
+    async with test_session_factory() as db:
+        row = await db.get(InquirySession, session_id)
+        assert row is not None
+        choice2 = _choice_for(row.worksheet_catalog, q2)
+    async with test_session_factory() as db:
+        await chat_evaluate_continue(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            question_id=q2,
+            selected_option=choice2,
+            provenance_id="p-chat-2",
+        )
+
+    async with test_session_factory() as db:
+        with pytest.raises(InquireHandlerError) as exc:
+            await chat_evaluate_continue(
+                db,
+                user=user,
+                inquiry_session_id=session_id,
+                question_id=qid,
+                selected_option=choice,
+                provenance_id="p-chat-1",
+            )
+    assert exc.value.code == "inquire_idempotency_conflict"

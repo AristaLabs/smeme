@@ -58,6 +58,7 @@ def test_reasoning_capabilities_document_shape() -> None:
         "phase_1_continue",
         "phase_2_ok",
         "user_input_needed",
+        "continue_evaluate",
     ]
     assert doc["reasoning"]["ingest_envelope"]["provenance_envelope"] is True
     assert doc["reasoning"]["ingest_envelope"]["evidence_locator_v1"] is True

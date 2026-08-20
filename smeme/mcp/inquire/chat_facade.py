@@ -9,7 +9,6 @@ the session remains ACTIVE for the orchestrator mount.
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
 from uuid import UUID
 
@@ -28,10 +27,31 @@ from smeme.reasoning.orchestration.inquire.persist import (
     STATUS_ACTIVE,
     STATUS_STOPPED,
     admit_to_session,
+    canonical_request_hash,
     get_task_for_session,
     start_inquiry,
 )
 from smeme.reasoning.orchestration.inquire.persist.auth import load_owned_session
+
+
+def chat_admit_idempotency_key(
+    *,
+    inquiry_session_id: UUID,
+    question_id: str,
+    selected_option: str | None,
+    provenance_id: str | None,
+) -> str:
+    """Stable chat continue key from the same admit identity as ``request_hash``."""
+    digest = canonical_request_hash(
+        {
+            "operation": "admit",
+            "inquiry_session_id": str(inquiry_session_id),
+            "question_id": question_id,
+            "selected_option": selected_option,
+            "provenance_id": provenance_id,
+        }
+    )
+    return f"chat-{digest}"
 
 
 def strip_chat_active_response(
@@ -185,7 +205,12 @@ async def chat_evaluate_continue(
         db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
     )
     expected_revision = int(session.revision)
-    idempotency_key = f"chat-{uuid.uuid4()}"
+    idempotency_key = chat_admit_idempotency_key(
+        inquiry_session_id=inquiry_session_id,
+        question_id=question_id,
+        selected_option=selected_option,
+        provenance_id=provenance_id,
+    )
     wire = await admit_to_session(
         db,
         user=user,
@@ -195,6 +220,7 @@ async def chat_evaluate_continue(
         selected_option=selected_option,
         provenance_id=provenance_id,
         idempotency_key=idempotency_key,
+        reject_stale_replay=True,
     )
     return await _active_task_or_terminal(db, user=user, wire=wire)
 

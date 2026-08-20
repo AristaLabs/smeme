@@ -18,16 +18,25 @@ from typing import Any, Literal
 
 # --- Orchestration hint (M0 option A; see D018) --------------------------------
 
-HarnessNext = Literal["phase_1_continue", "phase_2_ok", "user_input_needed"]
+HarnessNext = Literal[
+    "phase_1_continue",
+    "phase_2_ok",
+    "user_input_needed",
+    "continue_evaluate",
+]
 
 HARNESS_NEXT_VALUES: tuple[HarnessNext, ...] = (
     "phase_1_continue",
     "phase_2_ok",
     "user_input_needed",
+    "continue_evaluate",
 )
 
+# Ingest-only subset — never returns ``continue_evaluate`` (chat gather hint).
+IngestHarnessNext = Literal["phase_1_continue", "phase_2_ok", "user_input_needed"]
 
-def harness_next_for_ingest(*, warnings: list[dict[str, Any]]) -> HarnessNext:
+
+def harness_next_for_ingest(*, warnings: list[dict[str, Any]]) -> IngestHarnessNext:
     """Derive ``harness_next`` from ingest warnings (server policy, no LLM prose)."""
     if not warnings:
         return "phase_2_ok"
@@ -87,6 +96,7 @@ def sort_warnings(warnings: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 __all__ = [
+    "IngestHarnessNext",
     "HARNESS_NEXT_VALUES",
     "HarnessNext",
     "IngestErrorCode",

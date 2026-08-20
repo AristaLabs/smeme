@@ -14,6 +14,30 @@ from smeme.mcp.inquire.chat_facade import (
 )
 
 
+def test_chat_admit_idempotency_key_matches_request_hash_identity() -> None:
+    from uuid import uuid4
+
+    from smeme.mcp.inquire.chat_facade import chat_admit_idempotency_key
+    from smeme.reasoning.orchestration.inquire.persist import canonical_request_hash
+
+    sid = uuid4()
+    digest = canonical_request_hash(
+        {
+            "operation": "admit",
+            "inquiry_session_id": str(sid),
+            "question_id": "q1",
+            "selected_option": "Yes",
+            "provenance_id": "p1",
+        }
+    )
+    assert chat_admit_idempotency_key(
+        inquiry_session_id=sid,
+        question_id="q1",
+        selected_option="Yes",
+        provenance_id="p1",
+    ) == f"chat-{digest}"
+
+
 def test_strip_chat_active_response_has_no_control_channel() -> None:
     out = strip_chat_active_response(
         inquiry_session_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
