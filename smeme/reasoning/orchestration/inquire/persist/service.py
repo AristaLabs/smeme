@@ -430,6 +430,16 @@ async def get_task_for_session(
     )
 
 
+def _should_reject_stale_admit_replay(
+    *,
+    session_revision: int,
+    receipt_response: dict[str, Any],
+) -> bool:
+    """True when a matching receipt is from an earlier session revision (chat keys)."""
+    receipt_rev = receipt_response.get("revision")
+    return receipt_rev is not None and int(session_revision) > int(receipt_rev)
+
+
 async def _lookup_receipt(
     db: AsyncSession,
     *,
@@ -464,6 +474,7 @@ async def admit_to_session(
     selected_option: str | None,
     provenance_id: str | None,
     idempotency_key: str,
+    reject_stale_replay: bool = False,
 ) -> dict[str, Any]:
     if not isinstance(idempotency_key, str) or not idempotency_key.strip():
         raise InquireHandlerError(
@@ -489,6 +500,15 @@ async def admit_to_session(
         request_hash=request_hash,
     )
     if replay is not None:
+        if reject_stale_replay and _should_reject_stale_admit_replay(
+            session_revision=int(session.revision),
+            receipt_response=replay,
+        ):
+            raise InquireHandlerError(
+                "inquire_idempotency_conflict",
+                "This admit was already applied earlier in the session; "
+                "the session has advanced since that mutation.",
+            )
         return replay
 
     _require_active(session)

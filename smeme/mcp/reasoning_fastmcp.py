@@ -1584,6 +1584,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 raw_answers_json=flat_answers_to_legacy_raw_json(flat),
                                 ctx=ctx,
                                 persist=True,
+                                reserve_quota=False,
                             )
                             # Merge stop_reason onto Apply success when possible
                             try:
@@ -1703,6 +1704,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 raw_answers_json=flat_answers_to_legacy_raw_json(flat),
                                 ctx=ctx,
                                 persist=True,
+                                reserve_quota=False,
                             )
                             try:
                                 apply_payload = json.loads(apply_out)
@@ -1817,6 +1819,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             persist: bool,
             force_reachable_ids: list[str] | None = None,
             force_unreachable_ids: list[str] | None = None,
+            *,
+            reserve_quota: bool = True,
         ) -> str:
             # ---- Step 1: Parse and validate inputs BEFORE opening the DB session ----
             # Fail fast on bad inputs without consuming a connection.
@@ -1883,14 +1887,15 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         "Re-publish it from the SMEme editor, then retry the same answers.",
                     )
 
-                quota_err = await _mcp_reserve_quota_and_bind(
-                    request,
-                    db,
-                    user,
-                    tool_name="smeme_reasoning_evaluate_answers",
-                )
-                if quota_err is not None:
-                    return quota_err
+                if reserve_quota:
+                    quota_err = await _mcp_reserve_quota_and_bind(
+                        request,
+                        db,
+                        user,
+                        tool_name="smeme_reasoning_evaluate_answers",
+                    )
+                    if quota_err is not None:
+                        return quota_err
 
                 try:
                     ir = ir_from_json(artifact.ir_json)

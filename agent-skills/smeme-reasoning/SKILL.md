@@ -314,7 +314,7 @@ capabilities) — do **not** load the full evaluation contract via
 - **Hold the `id` for the session** — once you have a decision tree `id` from `smeme_reasoning_list`, keep it in memory for all subsequent tool calls. Do not re-call list on every round-trip.
 - **Same `id` for list and evaluate** — pass the exact `id` from `smeme_reasoning_list` into the evaluate/template tools.
 - **Exact option strings** — answer values must match the worksheet's option labels exactly (case and spacing). When unsure, re-read `template_get`.
-- **Provenance + `harness_next`** — every answered question needs ≥1 evidence ref; validate first; only evaluate when **`harness_next` is `phase_2_ok`** (or after resolving `user_input_needed` / `phase_1_continue`).
+- **Bulk provenance + `harness_next`** — for worksheet Apply, every answered question needs ≥1 evidence ref; validate first; only call **`evaluate_answers`** when **`harness_next` is `phase_2_ok`** (or after resolving `user_input_needed` / `phase_1_continue`). Guided chat uses **`evaluate` / `evaluate_continue`** instead.
 - **Re-publish fixes most "it changed" errors** — `stale_theory` / `no_reasoning_artifact` are almost always resolved by publishing in the SMEme editor.
 - **Logical analysis** — reuse the evaluate envelope when one exists; otherwise build a baseline envelope. Do not force evaluate first unless the tool requires a forced path/target.
 - **`what_if`** — same provenance envelope for `base_raw_answers_json` and `override_raw_answers_json`; optional shared `force_*_ids`; narrate using `delta` fields (see [Logical analysis tools](#logical-analysis-tools-success-shapes)).
