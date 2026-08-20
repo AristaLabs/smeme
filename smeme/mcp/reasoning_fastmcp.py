@@ -1354,11 +1354,11 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
         ) -> str:
             """Phase 1 — validate provenance ingest + answers (no DB audit row).
 
-            Same auth and load gates as ``smeme_reasoning_evaluate``. On success returns
+            Same auth and load gates as ``smeme_reasoning_evaluate_answers``. On success returns
             ``status``, ``warnings`` (deterministic order), and ``harness_next`` (see capabilities).
 
             ``harness_next: phase_2_ok`` means the envelope is structurally valid **and**
-            answers ground into canonical facts (same Stage A path evaluate uses). It does
+            answers ground into canonical facts (same Stage A path Apply uses). It does
             **not** run the solver or promise a conclusion.
             """
             try:
@@ -2339,7 +2339,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
               still reach the target (weaker; useful for research probes).
 
             Optional ``force_reachable_ids`` / ``force_unreachable_ids`` assert path assumptions
-            (same as evaluate). ``locked_question_ids`` still control which answered questions
+            (same as ``evaluate_answers``). ``locked_question_ids`` still control which answered questions
             may be edited.
 
             When the ``satisfiable`` field is false, read ``blockers.code`` (``no_plan_within_max_changes``
@@ -2519,14 +2519,14 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             rewritten; only a subset ``S ⊆ E`` is searched.
 
             This is **minimal sufficient evidence**, not abduction under incomplete or
-            conflicting answers. Use after a concluded evaluate when the user asks which
+            conflicting answers. Use after a concluded ``evaluate_answers`` when the user asks which
             answers mattered. When the target is not yet forced, use
             ``smeme_reasoning_how_to_reach`` (repair) instead. Do not call this to repair
             inconsistent answers.
 
             Args:
                 decision_tree_id: UUID from ``smeme_reasoning_list``.
-                base_raw_answers_json: Provenance envelope JSON object (same as evaluate).
+                base_raw_answers_json: Provenance envelope JSON object (same as ``evaluate_answers``).
                 target_conclusion_id: From ``smeme_reasoning_list_conclusions``.
                 top_k: Max inclusion-minimal supports to return (default 3, hard cap 10).
                 persist: v1 supports ``false`` only; ``true`` returns ``persist_not_implemented``.
@@ -2692,7 +2692,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             Args:
                 decision_tree_id: UUID from ``smeme_reasoning_list``.
-                base_raw_answers_json: Provenance envelope JSON object (same as evaluate).
+                base_raw_answers_json: Provenance envelope JSON object (same as ``evaluate_answers``).
                 override_raw_answers_json: Provenance envelope with hypothetical answer changes
                     (override wins per question id).
                 persist: v1 supports ``false`` only; ``true`` returns ``persist_not_implemented``.
@@ -2865,7 +2865,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
         async def smeme_reasoning_template_check(decision_tree_id: str, ctx: Context) -> str:
             """Is my reasoning worksheet up to date for this decision tree? — minimal agent-facing probe.
 
-            Same auth and gates as ``smeme_reasoning_evaluate`` (owner, ``mcp_discoverable``, compiled artifact).
+            Same auth and gates as chat evaluate / ``evaluate_answers`` (owner, ``mcp_discoverable``, compiled artifact).
             Returns ``decision_tree_id``, ``slug`` (filesystem-safe fragment from the decision tree title, aligned with
             ``template_get``'s suggested path), ``in_sync``, and ``manifest_core_digest`` so clients
             can (a) detect live vs last-published graph drift, (b) name local worksheet files, and

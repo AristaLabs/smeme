@@ -147,7 +147,9 @@ def render_manifest_markdown(
         "Map **documents, email, chat, and user input** into **`raw_answers`**: keys are **question "
         "node ids** below. The server runs all reasoning; do not infer branch order or conclusions "
         "from this file. Call **`smeme_reasoning_template_check`** first, or read drift/cache fields "
-        "from the **`template_get`** JSON envelope, before **`smeme_reasoning_evaluate`**.",
+        "from the **`template_get`** JSON envelope, before **`smeme_reasoning_evaluate_answers`** "
+        "(bulk Apply). Ordinary chat gather uses **`smeme_reasoning_evaluate`** / "
+        "**`evaluate_continue`** instead of filling this worksheet first.",
         "",
         "<!-- FROZEN_MACHINE_BLOCK_START -->",
         "",
@@ -158,7 +160,7 @@ def render_manifest_markdown(
         "## Answer formatting",
         "",
         "Published decision trees are **radio-only**: each question has a finite option set. "
-        "For **`smeme_reasoning_evaluate`**, set `raw_answers[<question_id>]` to **one** option "
+        "For **`smeme_reasoning_evaluate_answers`**, set `raw_answers[<question_id>]` to **one** option "
         "string **exactly** as listed above (case and spacing must match). Do not send checkbox "
         "arrays or arbitrary free-form types.",
         "",
@@ -166,8 +168,9 @@ def render_manifest_markdown(
         "",
         "## After answers are ready",
         "",
-        "1. Build **`raw_answers`** keyed by question ids.",
-        "2. Call **`smeme_reasoning_evaluate`** with **`raw_answers_json`** set to that object.",
+        "1. Build **`raw_answers`** keyed by question ids (full provenance envelope — see slot-fill).",
+        "2. Call **`smeme_reasoning_validate_answers`**, then **`smeme_reasoning_evaluate_answers`** "
+        "with **`raw_answers_json`** set to that object.",
         "3. Use **`persist=false`** for exploration when appropriate.",
         "",
     ]

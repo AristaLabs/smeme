@@ -169,7 +169,7 @@ Do not claim generic OIDC. Enterprise AS = your problem.
 | `MCP_ENABLED` | `false` | Streamable HTTP + OAuth discovery. |
 | `MCP_HTTP_PATH` | `/api/v1/mcp` | Resource path suffix. |
 | `MCP_AUTHORING_GRAPH_TOOLS_ENABLED` | `true` | Chat draft tools; **no** server OpenAI. Set `false` for reasoning-only. |
-| `MCP_INQUIRE_TOOLS_ENABLED` | `false` | Inquire protocol tools (analyze / get_task / admit / verify). Default off. See [inquire-mcp-contract](inquire-mcp-contract.md). |
+| `MCP_INQUIRE_TOOLS_ENABLED` | `false` | Mounts Inquire **orchestrator** MCP at `{MCP_HTTP_PATH}/orchestrator` with explicit `smeme_inquire_*` (+ inquire guidance). Default off. Chat guided gather (`evaluate` / `evaluate_continue`) is always available when MCP is on (requires Phase 6 migration). See [inquire-mcp-contract](inquire-mcp-contract.md). |
 | `SMEME_MCP_ALLOWED_OAUTH_CLIENT_IDS` | empty | Comma-separated Clerk OAuth app IDs when DCR is off. Empty = no client_id binding. |
 | `SMEME_MCP_OAUTH_ACCESS_TOKEN_AUDIENCE` | unset | Optional `aud` bind. |
 | `SMEME_MCP_TRANSPORT_RATE_LIMIT_PER_IP_PER_MINUTE` | `120` | `0` disables IP dimension. |

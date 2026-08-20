@@ -61,10 +61,10 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 | Skill | Role | When to load |
 |-------|------|----------------|
-| **`smeme-reasoning`** | Connect to SMEme, list decision trees, template tools, evaluate, MCP errors, blind-protocol boundaries. | **Always** — core reasoning skill. |
+| **`smeme-reasoning`** | Connect to SMEme, list decision trees, template tools, guided evaluate / evaluate_continue, bulk `evaluate_answers`, MCP errors, blind-protocol boundaries. | **Always** — core reasoning skill. |
 | **Per decision tree question manifest** | Flat checklist: question ids, text, valid answers for *this* decision tree — no topology. | **After** the user (or agent) has chosen a target decision tree — from **`template_get`** or CWP-5 file. |
-| **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate`**. |
-| **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate`** returns a **`report`** that is not **`concluded`**. |
+| **`smeme-reasoning-slot-fill`** | Phase 1: subject, gather sources, build **provenance envelope** → **`raw_answers_json`**. | **After** worksheet is loaded, **before** **`smeme_reasoning_evaluate_answers`** (bulk/audit). Ordinary chat uses **`evaluate` / `evaluate_continue`** instead. |
+| **`smeme-reasoning-outcomes`** | Non-`concluded` **`report.result_kind`**: ambiguous, incomplete, inconsistent, source conflict. | When **`evaluate_answers`** (or a guided STOP) returns a **`report`** that is not **`concluded`**. |
 | **`smeme-decision-tree-author`** | Chat-native authoring: design guidance → session fork (Quick encode vs Research & critique) → iterate Q/options/branches in prose → `smeme_authoring_validate_graph` → `smeme_authoring_create_draft`. Secondary path; wizard remains primary for server-side research-heavy greenfield. | When the user wants to build a decision tree in chat. On by default when MCP is enabled; opt out with `MCP_AUTHORING_GRAPH_TOOLS_ENABLED=false`. Calls `smeme_authoring_design_guidance`. |
 
 **Per decision tree skills** should not all sit in the default context. Preferred patterns:

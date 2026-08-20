@@ -40,9 +40,11 @@ For **natural-language or document** evidence, map what the user said into `raw_
 
 1. Build **`raw_answers_json`**: a JSON object with `answers`, `evidence_items`, and `evidence_refs` (one ref per answered question). See **`smeme-reasoning-slot-fill`** for the provenance envelope and field rules.
 2. Call **`smeme_reasoning_validate_answers`** first with that object. Fix any `missing_evidence_ref` warnings before evaluating.
-3. Call **`smeme_reasoning_evaluate`** with `raw_answers_json` set to that object (bare JSON object, not double-encoded).
+3. Call **`smeme_reasoning_evaluate_answers`** with `raw_answers_json` set to that object (bare JSON object, not double-encoded).
 4. Use **`persist=false`** for exploration; default **`persist=true`** writes an audit row.
 5. Read the **`report`**. If **`report.result_kind`** is not **`concluded`**, open **`smeme-reasoning-outcomes`**.
+
+For ordinary chat case runs without a full worksheet dump, prefer **`smeme_reasoning_evaluate`** / **`evaluate_continue`** (see **`smeme-reasoning`**) instead of this bulk path.
 
 ---
 
