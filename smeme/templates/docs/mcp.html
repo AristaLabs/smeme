@@ -332,12 +332,22 @@
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_validate_answers</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Validates provenance envelope shape, refs, and consistency before evaluate.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Validates provenance envelope shape, refs, and consistency before bulk Apply.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_evaluate</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Runs compiled reasoning; returns <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">report</code> with <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">result_kind</code>.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Guided case gather <strong>start</strong> — returns a blind task (or a terminal <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">report</code>).</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_evaluate_continue</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Guided case gather <strong>continue</strong> — admit one answer; next blind task or terminal <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">report</code>.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
+                </tr>
+                <tr>
+                  <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_evaluate_answers</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Bulk Apply on a worksheet envelope; returns <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">report</code> with <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">result_kind</code>.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">1</td>
                 </tr>
                 <tr>

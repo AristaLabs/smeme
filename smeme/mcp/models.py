@@ -43,7 +43,7 @@ class McpToolInvocation(BaseSQLModel, table=True):
 
     tool_name: str = SQLField(
         sa_column=Column(String(80), nullable=False),
-        description="MCP tool identifier, e.g. smeme_reasoning_evaluate",
+        description="MCP tool identifier, e.g. smeme_reasoning_evaluate_answers",
     )
 
     outcome: str = SQLField(

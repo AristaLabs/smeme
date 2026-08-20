@@ -20,7 +20,9 @@ def build_conclusions_catalog_wire(
 
     Uses :func:`~smeme.reasoning.runtime.analyze.enumerate_conclusion_sat_queries`
     outcomes — existential feasibility under published rules, not a specific user's
-    answers. Pair with ``smeme_reasoning_evaluate`` for case-specific outcomes.
+    answers. Pair with guided ``smeme_reasoning_evaluate`` /
+    ``evaluate_continue`` or bulk ``smeme_reasoning_evaluate_answers`` for
+    case-specific outcomes.
     """
     conclusions: list[dict[str, Any]] = []
     reachable_count = 0

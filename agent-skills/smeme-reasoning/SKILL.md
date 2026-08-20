@@ -119,9 +119,9 @@ Do **not** describe `edit_affects_path` as “which answers mattered” or as �
 
 When the user asks **both** “what if X?” **and** “does that affect this path?”, call **`what_if` and `edit_affects_path`** with the same base + override — two tools, two answers; do not collapse.
 
-**`smeme_reasoning_what_if`**, **`smeme_reasoning_edit_affects_path`**, **`smeme_reasoning_how_to_reach`**, and **`smeme_reasoning_decisive_support`** use the same provenance envelope as evaluate; v1 supports **`persist=false`** only.
+**`smeme_reasoning_what_if`**, **`smeme_reasoning_edit_affects_path`**, **`smeme_reasoning_how_to_reach`**, and **`smeme_reasoning_decisive_support`** use the same provenance envelope as **`smeme_reasoning_evaluate_answers`**; v1 supports **`persist=false`** only.
 
-Prefer a prior evaluate when the question needs a **current forced path** (`edit_affects_path`) or an already-forced target (`decisive_support`). Otherwise do **not** force evaluate first.
+Prefer a prior guided gather (completed **`evaluate` / `evaluate_continue`**) or bulk **`evaluate_answers`** when the question needs a **current forced path** (`edit_affects_path`) or an already-forced target (`decisive_support`). Otherwise do **not** force a case run first.
 
 Use **`smeme_reasoning_list_conclusions`** when the user asks what outcomes exist, or **before** **`smeme_reasoning_how_to_reach`** / **`decisive_support`** — it is the supported way to obtain **`target_conclusion_id`** (no dry-run evaluate probes, no editor access).
 
@@ -138,29 +138,29 @@ Optional reach assumptions \(\phi\): `force_reachable_ids` / `force_unreachable_
 
 Reachability is **structural** (some valid answer path could reach the conclusion), not case-specific. For a particular user's answers, use **`smeme_reasoning_evaluate`** (guided) or **`smeme_reasoning_evaluate_answers`** (bulk).
 
-**`how_to_reach` input:** copy **`conclusion_id`** from a row here into **`target_conclusion_id`**. Show **`conclusion_title`** to the user when choosing a target. Do **not** take ids from evaluate **`report.candidates`** or guess from titles alone.
+**`how_to_reach` input:** copy **`conclusion_id`** from a row here into **`target_conclusion_id`**. Show **`conclusion_title`** to the user when choosing a target. Do **not** take ids from Apply **`report.candidates`** or guess from titles alone.
 
 ### `how_to_reach` procedure
 
 1. **`smeme_reasoning_list_conclusions`** — list outcomes; pick **`conclusion_id`** + **`conclusion_title`** for the target.
-2. Build baseline **`base_raw_answers_json`** (same provenance envelope as evaluate).
+2. Build baseline **`base_raw_answers_json`** (same provenance envelope as **`evaluate_answers`**).
 3. **`smeme_reasoning_how_to_reach`** — pass **`target_conclusion_id`** from step 1.
    - Default **`reach_mode=entailed`**: the target must be forced under every completion of unanswered questions (same as prior builds).
    - Use **`reach_mode=possible`** for exploratory logical-analysis probes: the target only needs to remain reachable under *some* completing assignment.
-   - Optional **`force_reachable_ids` / `force_unreachable_ids`**: assume nodes must stay on-path or off-path (same ids as evaluate; from **`template_get`** / **`list_conclusions`**). Echoed under **`assumptions`** when set.
+   - Optional **`force_reachable_ids` / `force_unreachable_ids`**: assume nodes must stay on-path or off-path (same ids as Apply; from **`template_get`** / **`list_conclusions`**). Echoed under **`assumptions`** when set.
    - Echoed **`reach_mode`** on the success payload — narrate accordingly when `already_reachable` is true.
 
 ### `what_if` success
 
-Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumptions as evaluate / `how_to_reach`, applied to **both** baseline and after-override evaluates. Echoed under **`assumptions`** when set.
+Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumptions as **`evaluate_answers`** / `how_to_reach`, applied to **both** baseline and after-override Apply passes. Echoed under **`assumptions`** when set.
 
 | Field | Meaning |
 |-------|---------|
-| `before.report` | Evaluate report for baseline answers |
-| `after.report` | Evaluate report after merging override answers (override wins per question id) |
+| `before.report` | Apply report for baseline answers |
+| `after.report` | Apply report after merging override answers (override wins per question id) |
 | `delta` | Structured diff in report vocabulary only |
 | `assumptions` | Echo of force lists when non-empty |
-| `warnings` | Same ingest warnings as validate/evaluate |
+| `warnings` | Same ingest warnings as validate / `evaluate_answers` |
 
 | `delta` field | Meaning |
 |---------------|---------|
@@ -177,13 +177,13 @@ Explain deltas to the user in plain language — never invent graph ids or branc
 
 Use when the user asks whether a **hypothetical change** would **affect the current decision path** (not when they want a full alternate-world tour — that is **`what_if`**).
 
-1. Prefer a prior **`smeme_reasoning_evaluate`** so the case is coherent.
+1. Prefer a prior guided gather (**`evaluate` / `evaluate_continue`**) or bulk **`evaluate_answers`** so the case is coherent.
 2. Pass the same provenance envelope as baseline **`base_raw_answers_json`** plus **`override_raw_answers_json`** (hypothetical edits; override wins per question id).
 3. Read **`path_still_entailed`** / **`edit_affects_path`**, **`path_nodes_lost`**, and the conclusion side-car (**`conclusions_newly_entailed`**, **`conclusions_no_longer_entailed`**, **`conclusions_still_entailed`**).
 
-Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumptions as evaluate. Echoed under **`assumptions`** when set.
+Optional **`force_reachable_ids` / `force_unreachable_ids`**: same path assumptions as **`evaluate_answers`**. Echoed under **`assumptions`** when set.
 
-On **`path_not_entailed_at_baseline`**: gather or fix answers via evaluate/validate, or fall back to open **`what_if`** if they still want an alternate world.
+On **`path_not_entailed_at_baseline`**: gather or fix answers via guided evaluate / validate / **`evaluate_answers`**, or fall back to open **`what_if`** if they still want an alternate world.
 
 | Field | Meaning |
 |-------|---------|
@@ -193,14 +193,14 @@ On **`path_not_entailed_at_baseline`**: gather or fix answers via evaluate/valid
 | `conclusions_*` | Which conclusions stay / become / stop being forced under the same override |
 | `changed_answers` | Question ids whose answer changed |
 | `assumptions` | Echo of force lists when non-empty |
-| `warnings` | Same ingest warnings as validate/evaluate |
+| `warnings` | Same ingest warnings as validate / `evaluate_answers` |
 
 ### `decisive_support` procedure (minimal sufficient evidence)
 
-Use **only** when the current answers already force the target outcome (typically after **`concluded`** evaluate, or when the user asks “which answers mattered?”). This returns inclusion-minimal answered supports under fixed decision tree rules and fixed answers — **not** a tentative conclusion from incomplete evidence, and **not** conflict reconciliation.
+Use **only** when the current answers already force the target outcome (typically after **`concluded`** from **`evaluate_answers`** or a guided STOP report, or when the user asks “which answers mattered?”). This returns inclusion-minimal answered supports under fixed decision tree rules and fixed answers — **not** a tentative conclusion from incomplete evidence, and **not** conflict reconciliation.
 
 1. **`smeme_reasoning_list_conclusions`** — obtain **`target_conclusion_id`**.
-2. Pass the same provenance envelope as evaluate plus that target.
+2. Pass the same provenance envelope as **`evaluate_answers`** plus that target.
 3. Read **`supports[]`**: each row is an inclusion-minimal map of question id → option string.
 
 Do **not** call this for `answers_inconsistent`, `assumptions_inconsistent`, `needs_more_information`, or `multiple_outcomes_possible`. Do **not** use it to invent edits toward a different outcome — that is **`how_to_reach`** (repair).

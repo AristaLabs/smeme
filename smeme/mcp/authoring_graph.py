@@ -655,7 +655,7 @@ async def update_draft_from_graph(
             "mcp_discoverable": bool(decision_tree.mcp_discoverable),
             "next_step": (
                 "Saved. If deployment_sync is stale, Redeploy from the SMEme editor "
-                "before smeme_reasoning_evaluate will accept this graph. "
+                "before reasoning tools will accept this graph. "
                 "Use the returned graph_hash as expected_graph_hash for the next update."
                 if deployed
                 else (

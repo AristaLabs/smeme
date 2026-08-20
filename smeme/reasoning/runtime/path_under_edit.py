@@ -282,7 +282,8 @@ def run_edit_affects_path(
         raise PathUnderEditError(
             "path_not_entailed_at_baseline",
             "There is no forced decision path under the baseline answers yet. "
-            "Call smeme_reasoning_evaluate to gather or fix answers, or use "
+            "Call smeme_reasoning_evaluate / evaluate_continue to gather answers, "
+            "smeme_reasoning_evaluate_answers for bulk Apply, or use "
             "smeme_reasoning_what_if when you want to see an alternate world.",
         )
 
@@ -308,7 +309,8 @@ def run_edit_affects_path(
             "path_not_entailed_at_baseline",
             "The current decision path is not fully forced by the baseline answers"
             + (" under the given path assumptions" if not phi.is_empty() else "")
-            + ". Call smeme_reasoning_evaluate to gather or fix answers, or use "
+            + ". Call smeme_reasoning_evaluate / evaluate_continue to gather answers, "
+            "smeme_reasoning_evaluate_answers for bulk Apply, or use "
             "smeme_reasoning_what_if when you want to see an alternate world.",
             path_nodes_not_entailed=[_path_node_wire(graph, ir, nid).to_wire() for nid in missing],
         )

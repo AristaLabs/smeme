@@ -21,6 +21,8 @@
 | §11 identity helpers | Not a Part I query obligation (§13.7) | Helper-only tests correctly excluded from query-path discharge | Pass (demoted) |
 | §12 | Scope + publication boundary + unencoded preconditions | Spec prose; Deploy/source validation entry points as above | Pass |
 
+**Post-audit note (MCP Apply rename):** the shipped Apply public surface is now `smeme_reasoning_evaluate_answers`; chat `smeme_reasoning_evaluate` is guided Inquire gather. This historical table is not a fresh B.1 reaudit.
+
 **Link scrub:** no `docs/planning`, no Cloud-only audit URLs, no amendment paths in the spec file.
 
 **Not re-audited as Part I:** §13 targets; §14 informative release-history; Appendix A non-obligations.

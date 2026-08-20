@@ -303,8 +303,9 @@ def find_minimal_decisive_supports(
             "target_not_entailed",
             f'Conclusion "{target_title}" is not forced by the current answers'
             + (" under the given path assumptions" if not phi.is_empty() else "")
-            + ". Use smeme_reasoning_how_to_reach to explore answer edits, or "
-            "smeme_reasoning_evaluate when you need the full report for this case.",
+            + ". Use smeme_reasoning_how_to_reach to explore answer edits, "
+            "smeme_reasoning_evaluate_answers for a full Apply report, or "
+            "smeme_reasoning_evaluate / evaluate_continue for guided gather.",
             target_conclusion_id=target_conclusion_id,
             target_conclusion_title=target_title,
         )

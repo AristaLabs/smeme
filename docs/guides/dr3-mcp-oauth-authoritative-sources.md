@@ -155,7 +155,7 @@ Third-party summaries often conflate specs—**protected resource metadata** is 
 
 **Shipped:** FastMCP **`AuthSettings`** + **`ClerkMcpTokenVerifier`** (`mcp` SDK **`RequireAuthMiddleware`**) when `clerk_oauth_issuer` is set. Unauthenticated Streamable HTTP requests to the MCP mount get **401** with **`WWW-Authenticate`** including **`resource_metadata`** (RFC 9728 challenge path). Shared JWT verification: **`decode_clerk_oauth_access_token`** in `smeme/mcp/bearer_auth.py`.
 
-**Checkpoint A (capabilities):** **`smeme_reasoning_capabilities`** uses the same **Bearer** token and linked **`User`** row as **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** — no unauthenticated capabilities probe in production. See `smeme/mcp/reasoning_fastmcp.py` .
+**Checkpoint A (capabilities):** **`smeme_reasoning_capabilities`** uses the same **Bearer** token and linked **`User`** row as **`smeme_reasoning_list`** / **`smeme_reasoning_evaluate`** / **`smeme_reasoning_evaluate_answers`** — no unauthenticated capabilities probe in production. See `smeme/mcp/reasoning_fastmcp.py` .
 
 **Verifier vs application auth:** **`ClerkMcpTokenVerifier`** is stateless (signature, `iss`, `exp`, JWKS only). **`get_mcp_user`** loads **`User`** from **`users.clerk_user_id`**; a valid JWT with no row still returns tool-level **`auth_error`**, not transport **401**.
 
