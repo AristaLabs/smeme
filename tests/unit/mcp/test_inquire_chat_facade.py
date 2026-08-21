@@ -10,6 +10,7 @@ import pytest
 from smeme.mcp.inquire import chat_facade as facade
 from smeme.mcp.inquire.chat_facade import (
     isolated_evaluations_required_payload,
+    merge_chat_stop_onto_apply,
     strip_chat_active_response,
 )
 
@@ -68,6 +69,46 @@ def test_isolated_evaluations_required_keeps_active_status() -> None:
     assert err["code"] == "isolated_evaluations_required"
     assert err["status"] == "ACTIVE"
     assert "stop_reason" not in err
+
+
+def test_merge_chat_stop_onto_apply_flags_operational_budget() -> None:
+    merged = merge_chat_stop_onto_apply(
+        {
+            "report": {"result_kind": "concluded", "headline": "On"},
+            "warnings": [],
+        },
+        inquiry_session_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        stop_reason="operational_budget",
+    )
+    assert merged["status"] == "STOPPED"
+    assert merged["stop_reason"] == "operational_budget"
+    assert merged["inquire_stop_reason"] == "operational_budget"
+    assert merged["report"]["result_kind"] == "concluded"
+    codes = [w["code"] for w in merged["warnings"]]
+    assert "inquire_operational_stop" in codes
+
+
+def test_merge_chat_stop_onto_apply_flags_resolving_support_incomplete() -> None:
+    merged = merge_chat_stop_onto_apply(
+        {"report": {"result_kind": "concluded"}, "warnings": [{"code": "preexisting"}]},
+        inquiry_session_id="bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
+        stop_reason="resolving_support_incomplete",
+    )
+    assert merged["inquire_stop_reason"] == "resolving_support_incomplete"
+    assert [w["code"] for w in merged["warnings"]] == [
+        "preexisting",
+        "inquire_operational_stop",
+    ]
+
+
+def test_merge_chat_stop_onto_apply_verified_has_no_operational_warning() -> None:
+    merged = merge_chat_stop_onto_apply(
+        {"report": {"result_kind": "concluded"}, "warnings": []},
+        inquiry_session_id="cccccccc-bbbb-cccc-dddd-eeeeeeeeeeee",
+        stop_reason="verified_resolved_consequence",
+    )
+    assert merged["stop_reason"] == "verified_resolved_consequence"
+    assert merged["warnings"] == []
 
 
 @pytest.mark.asyncio

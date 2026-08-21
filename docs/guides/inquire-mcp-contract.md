@@ -82,7 +82,13 @@ do not return a task, do not run \(P_v\), do **not** call persist STOP, do **not
 and resumable on `/orchestrator`.
 
 **Inquire STOP:** persist STOPs only on true STOP. Then run Apply on admitted
-`(q → option)` and return `report` + `stop_reason`.
+`(q → option)` and return `report` + `stop_reason` (+ `inquire_stop_reason`, same
+value). When ANALYZE stops for an **operational** reason (`operational_budget` /
+`operational_timeout` / `operational_unknown`) or **`resolving_support_incomplete`**
+(Resolved held, exact \(S_R\) search exhausted budget), chat still Applies and may
+return a **concluded** report — that is Apply over admitted facts, **not** an MCP
+quota denial. Those stops also append warning `inquire_operational_stop`. Do not
+treat `stop_reason: operational_budget` alone as “no conclusion.”
 
 Many `ACTIVE` sessions per tree are normal — there is **no** tree-level ACTIVE lock.
 Analysis tools and `evaluate_answers` are not refused merely because another inquiry on

@@ -98,6 +98,51 @@ def isolated_evaluations_required_payload(
     }
 
 
+_OPERATIONAL_OR_INCOMPLETE_STOPS = frozenset(
+    {
+        "operational_budget",
+        "operational_timeout",
+        "operational_unknown",
+        "resolving_support_incomplete",
+    }
+)
+
+
+def merge_chat_stop_onto_apply(
+    apply_payload: dict[str, Any],
+    *,
+    inquiry_session_id: str,
+    stop_reason: str | None,
+) -> dict[str, Any]:
+    """Attach Inquire STOP metadata onto a successful Apply report payload.
+
+    ``stop_reason`` is the Inquire ANALYZE reason (may be operational). The report
+    itself is Apply over admitted answers — not an MCP quota denial. Operational /
+    S_R-incomplete stops get an explicit warning so clients do not read
+    ``operational_budget`` as “cut off without a conclusion.”
+    """
+    out = dict(apply_payload)
+    out["inquiry_session_id"] = inquiry_session_id
+    out["status"] = STATUS_STOPPED
+    out["stop_reason"] = stop_reason
+    out["inquire_stop_reason"] = stop_reason
+    if stop_reason in _OPERATIONAL_OR_INCOMPLETE_STOPS:
+        warnings = list(out.get("warnings") or [])
+        warnings.append(
+            {
+                "code": "inquire_operational_stop",
+                "message": (
+                    "Inquire ANALYZE stopped for an operational or resolving-support "
+                    f"reason ({stop_reason}) before verified_resolved_consequence. "
+                    "This report is Apply over admitted answers; it is not an MCP "
+                    "quota denial."
+                ),
+            }
+        )
+        out["warnings"] = warnings
+    return out
+
+
 def _directive_action(wire: dict[str, Any]) -> str | None:
     directive = wire.get("directive")
     if not isinstance(directive, dict):
