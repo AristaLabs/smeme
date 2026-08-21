@@ -1503,6 +1503,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             ``isolated_evaluations_required`` if VERIFY is needed (session stays
             ACTIVE — do not fake VERIFY in chat).
 
+            A terminal ``report`` includes ``stop_reason`` / ``inquire_stop_reason``.
+            Prefer ``report.result_kind`` for outcome; operational stops are not
+            MCP quota denials.
+
             Continue with ``smeme_reasoning_evaluate_continue``. Do **not** call
             ``template_get`` first. For bulk worksheet Apply use
             ``smeme_reasoning_evaluate_answers``.
@@ -1634,6 +1638,12 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             ``selected_option`` + ``provenance_id`` to admit, or omit option to abstain.
             Never runs VERIFY — if the server needs isolated verification, returns
             ``isolated_evaluations_required`` and leaves the session ACTIVE.
+
+            On Inquire STOP, runs Apply over admitted answers and returns ``report``
+            plus ``stop_reason`` / ``inquire_stop_reason``. Operational or
+            ``resolving_support_incomplete`` stops may still yield a concluded report
+            (warning ``inquire_operational_stop``); branch on ``report.result_kind``,
+            not on ``operational_budget`` alone.
             """
             from smeme.mcp.inquire.chat_facade import (
                 admitted_flat_answers_for_session,

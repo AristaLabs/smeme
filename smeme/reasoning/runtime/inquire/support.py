@@ -2,6 +2,10 @@
 
 Greedy Resolved-deletion is an upper bound only. Enumeration starts at cardinality 0.
 Never treat ``decisive_support`` as ``S_R``. Budget miss is operational (not G7).
+
+When exact enumeration hits the shared ANALYZE SAT budget after ``Resolved(B)``,
+``analyze_inquiry`` STOPs with ``resolving_support_incomplete`` (not generic
+``operational_budget``). Chat may still Apply admitted answers into a concluded report.
 """
 
 from __future__ import annotations
