@@ -66,7 +66,7 @@ When the user asks **what these tools let them do**, call **`smeme_reasoning_cap
 3. **`smeme_reasoning_evaluate(decision_tree_id)`** — starts a durable inquiry. Returns a blind **`task`** (`question_id`, `stem`, `options`) and **`inquiry_session_id`**, or a terminal **`report`**, or **`isolated_evaluations_required`**.
 4. Gather evidence for **only that task** (subject-scoped files/chat). Do not dump the full worksheet.
 5. **`smeme_reasoning_evaluate_continue`** — pass `inquiry_session_id`, `question_id`, `selected_option`, `provenance_id` (omit option to abstain). Repeat until:
-   - **`report`** — present `brief_memo` / path / candidates; branch on **`report.result_kind` only**.
+   - **`report`** — present `brief_memo` / path / candidates; branch on **`report.result_kind` only**. A terminal report may also include **`stop_reason`** / **`inquire_stop_reason`** (Inquire ANALYZE reason) and warning **`inquire_operational_stop`**. Treat **`result_kind`** as whether you have an answer; do **not** read `operational_budget` / `resolving_support_incomplete` as “no conclusion” or as an MCP quota denial — the report is Apply over admitted answers.
    - **`isolated_evaluations_required`** — stop this chat gather loop. The inquiry session remains ACTIVE for an isolated orchestrator; **do not** invent VERIFY trials in chat.
 6. While still gathering (`harness_next: continue_evaluate`), do **not** call `what_if` / `how_to_reach` / `decisive_support` / `edit_affects_path` / `list_conclusions` / `template_get` in this thread.
 

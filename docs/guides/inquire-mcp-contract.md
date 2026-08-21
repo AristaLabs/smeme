@@ -82,7 +82,22 @@ do not return a task, do not run \(P_v\), do **not** call persist STOP, do **not
 and resumable on `/orchestrator`.
 
 **Inquire STOP:** persist STOPs only on true STOP. Then run Apply on admitted
-`(q → option)` and return `report` + `stop_reason`.
+`(q → option)` and return `report` + `stop_reason` (+ `inquire_stop_reason`, same
+value). When ANALYZE stops for an **operational** reason (`operational_budget` /
+`operational_timeout` / `operational_unknown`) or **`resolving_support_incomplete`**
+(Resolved held, exact \(S_R\) search exhausted budget), chat still Applies and may
+return a **concluded** report — that is Apply over admitted facts, **not** an MCP
+quota denial. Those stops also append warning `inquire_operational_stop`. Do not
+treat `stop_reason: operational_budget` alone as “no conclusion.”
+
+| `stop_reason` (selected) | Meaning |
+|--------------------------|---------|
+| `verified_resolved_consequence` | Resolved + \(S_R\) verified under \(P_v\) |
+| `resolving_support_incomplete` | Resolved, but exact \(S_R\) search hit budget/timeout/unknown |
+| `operational_budget` / `_timeout` / `_unknown` | Cons / Resolved / \(D_1\) / residual witness search operational miss |
+| `inconsistent` | Working base inconsistent |
+| `not_resolvable_by_remaining_evidence_vocabulary` | No resolving completion in remaining worksheet vocabulary |
+| `no_joint_discriminator_within_budget` | Residual resolvability search exhausted (G7) |
 
 Many `ACTIVE` sessions per tree are normal — there is **no** tree-level ACTIVE lock.
 Analysis tools and `evaluate_answers` are not refused merely because another inquiry on
