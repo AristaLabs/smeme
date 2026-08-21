@@ -1,4 +1,11 @@
-"""ANALYZE control: allocate the next isolated extraction (calculus §13.9.5)."""
+"""ANALYZE control: allocate the next isolated extraction (calculus §13.9.5).
+
+Stop reasons include semantic ends (``verified_resolved_consequence``,
+``inconsistent``, …) and operational ends. When ``Resolved(B)`` holds but exact
+``S_R`` search hits budget/timeout/unknown, the directive is STOP with
+``resolving_support_incomplete`` (distinct from generic ``operational_budget`` on
+Cons / Resolved / D1 / residual witness search).
+"""
 
 from __future__ import annotations
 

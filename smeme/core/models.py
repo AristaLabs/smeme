@@ -887,6 +887,11 @@ class InquirySession(BaseSQLModel, table=True):
     stop_reason: str | None = Field(
         default=None,
         sa_column=Column(String(80), nullable=True),
+        description=(
+            "Inquire ANALYZE stop_reason when status=STOPPED "
+            "(e.g. verified_resolved_consequence, resolving_support_incomplete, "
+            "operational_budget). Chat may still expose an Apply report alongside."
+        ),
     )
     revision: int = Field(
         default=1,

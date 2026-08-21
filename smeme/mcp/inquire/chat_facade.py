@@ -4,6 +4,9 @@
 control channel. Kernel/persist semantics are unchanged. VERIFY does **not**
 STOP the session — chat ends the loop with ``isolated_evaluations_required``;
 the session remains ACTIVE for the orchestrator mount.
+
+On true Inquire STOP, chat Applies admitted answers and merges ``stop_reason`` /
+``inquire_stop_reason`` onto the report (see ``merge_chat_stop_onto_apply``).
 """
 
 from __future__ import annotations
