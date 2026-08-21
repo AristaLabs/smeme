@@ -107,7 +107,19 @@ def analyze_inquiry(
             raise PremiseInvariantError("Resolved status without conclusion_id")
         support = resolving_support(base, resolved.conclusion_id)
         if support.status in ("budget", "timeout", "unknown"):
-            return _operational_stop(support.status)
+            # Case may already be Resolved; S_R enumeration (esp. larger sheets) exhausted
+            # the shared ANALYZE budget. Do not collapse this into generic operational_budget —
+            # chat Apply can still emit a concluded report from admitted answers.
+            op = (
+                support.status
+                if support.status in ("budget", "timeout", "unknown")
+                else "unknown"
+            )
+            return InquiryDirective(
+                action="STOP",
+                stop_reason="resolving_support_incomplete",
+                operational_status=op,  # type: ignore[arg-type]
+            )
         for pair in support.pairs:
             if not _pair_verified(
                 admitted,

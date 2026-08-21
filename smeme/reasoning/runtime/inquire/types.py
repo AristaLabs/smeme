@@ -23,6 +23,9 @@ StopReason = Literal[
     "verified_resolved_consequence",
     "not_resolvable_by_remaining_evidence_vocabulary",
     "no_joint_discriminator_within_budget",
+    # Resolved(B) held, but exact S_R search hit SAT budget/timeout/unknown.
+    # Distinct from operational_budget (Cons / Resolved / D1 / residual search).
+    "resolving_support_incomplete",
     "operational_budget",
     "operational_timeout",
     "operational_unknown",
