@@ -1,0 +1,19 @@
+{
+  "repo_notes": [
+    {
+      "content": "Use README.md, docs/README.md, docs/ARCHITECTURE.md, docs/guides/engine-promises.md, docs/guides/authoring-decision-trees.md, LICENSE.md, and LICENSING.md as primary sources. Verify implementation details against current code. Treat planning documents and old releases as historical. Use product vocabulary consistently: decision-tree, Deploy/Redeploy, Listed/Hidden, Live/Stale, raw_answers, and report."
+    },
+    {
+      "content": "Describe SMEme Core as source-available fair-code under the SMEme Sustainable Use License 1.0, never as open source or OSI-approved. Core contains the self-hosted editor, deterministic IR/Z3 reasoning engine, MCP resource server, and optional AI-assisted web wizard. Hosted billing, marketing, analytics, waitlist, and Arista Labs legal surfaces belong to the separate Cloud overlay."
+    },
+    {
+      "content": "Describe authoring and deployment accurately. Authors can work in the manual editor, use the optional server-side AI web wizard, or use MCP chat authoring driven by the client's model. These paths create editable drafts. assess_publish_readiness is a no-write preflight; Deploy separately induces the evidence contract, persists or reuses an append-only compiled artifact, and updates current_artifact_id. Editing a deployed graph makes it Stale until Redeploy."
+    },
+    {
+      "content": "Document the MCP split accurately. Ordinary agent chat uses smeme_reasoning_evaluate followed by smeme_reasoning_evaluate_continue for blind guided Inquire. smeme_reasoning_evaluate_answers is the separate bulk raw_answers path. Listing and invocation are owner-scoped and require account access, Listed status, and a current synchronized artifact. Browser authentication uses Clerk sessions; remote MCP uses OAuth Bearer tokens, with Core acting as the OAuth resource server."
+    },
+    {
+      "content": "Include immutable artifact identity, server-side rule confidentiality, current graph constraints, and the broader logical-analysis surface: alternate-world comparison, answer-edit repair, decisive support, path-under-edit analysis, reachability, entailment, possibility, assumptions, and premise consistency. Do not claim validation against arbitrary formal specifications. Read dependency versions from current pyproject.toml and uv.lock rather than reusing old version numbers. For self-host instructions, use current release guidance and never recommend releases documented as defective."
+    }
+  ]
+}
