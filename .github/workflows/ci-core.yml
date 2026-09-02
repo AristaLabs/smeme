@@ -48,6 +48,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 2
+          # check_core_image_pin.py resolves the release lineage from tags.
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -71,6 +73,9 @@ jobs:
 
       - name: Product vocabulary (decision-tree copy)
         run: uv run python scripts/check_product_vocabulary.py
+
+      - name: Core operator image pin (.env.core.example ↔ release lineage)
+        run: uv run python scripts/check_core_image_pin.py
 
       - name: Core operator env drift (compose ↔ docs ↔ Settings)
         run: uv run python scripts/check_core_operator_env_drift.py

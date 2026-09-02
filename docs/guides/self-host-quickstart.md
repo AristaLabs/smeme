@@ -19,7 +19,7 @@ probe succeeded. Browser login, Deploy, Listed trees, and MCP OAuth need Clerk
 ```bash
 git clone https://github.com/AristaLabs/smeme.git
 cd smeme
-git checkout v0.9.9   # or newer operator-bundle tag when published
+git checkout "$(git describe --tags --abbrev=0 --match 'v*.*.*')"   # latest release
 
 ./scripts/init_core_env.sh
 # Creates .env.core (mode 600). Refuses to overwrite an existing file.
@@ -32,7 +32,7 @@ curl -fsS http://127.0.0.1:8000/api/v1/health/db
 ```
 
 - App (loopback): http://127.0.0.1:8000 → redirects toward `/decision-trees/dashboard`
-- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.9`
+- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.12`
 - Prefer digest pins in production — see [self-host-env.md](self-host-env.md)
 
 **Network (H-07):** Postgres is **not** published on the host. Web binds
@@ -127,6 +127,14 @@ docker compose --env-file .env.core -f docker-compose.core.yml exec -T db \
 After restore, hit `/api/v1/health/db` and spot-check the dashboard.
 
 ### Upgrade / rollback
+
+> **Upgrade off `v0.9.9` / `v0.9.10`.** Both releases report consequences
+> incorrectly when the working base is unsatisfiable — entailment returns
+> `entailed` for every target, possibility returns `impossible`, and cause
+> attribution can mislabel why. Images built from those tags keep that
+> behavior; §14 of the [calculus](../spec/decision-dag-calculus.md) records the
+> findings. Earlier revisions of this guide defaulted to `v0.9.9`, so check the
+> pin in your `.env.core` even if you never changed it.
 
 1. Note current `SMEME_CORE_IMAGE` (tag **and** digest if pinned).
 2. `pg_dump` as above.
