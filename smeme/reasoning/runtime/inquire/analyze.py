@@ -117,11 +117,7 @@ def analyze_inquiry(
             # Case may already be Resolved; S_R enumeration (esp. larger sheets) exhausted
             # the shared ANALYZE budget. Do not collapse this into generic operational_budget —
             # chat Apply can still emit a concluded report from admitted answers.
-            op = (
-                support.status
-                if support.status in ("budget", "timeout", "unknown")
-                else "unknown"
-            )
+            op = support.status if support.status in ("budget", "timeout", "unknown") else "unknown"
             return InquiryDirective(
                 action="STOP",
                 stop_reason="resolving_support_incomplete",

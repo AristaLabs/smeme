@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import pytest
+
 from smeme.reasoning.runtime.assumptions import EMPTY_ASSUMPTIONS, assumptions_from_lists
 from smeme.reasoning.runtime.evaluate import evaluate_reasoning
 from smeme.reasoning.runtime.inquire import (
@@ -18,6 +22,7 @@ from smeme.reasoning.runtime.inquire.policy import (
     VerificationRequest,
     VerificationResult,
 )
+from smeme.reasoning.runtime.inquire.support import SupportResult
 from smeme.reasoning.runtime.inquire.types import (
     InquiryBudget,
     VerificationKey,
@@ -162,6 +167,36 @@ def test_g1_2_verify_walk_over_resolving_support() -> None:
     assert done.question_id is None
     assert done.verification_key is None
     _ = fixture
+
+
+@pytest.mark.parametrize("support_status", ["budget", "timeout", "unknown"])
+def test_resolved_support_miss_is_resolving_support_incomplete(
+    support_status: str,
+) -> None:
+    """Resolved(B) + S_R operational miss → resolving_support_incomplete (not operational_*)."""
+    raw = {"q1": "0", "q2a": "0"}
+    fixture = compile_golden(xor_g1_graph())
+    live = _admit(fixture.ir, raw)
+    with patch(
+        "smeme.reasoning.runtime.inquire.analyze.resolving_support",
+        return_value=SupportResult(status=support_status),
+    ):
+        directive = analyze_inquiry(
+            fixture.ir,
+            live,
+            EMPTY_ASSUMPTIONS,
+            frozenset(),
+            _BUDGET,
+            fixture.catalog,
+            artifact_identity=SENTINEL_ARTIFACT,
+            pv_version=SENTINEL_PV_VERSION,
+        )
+    assert directive.action == "STOP"
+    assert directive.stop_reason == "resolving_support_incomplete"
+    assert directive.operational_status == support_status
+    assert directive.stop_reason != "operational_budget"
+    assert directive.stop_reason != "operational_timeout"
+    assert directive.stop_reason != "operational_unknown"
 
 
 def test_g3_0_verify_not_entailment_support() -> None:

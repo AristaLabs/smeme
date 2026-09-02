@@ -31,12 +31,15 @@ def test_chat_admit_idempotency_key_matches_request_hash_identity() -> None:
             "provenance_id": "p1",
         }
     )
-    assert chat_admit_idempotency_key(
-        inquiry_session_id=sid,
-        question_id="q1",
-        selected_option="Yes",
-        provenance_id="p1",
-    ) == f"chat-{digest}"
+    assert (
+        chat_admit_idempotency_key(
+            inquiry_session_id=sid,
+            question_id="q1",
+            selected_option="Yes",
+            provenance_id="p1",
+        )
+        == f"chat-{digest}"
+    )
 
 
 def test_strip_chat_active_response_has_no_control_channel() -> None:
@@ -90,15 +93,27 @@ def test_merge_chat_stop_onto_apply_flags_operational_budget() -> None:
 
 def test_merge_chat_stop_onto_apply_flags_resolving_support_incomplete() -> None:
     merged = merge_chat_stop_onto_apply(
-        {"report": {"result_kind": "concluded"}, "warnings": [{"code": "preexisting"}]},
+        {
+            "report": {"result_kind": "concluded", "headline": "On"},
+            "warnings": [{"code": "preexisting", "message": "keep me"}],
+        },
         inquiry_session_id="bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
         stop_reason="resolving_support_incomplete",
     )
+    assert merged["status"] == "STOPPED"
+    assert merged["stop_reason"] == "resolving_support_incomplete"
     assert merged["inquire_stop_reason"] == "resolving_support_incomplete"
+    assert merged["report"]["result_kind"] == "concluded"
+    assert merged["report"]["headline"] == "On"
     assert [w["code"] for w in merged["warnings"]] == [
         "preexisting",
         "inquire_operational_stop",
     ]
+    assert merged["warnings"][0]["message"] == "keep me"
+    warn = merged["warnings"][1]
+    assert "resolving_support_incomplete" in warn["message"]
+    assert "not an MCP" in warn["message"]
+    assert "quota" in warn["message"]
 
 
 def test_merge_chat_stop_onto_apply_verified_has_no_operational_warning() -> None:
