@@ -107,3 +107,4 @@ Clerk + MCP pilot: [self-host-pilot.md](docs/guides/self-host-pilot.md).
 ## License
 
 SMEme Sustainable Use License 1.0 — see [LICENSE.md](LICENSE.md) and [LICENSING.md](LICENSING.md).
+
