@@ -30,7 +30,7 @@ smeme.reasoning.runtime.inquire                 # deterministic kernel
 | ----- | ---- | -------- |
 | Kernel | `ANALYZE` → `InquiryDirective`; `admit_assertion`; `apply_verification_decision`; blind `ExtractionTask` builder | Run extractors, hold session loops, interpret citations |
 | Orchestrator (protocol) | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest`; prepare/evaluate verification transcripts | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
-| Chat facade | Strip control channel; ACQUIRE-only continue; fail-closed VERIFY → `isolated_evaluations_required` without STOP | Fake a VERIFY battery; invent STOP on VERIFY |
+| Chat facade | Strip control channel; ACQUIRE-only continue; fail-closed VERIFY → `isolated_evaluations_required` without STOP; on true STOP, Apply admitted answers and return `report` + `stop_reason` / `inquire_stop_reason` | Fake a VERIFY battery; invent STOP on VERIFY; treat `operational_budget` as “no report” |
 | Persist (Phase 6) | `inquiry_session_id`, frozen artifact snapshot, admitted/verified rows, revision, idempotency receipts | Put DB sessions in kernel state; persist `C_poss` / `D_1` / `S_R` / directive / battery |
 | Extractor | Propose an empirical judgment over sources | See mode, verification keys, conclusions, or prior answers |
 
@@ -40,6 +40,12 @@ describes the question SMEme demands answered; it is not a document transport.
 Evaluator isolation for orchestrator VERIFY is **caller_responsibility**. Chat never
 runs \(P_v\); when ANALYZE asks VERIFY, the facade returns `isolated_evaluations_required`
 and leaves the session `ACTIVE` for an isolated orchestrator.
+
+When ANALYZE issues **STOP**, chat persists STOP then **Applies** the admitted sheet.
+Semantic stops (`verified_resolved_consequence`, `inconsistent`, …) and operational /
+\(S_R\)-incomplete stops (`operational_budget`, `resolving_support_incomplete`, …) all
+follow that path. A concluded `report` with an operational `stop_reason` means Apply
+succeeded; it is **not** an MCP quota denial. See [`inquire-mcp-contract.md`](./inquire-mcp-contract.md).
 
 ## Kernel primitives
 

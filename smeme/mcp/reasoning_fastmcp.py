@@ -1503,6 +1503,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             ``isolated_evaluations_required`` if VERIFY is needed (session stays
             ACTIVE — do not fake VERIFY in chat).
 
+            A terminal ``report`` includes ``stop_reason`` / ``inquire_stop_reason``.
+            Prefer ``report.result_kind`` for outcome; operational stops are not
+            MCP quota denials.
+
             Continue with ``smeme_reasoning_evaluate_continue``. Do **not** call
             ``template_get`` first. For bulk worksheet Apply use
             ``smeme_reasoning_evaluate_answers``.
@@ -1512,6 +1516,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 admitted_flat_answers_for_session,
                 chat_evaluate_start,
                 flat_answers_to_legacy_raw_json,
+                merge_chat_stop_onto_apply,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
 
@@ -1586,17 +1591,20 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 persist=True,
                                 reserve_quota=False,
                             )
-                            # Merge stop_reason onto Apply success when possible
+                            # Merge Inquire STOP metadata onto Apply success when possible
                             try:
                                 apply_payload = json.loads(apply_out)
                             except json.JSONDecodeError:
                                 rec.note_json_response(apply_out)
                                 return apply_out
                             if isinstance(apply_payload, dict) and "error" not in apply_payload:
-                                apply_payload["inquiry_session_id"] = str(session_id)
-                                apply_payload["stop_reason"] = facade.get("stop_reason")
-                                apply_payload["status"] = "STOPPED"
-                                apply_out = _tool_json(apply_payload)
+                                apply_out = _tool_json(
+                                    merge_chat_stop_onto_apply(
+                                        apply_payload,
+                                        inquiry_session_id=str(session_id),
+                                        stop_reason=facade.get("stop_reason"),
+                                    )
+                                )
                             rec.note_json_response(apply_out)
                             return apply_out
                         out = _tool_json(facade)
@@ -1630,11 +1638,18 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             ``selected_option`` + ``provenance_id`` to admit, or omit option to abstain.
             Never runs VERIFY — if the server needs isolated verification, returns
             ``isolated_evaluations_required`` and leaves the session ACTIVE.
+
+            On Inquire STOP, runs Apply over admitted answers and returns ``report``
+            plus ``stop_reason`` / ``inquire_stop_reason``. Operational or
+            ``resolving_support_incomplete`` stops may still yield a concluded report
+            (warning ``inquire_operational_stop``); branch on ``report.result_kind``,
+            not on ``operational_budget`` alone.
             """
             from smeme.mcp.inquire.chat_facade import (
                 admitted_flat_answers_for_session,
                 chat_evaluate_continue,
                 flat_answers_to_legacy_raw_json,
+                merge_chat_stop_onto_apply,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
 
@@ -1712,10 +1727,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 rec.note_json_response(apply_out)
                                 return apply_out
                             if isinstance(apply_payload, dict) and "error" not in apply_payload:
-                                apply_payload["inquiry_session_id"] = str(session_uuid)
-                                apply_payload["stop_reason"] = facade.get("stop_reason")
-                                apply_payload["status"] = "STOPPED"
-                                apply_out = _tool_json(apply_payload)
+                                apply_out = _tool_json(
+                                    merge_chat_stop_onto_apply(
+                                        apply_payload,
+                                        inquiry_session_id=str(session_uuid),
+                                        stop_reason=facade.get("stop_reason"),
+                                    )
+                                )
                             rec.note_json_response(apply_out)
                             return apply_out
                         out = _tool_json(facade)
