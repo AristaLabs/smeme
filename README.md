@@ -5,11 +5,17 @@ SMEme Core is a source-available application for authoring inspectable
 engine**.
 
 Experts create decision-trees, **Deploy** a validated version, and connect MCP
-clients that can (1) submit structured `raw_answers` for a **report**, and
-(2) ask questions about the deployed tree itself — what-if, reachability, and
-related analysis — without treating full evidence collection as the only path.
-Agents gather evidence and pose questions; the server keeps the decision logic
-and evaluation boundary under operator control.
+clients that can (1) run the default **guided gather** loop, where
+`smeme_reasoning_evaluate` returns one blind question or a terminal outcome and
+`smeme_reasoning_evaluate_continue` takes an answer with provenance—or an
+abstention—until the loop returns a **report** or
+`isolated_evaluations_required`, (2) submit a full worksheet of structured
+`raw_answers`
+in a single `smeme_reasoning_evaluate_answers` call for batch, integration, and
+audit use, and (3) ask questions about the deployed tree itself — what-if,
+reachability, and related analysis — without treating full evidence collection
+as the only path. Agents gather evidence and pose questions; the server keeps
+the decision logic and evaluation boundary under operator control.
 
 **Agent bootstrap:** after OAuth, the client asks SMEme for the calling contract
 via MCP (`smeme_reasoning_capabilities` → `smeme_reasoning_guidance_get`). There
@@ -50,7 +56,7 @@ Start with the pinned **Start here** post in Discussions. Do not post secrets, `
 
 ```bash
 git clone https://github.com/AristaLabs/smeme.git && cd smeme
-git checkout v0.9.9   # or newer operator-bundle tag
+git checkout "$(git describe --tags --abbrev=0 --match 'v*.*.*')"   # latest release
 ./scripts/init_core_env.sh
 docker compose --env-file .env.core -f docker-compose.core.yml pull
 docker compose --env-file .env.core -f docker-compose.core.yml up -d --no-build --wait

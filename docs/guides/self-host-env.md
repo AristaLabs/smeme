@@ -26,7 +26,7 @@ Minimal boot: secrets + image. No Clerk, no MCP, no wizard.
 
 ```bash
 # After ./scripts/init_core_env.sh — defaults already match this profile.
-SMEME_CORE_IMAGE=ghcr.io/aristalabs/smeme:v0.9.9
+SMEME_CORE_IMAGE=ghcr.io/aristalabs/smeme:v0.9.13
 SMEME_AI_GENERATION_ENABLED=false
 MCP_ENABLED=false
 BASE_URL=http://127.0.0.1:8000
@@ -89,7 +89,7 @@ MCP_ENABLED=false
 HTTPS origin + Clerk + MCP (reasoning + authoring) + optional wizard.
 
 ```bash
-SMEME_CORE_IMAGE=ghcr.io/aristalabs/smeme:v0.9.9
+SMEME_CORE_IMAGE=ghcr.io/aristalabs/smeme:v0.9.13
 BASE_URL=https://app.example.com
 ALLOWED_ORIGINS=["https://app.example.com"]
 SMEME_PUBLIC_HOST=app.example.com
