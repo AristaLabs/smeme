@@ -76,6 +76,17 @@ uv sync --extra dev
 uv run uvicorn smeme.core_entrypoint:app --reload
 ```
 
+## Host example (langchain.mcp)
+
+Guided gather from a LangGraph host — human `interrupt()` before
+`evaluate_continue`, next task from the solver:
+
+[`examples/smeme_langgraph_withholding.py`](examples/smeme_langgraph_withholding.py)
+
+Pins and SaaS OAuth notes (DCR off, Bearer not the cookie session):
+[`examples/README.md`](examples/README.md). Help:
+[Discussions — Start here](https://github.com/AristaLabs/smeme/discussions).
+
 ## Configure environment
 
 Use `./scripts/init_core_env.sh` (writes `.env.core` from `.env.core.example`).
