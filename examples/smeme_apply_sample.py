@@ -19,6 +19,7 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -58,13 +59,21 @@ def _oauth() -> Any:
     )
 
 
-def _payload(result: Any) -> Any:
+def _payload(result: Any, _seen_result_wrappers: set[int] | None = None) -> Any:
     model_dump = getattr(result, "model_dump", None)
     if callable(model_dump):
         dumped = model_dump(mode="json")
         if isinstance(dumped, dict) and set(dumped) == {"result"}:
-            return _payload(dumped["result"])
+            return _payload(dumped["result"], _seen_result_wrappers)
         return dumped
+
+    if not isinstance(result, Mapping):
+        plain_result = getattr(result, "result", None)
+        if plain_result is not None and not callable(plain_result):
+            seen = _seen_result_wrappers or set()
+            wrapper_id = id(result)
+            if wrapper_id not in seen:
+                return _payload(plain_result, seen | {wrapper_id})
 
     data = getattr(result, "data", None)
     if data is not None:
