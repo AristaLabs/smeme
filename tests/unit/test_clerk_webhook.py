@@ -21,7 +21,6 @@ from sqlalchemy import select
 from svix.webhooks import Webhook
 
 from smeme.core.models import User, UserAuditLog
-from smeme.app_factory import create_core_app as create_app
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -166,7 +165,7 @@ async def premium_webhook_user(test_session_factory):
 
 class TestClerkWebhookUserDeleted:
     async def test_hard_deletes_user_on_valid_deletion_event(
-        self, webhook_user, test_session_factory
+        self, app, webhook_user, test_session_factory
     ):
         """A valid user.deleted webhook hard-deletes the local User row."""
         clerk_user_id = webhook_user["clerk_user_id"]
@@ -176,7 +175,6 @@ class TestClerkWebhookUserDeleted:
         headers = _signed_headers(payload, _TEST_WEBHOOK_SECRET)
 
         with _webhook_patches():
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -192,12 +190,16 @@ class TestClerkWebhookUserDeleted:
 
         async with test_session_factory() as session:
             rows = (
-                await session.execute(
-                    select(UserAuditLog)
-                    .where(UserAuditLog.event_type == "account.deleted")
-                    .order_by(UserAuditLog.created_at)
+                (
+                    await session.execute(
+                        select(UserAuditLog)
+                        .where(UserAuditLog.event_type == "account.deleted")
+                        .order_by(UserAuditLog.created_at)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
         assert len(rows) >= 1
         deleted_event = rows[-1]
@@ -206,7 +208,7 @@ class TestClerkWebhookUserDeleted:
         assert deleted_event.event_metadata.get("clerk_user_id") == clerk_user_id
 
     async def test_cancels_stripe_subscription_on_deletion(
-        self, premium_webhook_user, test_session_factory
+        self, app, premium_webhook_user, test_session_factory
     ):
         """When the deleted user has an active Stripe subscription it is cancelled."""
         clerk_user_id = premium_webhook_user["clerk_user_id"]
@@ -218,7 +220,6 @@ class TestClerkWebhookUserDeleted:
 
         cancel_mock = MagicMock(return_value=MagicMock(status="canceled"))
         with _webhook_patches(cancel_mock):
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -234,7 +235,7 @@ class TestClerkWebhookUserDeleted:
             assert result.scalar_one_or_none() is None
 
     async def test_stripe_error_does_not_prevent_user_deletion(
-        self, premium_webhook_user, test_session_factory
+        self, app, premium_webhook_user, test_session_factory
     ):
         """A Stripe API failure is logged but the user row is still hard-deleted."""
 
@@ -247,7 +248,6 @@ class TestClerkWebhookUserDeleted:
         # Stripe raises an unexpected error
         cancel_mock = MagicMock(side_effect=Exception("Stripe is down"))
         with _webhook_patches(cancel_mock):
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -262,7 +262,7 @@ class TestClerkWebhookUserDeleted:
             assert result.scalar_one_or_none() is None
 
     async def test_no_stripe_call_when_user_has_no_subscription(
-        self, webhook_user, test_session_factory
+        self, app, webhook_user, test_session_factory
     ):
         """Users without a Stripe subscription don't trigger a Stripe API call."""
         payload = _deletion_payload(webhook_user["clerk_user_id"])
@@ -270,7 +270,6 @@ class TestClerkWebhookUserDeleted:
 
         cancel_mock = MagicMock()
         with _webhook_patches(cancel_mock):
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -278,7 +277,7 @@ class TestClerkWebhookUserDeleted:
 
         cancel_mock.assert_not_called()
 
-    async def test_returns_400_on_invalid_signature(self, webhook_user):
+    async def test_returns_400_on_invalid_signature(self, app, webhook_user):
         """A tampered payload is rejected with 400 before any DB work."""
         payload = b'{"type":"user.deleted","data":{"id":"user_fake","object":"user"}}'
         bad_headers = {
@@ -293,7 +292,6 @@ class TestClerkWebhookUserDeleted:
             "clerk_webhook_secret",
             _TEST_WEBHOOK_SECRET,
         ):
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -303,7 +301,7 @@ class TestClerkWebhookUserDeleted:
 
         assert response.status_code == 400
 
-    async def test_returns_500_when_secret_not_configured(self):
+    async def test_returns_500_when_secret_not_configured(self, app):
         """Without a configured secret the endpoint returns 500 (misconfiguration guard)."""
         payload = b'{"type":"user.deleted","data":{"id":"user_x","object":"user"}}'
 
@@ -312,7 +310,6 @@ class TestClerkWebhookUserDeleted:
             "clerk_webhook_secret",
             None,
         ):
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -325,7 +322,7 @@ class TestClerkWebhookUserDeleted:
         assert response.status_code == 500
 
     async def test_idempotent_when_user_already_deleted(
-        self, webhook_user, test_session_factory
+        self, app, webhook_user, test_session_factory
     ):
         """Second user.deleted delivery is a no-op when the user row is gone."""
         clerk_user_id = webhook_user["clerk_user_id"]
@@ -335,16 +332,11 @@ class TestClerkWebhookUserDeleted:
         headers = _signed_headers(payload, _TEST_WEBHOOK_SECRET)
 
         with _webhook_patches():
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
-                first = await client.post(
-                    "/auth/clerk/webhook", content=payload, headers=headers
-                )
-                second = await client.post(
-                    "/auth/clerk/webhook", content=payload, headers=headers
-                )
+                first = await client.post("/auth/clerk/webhook", content=payload, headers=headers)
+                second = await client.post("/auth/clerk/webhook", content=payload, headers=headers)
 
         assert first.status_code == 200
         assert second.status_code == 200
@@ -353,7 +345,7 @@ class TestClerkWebhookUserDeleted:
             result = await session.execute(select(User).where(User.id == user_id))
             assert result.scalar_one_or_none() is None
 
-    async def test_unknown_event_type_is_accepted_and_ignored(self):
+    async def test_unknown_event_type_is_accepted_and_ignored(self, app):
         """Unrecognised event types get 200 so Clerk does not retry."""
         payload = json.dumps(
             {"type": "user.created", "object": "event", "data": {"id": "user_xyz"}}
@@ -361,7 +353,6 @@ class TestClerkWebhookUserDeleted:
         headers = _signed_headers(payload, _TEST_WEBHOOK_SECRET)
 
         with _webhook_patches():
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
@@ -371,13 +362,12 @@ class TestClerkWebhookUserDeleted:
 
         assert response.status_code == 200
 
-    async def test_graceful_when_clerk_id_not_in_db(self):
+    async def test_graceful_when_clerk_id_not_in_db(self, app):
         """A valid event for an unknown Clerk ID is silently accepted (no local row)."""
         payload = _deletion_payload("user_nonexistent_abc123")
         headers = _signed_headers(payload, _TEST_WEBHOOK_SECRET)
 
         with _webhook_patches():
-            app = create_app()
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:
