@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import runpy
+from dataclasses import make_dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -38,6 +39,47 @@ def test_payload_decodes_fastmcp_top_level_generated_wrapper(payload) -> None:
     result = output_type(result=capabilities_json)
 
     assert payload(result) == {"reasoning": {"tools": ["smeme_reasoning_list"]}}
+
+
+PlainCapabilitiesOutput = make_dataclass(
+    "smeme_reasoning_capabilitiesOutput",
+    [("result", object)],
+)
+
+
+@pytest.mark.parametrize(
+    ("result", "expected"),
+    [
+        (
+            '{"reasoning":{"capabilities":{"tools":["smeme_reasoning_list"]}}}',
+            {"reasoning": {"capabilities": {"tools": ["smeme_reasoning_list"]}}},
+        ),
+        (
+            '[{"decision_trees":[{"id":"sample"}]}]',
+            [{"decision_trees": [{"id": "sample"}]}],
+        ),
+    ],
+)
+def test_payload_decodes_fastmcp_plain_result_dataclass(payload, result, expected) -> None:
+    wrapper = PlainCapabilitiesOutput(result=result)
+
+    assert repr(wrapper).startswith("smeme_reasoning_capabilitiesOutput(result=")
+    assert not callable(getattr(wrapper, "model_dump", None))
+    assert payload(wrapper) == expected
+
+
+def test_payload_plain_result_unwrap_is_safe(payload) -> None:
+    mapping = {"result": '{"report":{"ok":true}}'}
+    method_wrapper = SimpleNamespace(
+        result=lambda: '{"report":{"ok":true}}',
+        data={"report": {"ok": True}},
+    )
+    cycle = SimpleNamespace()
+    cycle.result = cycle
+
+    assert payload(mapping) is mapping
+    assert payload(method_wrapper) == {"report": {"ok": True}}
+    assert payload(cycle)["_raw"] is cycle
 
 
 @pytest.mark.parametrize(
