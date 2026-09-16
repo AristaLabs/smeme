@@ -68,6 +68,33 @@ def test_payload_decodes_fastmcp_plain_result_dataclass(payload, result, expecte
     assert payload(wrapper) == expected
 
 
+@pytest.mark.parametrize(
+    ("output_name", "result", "expected"),
+    [
+        (
+            "smeme_reasoning_capabilitiesOutput",
+            '{"reasoning":{"tools":["smeme_reasoning_list"]}}',
+            {"reasoning": {"tools": ["smeme_reasoning_list"]}},
+        ),
+        (
+            "smeme_reasoning_listOutput",
+            '{"decision_trees":[{"id":"sample","title":"SMEme Sample"}]}',
+            {"decision_trees": [{"id": "sample", "title": "SMEme Sample"}]},
+        ),
+    ],
+)
+def test_payload_decodes_fastmcp_data_wrapped_plain_result(
+    payload, output_name, result, expected
+) -> None:
+    output_type = make_dataclass(output_name, [("result", object)])
+    inner = output_type(result=result)
+    outer = SimpleNamespace(data=inner)
+
+    assert repr(inner).startswith(f"{output_name}(result=")
+    assert not callable(getattr(inner, "model_dump", None))
+    assert payload(outer) == expected
+
+
 def test_payload_plain_result_unwrap_is_safe(payload) -> None:
     mapping = {"result": '{"report":{"ok":true}}'}
     method_wrapper = SimpleNamespace(
@@ -79,6 +106,13 @@ def test_payload_plain_result_unwrap_is_safe(payload) -> None:
 
     assert payload(mapping) is mapping
     assert payload(method_wrapper) == {"report": {"ok": True}}
+    assert payload(cycle)["_raw"] is cycle
+
+
+def test_payload_data_unwrap_is_cycle_safe(payload) -> None:
+    cycle = SimpleNamespace()
+    cycle.data = cycle
+
     assert payload(cycle)["_raw"] is cycle
 
 
