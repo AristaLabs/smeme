@@ -59,18 +59,18 @@ def _oauth() -> Any:
     )
 
 
-def _payload(result: Any, _seen_result_wrappers: set[int] | None = None) -> Any:
+def _payload(result: Any, _seen_wrappers: set[int] | None = None) -> Any:
     model_dump = getattr(result, "model_dump", None)
     if callable(model_dump):
         dumped = model_dump(mode="json")
         if isinstance(dumped, dict) and set(dumped) == {"result"}:
-            return _payload(dumped["result"], _seen_result_wrappers)
+            return _payload(dumped["result"], _seen_wrappers)
         return dumped
 
     if not isinstance(result, Mapping):
         plain_result = getattr(result, "result", None)
         if plain_result is not None and not callable(plain_result):
-            seen = _seen_result_wrappers or set()
+            seen = _seen_wrappers or set()
             wrapper_id = id(result)
             if wrapper_id not in seen:
                 return _payload(plain_result, seen | {wrapper_id})
@@ -87,7 +87,11 @@ def _payload(result: Any, _seen_result_wrappers: set[int] | None = None) -> Any:
                 return json.loads(data)
             except json.JSONDecodeError:
                 return {"_raw": data}
-        return data
+        seen = _seen_wrappers or set()
+        wrapper_id = id(result)
+        if wrapper_id not in seen:
+            return _payload(data, seen | {wrapper_id})
+        return {"_raw": data}
     structured = getattr(result, "structured_content", None)
     if structured is not None:
         return structured
