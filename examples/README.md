@@ -4,6 +4,28 @@ Host-side clients that call SMEme over MCP. They are **not** part of the Core
 appliance image. SMEme is source-available / fair-code under the
 [SMEme SUL 1.0](../LICENSE.md) — not open source.
 
+## `smeme_apply_sample.py` (start here)
+
+No LLM. OAuth to the running app, list the sample decision tree (the first empty
+MCP list seeds it; otherwise click **Load sample** on the dashboard), send
+canned radio `raw_answers`, print a `report`. Success is: the solver returned
+a report.
+
+SaaS is **DCR-off**. Do not use bare `OAuth()`. Pass the public PKCE
+`client_id` (default matches `/docs/mcp`). FastMCP callback
+`http://localhost:8787/callback` must be on the Clerk MCP OAuth app. Bearer,
+not the browser cookie.
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install 'fastmcp==4.0.3'
+# export SMEME_MCP_URL=...           # optional; default https://www.smeme.ai/api/v1/mcp
+# export SMEME_OAUTH_CLIENT_ID=...   # optional; default public PKCE id
+python examples/smeme_apply_sample.py
+```
+
+Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions/30).
+
 ## `smeme_langgraph_withholding.py`
 
 Guided gather against a **Deployed + Listed** decision tree:
@@ -51,4 +73,4 @@ python examples/smeme_langgraph_withholding.py
 The file's auto-admit is mechanical so the loop compiles; a human sits at that
 gate in production.
 
-Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions).
+Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions/30).

@@ -126,6 +126,7 @@ async def _dashboard_page_context(
     request: Request,
     *,
     success_message: str | None = None,
+    error_message: str | None = None,
 ) -> dict[str, Any]:
     """Single context dict for every ``decision_tree/dashboard.html`` render (HTMX full swaps included)."""
     from smeme.decision_tree.generation.agentic.services import checkpoint_manager
@@ -190,6 +191,8 @@ async def _dashboard_page_context(
     }
     if success_message is not None:
         ctx["success_message"] = success_message
+    if error_message is not None:
+        ctx["error_message"] = error_message
     return ctx
 
 
@@ -234,6 +237,45 @@ async def mcp_post_discoverable(
     else:
         redirect_url = "/decision-trees/dashboard#mcp-listed"
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@router.post("/sample", response_class=HTMLResponse)
+async def load_sample_decision_tree(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(current_active_user)],
+):
+    """Opt-in: Deploy + List the sanitised sample tree on this signed-in user."""
+    from smeme.decision_tree.sample_tree import SampleTreeError, ensure_sample_tree
+
+    try:
+        tree = await ensure_sample_tree(current_user, db)
+    except SampleTreeError as exc:
+        ctx = await _dashboard_page_context(db, current_user, request, error_message=exc.message)
+        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+        return _dashboard_no_store_headers(response)
+
+    if tree is None:
+        ctx = await _dashboard_page_context(
+            db,
+            current_user,
+            request,
+            error_message="Sign in to load the sample decision tree.",
+        )
+        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+        return _dashboard_no_store_headers(response)
+
+    ctx = await _dashboard_page_context(
+        db,
+        current_user,
+        request,
+        success_message=(
+            f'"{tree.title}" is Deployed and Listed. '
+            "Your agent can call evaluate_answers on it over MCP."
+        ),
+    )
+    response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+    return _dashboard_no_store_headers(response)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

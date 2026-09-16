@@ -10,6 +10,10 @@
   {{ alert(success_message, "success") }}
   {% endif %}
 
+  {% if error_message %}
+  {{ alert(error_message, "error") }}
+  {% endif %}
+
   {% if show_upgraded %}
   {{ alert("Welcome to Pro! Your higher limits are active now.", "success") }}
   {% endif %}
@@ -76,6 +80,9 @@
         <p class="text-sm text-amber-800 mt-1">Decision-tree limit reached — delete a decision tree or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
         {% endif %}
       </div>
+      <form method="post" action="/decision-trees/sample" class="shrink-0">
+        {{ btn("Load sample", variant="secondary", size="sm", type="submit") }}
+      </form>
     </div>
 
     {% if decision_trees %}
@@ -219,6 +226,10 @@
     {% else %}
     <div class="rounded-xl border-2 border-dashed border-ui-line bg-ui-surface-muted/50 px-8 py-14 text-center">
       <p class="text-ui-ink-secondary font-medium">No decision trees yet</p>
+      <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Load the sample to Deploy and List a tiny demo tree, then point an agent at it over MCP. You can also author your own.</p>
+      <form method="post" action="/decision-trees/sample" class="mt-6">
+        {{ btn("Load sample", variant="secondary", type="submit") }}
+      </form>
       {% if creator_ui.ai_generation_enabled %}
       <p class="text-sm text-ui-ink-muted mt-2 max-w-md mx-auto">Start from research and design with the AI-assisted decision tree—then refine structure in the editor and deploy verified MCP tools.</p>
       <div class="mt-8 max-w-md mx-auto">

@@ -32,7 +32,7 @@ curl -fsS http://127.0.0.1:8000/api/v1/health/db
 ```
 
 - App (loopback): http://127.0.0.1:8000 → redirects toward `/decision-trees/dashboard`
-- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.13`
+- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.14`
 - Prefer digest pins in production (copy from the GitHub Release / GHCR evidence
   for that tag after publish) — see [self-host-env.md](self-host-env.md)
 
@@ -50,6 +50,7 @@ refuses to interpolate).
 | Env knobs / profiles | [self-host-env.md](self-host-env.md) |
 | HTTPS | [below](#production-overlay-https--caddy) |
 | Clerk + MCP + wizard | [self-host-pilot.md](self-host-pilot.md) |
+| First report without an LLM | [self-host-pilot.md](self-host-pilot.md#7-first-report-without-an-llm) after Clerk + MCP |
 | Backup / upgrade | [Operate](#operate-backup-upgrade-troubleshoot) |
 
 ## Production overlay (HTTPS / Caddy)

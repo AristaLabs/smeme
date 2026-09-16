@@ -25,7 +25,6 @@ READ_ONLY_TOOLS = {
     "smeme_reasoning_capabilities",
     "smeme_reasoning_guidance_check",
     "smeme_reasoning_guidance_get",
-    "smeme_reasoning_list",
     "smeme_reasoning_validate_answers",
     "smeme_reasoning_list_conclusions",
     "smeme_reasoning_template_check",
@@ -35,9 +34,10 @@ READ_ONLY_TOOLS = {
     "smeme_authoring_get_draft",
 }
 
-# Compute/metered tools: not read-only, but not destructive (no data is
-# overwritten or deleted — they consume reasoning quota and return a report).
+# Compute/onboarding-write tools: not read-only, but not destructive. List may
+# create the per-user sample when empty; evaluation tools consume quota.
 COMPUTE_TOOLS = {
+    "smeme_reasoning_list",
     "smeme_reasoning_evaluate",
     "smeme_reasoning_evaluate_continue",
     "smeme_reasoning_evaluate_answers",
@@ -51,7 +51,6 @@ COMPUTE_TOOLS = {
 
 ORCHESTRATOR_READ_ONLY_TOOLS = {
     "smeme_reasoning_capabilities",
-    "smeme_reasoning_list",
     "smeme_inquire_guidance_check",
     "smeme_inquire_guidance_get",
     "smeme_inquire_get_task",
@@ -59,6 +58,7 @@ ORCHESTRATOR_READ_ONLY_TOOLS = {
 }
 
 ORCHESTRATOR_COMPUTE_TOOLS = {
+    "smeme_reasoning_list",
     "smeme_inquire_start",
     "smeme_inquire_admit",
     "smeme_inquire_verify",
@@ -111,9 +111,7 @@ def test_read_only_tools_marked_read_only():
     by_name = _list_chat_tools()
     for name in READ_ONLY_TOOLS:
         assert name in by_name, f"expected tool {name} to be registered"
-        assert by_name[name].annotations.readOnlyHint is True, (
-            f"{name} should be readOnlyHint=True"
-        )
+        assert by_name[name].annotations.readOnlyHint is True, f"{name} should be readOnlyHint=True"
 
 
 def test_compute_tools_not_read_only_but_not_destructive():
@@ -142,9 +140,7 @@ def test_orchestrator_tools_have_annotations_and_classification():
     assert by_name, "no orchestrator tools registered"
     classified = ORCHESTRATOR_READ_ONLY_TOOLS | ORCHESTRATOR_COMPUTE_TOOLS
     unclassified = set(by_name) - classified
-    assert not unclassified, (
-        f"new orchestrator MCP tool(s) missing classification: {unclassified}"
-    )
+    assert not unclassified, f"new orchestrator MCP tool(s) missing classification: {unclassified}"
     for name in ORCHESTRATOR_READ_ONLY_TOOLS:
         assert by_name[name].annotations.readOnlyHint is True
     for name in ORCHESTRATOR_COMPUTE_TOOLS:

@@ -67,6 +67,8 @@ def test_reasoning_capabilities_document_shape() -> None:
     assert doc["reasoning"]["evaluate_response"]["decision_tree_warnings_review_v1"] is True
     assert doc["reasoning"]["evaluate_response"]["inquire_chat_facade_v1"] is True
     assert doc["reasoning"]["list_response"]["review_metadata_v1"] is True
+    assert doc["reasoning"]["list_response"]["sample_key"] is True
+    assert doc["reasoning"]["list_response"]["sample_onboarding_v1"] is True
     assert doc["reasoning"]["counterfactual"]["how_to_reach_reach_mode"] == [
         "entailed",
         "possible",

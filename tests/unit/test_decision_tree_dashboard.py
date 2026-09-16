@@ -366,6 +366,8 @@ async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard
     assert b"Stale" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
+    assert b"Load sample" in r.content
+    assert b"one decision-tree slot" in r.content
 
 
 async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard_user):
@@ -405,6 +407,10 @@ async def test_docs_mcp_returns_200(client, app_with_db, dashboard_user):
     assert b"Deploy" in r.content
     assert b"Listed" in r.content
     assert b"Hidden" in r.content
+    assert b"Load sample" in r.content
+    assert b"sample_key" in r.content
+    assert b"decision_tree_id" in r.content
+    assert b"examples/smeme_apply_sample.py" in r.content
     assert b"discussions/categories/mcp-tools" in r.content
     assert b"discussions/categories/mcp-clients" in r.content
     assert b'href="https://github.com/AristaLabs/smeme/discussions"' not in r.content

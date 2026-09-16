@@ -17,7 +17,7 @@ Thin operator and contributor surface for the public Core tree.
 | [Contribution paths](CONTRIBUTION_PATHS.md) | Themes welcome in public PRs |
 | [Contributing](../CONTRIBUTING.md) | PR / CLA process |
 | [GitHub Discussions](https://github.com/AristaLabs/smeme/discussions) | Community how-to / MCP / self-host help |
-| [Host examples](../examples/README.md) | langchain.mcp guided-gather listing (not in the appliance image) |
+| [Host examples](../examples/README.md) | No-LLM Apply (`smeme_apply_sample.py`, start here) then LangGraph guided-gather listing (not in the appliance image) |
 
 ## Operator guides
 

@@ -196,10 +196,22 @@ class DecisionTree(BaseSQLModel, table=True):
     model_config = {"arbitrary_types_allowed": True}
 
     __tablename__ = "decision_trees"
+    __table_args__ = (
+        UniqueConstraint(
+            "author_id",
+            "sample_key",
+            name="uq_decision_trees_author_sample_key",
+        ),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     author_id: UUID | None = Field(default=None, foreign_key="users.id")
     title: str = Field(index=True)
+    sample_key: str | None = Field(
+        default=None,
+        sa_column=Column(sa.String(80), nullable=True),
+        description="Internal stable fixture identity; null for user-authored decision trees.",
+    )
 
     # Graph structure stored as JSONB
     graph_data: dict[str, Any] = Field(sa_column=Column(JSONB))  # Nodes, edges, metadata

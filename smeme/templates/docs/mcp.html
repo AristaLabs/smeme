@@ -129,11 +129,11 @@
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed">
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              <span>You have at least one decision tree that has been <strong class="font-medium text-ui-ink">deployed at least once</strong> and is set to <strong class="font-medium text-ui-ink">Listed</strong> on your <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
+              <span>OAuth has succeeded. If the first MCP call returns <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">auth_error</code>, complete the web sign-in or legal consent the message names, then reconnect once.</span>
             </li>
             <li class="flex gap-2.5">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
-              <span>You have signed into the <strong class="font-medium text-ui-ink">SMEme web app</strong> at least once so your account links to OAuth.</span>
+              <span>You do not need a tree of your own first. The first empty <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> creates a per-user sample (Deployed + Listed). You can also click <strong class="font-medium text-ui-ink">Load sample</strong> on the <a href="/decision-trees/dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">dashboard</a>. To run a tree you authored, <strong class="font-medium text-ui-ink">Deploy</strong> it and set <strong class="font-medium text-ui-ink">Listed</strong>. See <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, & delete</a>.</span>
             </li>
           </ul>
         </section>
@@ -265,7 +265,7 @@
               <ol class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-decimal list-inside">
                 <li><code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_capabilities</code> — read <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">guidance.content_digest</code> and the tool list.</li>
                 <li>If there is no cached guidance or the digest changed → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code> — cache <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">content_markdown</code> (full calling contract).</li>
-                <li><strong class="font-medium text-ui-ink">Guided (default):</strong> <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate</code> → loop <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate_continue</code> until <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">report</code> or <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">isolated_evaluations_required</code>.</li>
+                <li><strong class="font-medium text-ui-ink">Guided (default):</strong> <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_list</code> (first empty list may create the sample; pass list <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">id</code> as <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">decision_tree_id</code>) → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate</code> → loop <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate_continue</code> until <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">report</code> or <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">isolated_evaluations_required</code>.</li>
                 <li><strong class="font-medium text-ui-ink">Bulk/audit:</strong> <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_template_get</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_validate_answers</code> → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_evaluate_answers</code>.</li>
               </ol>
               <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
@@ -313,7 +313,7 @@
                 </tr>
                 <tr>
                   <td class="align-top px-4 py-3 font-mono text-xs text-brand-700 dark:text-brand-300 whitespace-nowrap">smeme_reasoning_list</td>
-                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Returns all your deployed, Listed decision trees with their names and descriptions.</td>
+                  <td class="align-top px-4 py-3 text-sm text-ui-ink-secondary leading-relaxed">Returns your Deployed + Listed trees. Rows use <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">id</code> (pass later as <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">decision_tree_id</code>). Sample rows also include <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">sample_key: smeme_sample_v1</code>. The first empty list may create that sample (one tree slot; not read-only). Persistent empty is recovery: click <strong class="font-medium text-ui-ink">Load sample</strong> or Deploy + Listed.</td>
                   <td class="align-top px-4 py-3 text-sm text-ui-ink-muted text-center tabular-nums">0</td>
                 </tr>
                 <tr>
@@ -387,7 +387,7 @@
             </div>
           </div>
           <p class="mt-3 text-sm text-ui-ink-muted leading-relaxed">
-            Your agent should: bootstrap guidance → list decision trees → guided <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate</code> / <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_continue</code> until a report (or, for bulk/audit: worksheet → validate → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_answers</code>).
+            Your agent should: bootstrap guidance → list decision trees (the first empty list may seed the sample) → guided <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate</code> / <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_continue</code> until a report (or, for bulk/audit: worksheet → validate → <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">evaluate_answers</code>). To get a first report without an LLM, see Core <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">examples/smeme_apply_sample.py</code>.
           </p>
         </section>
 
@@ -397,6 +397,10 @@
         <section aria-labelledby="tips-heading">
           <h2 id="tips-heading" class="text-base font-semibold text-ui-ink mb-4">Tips</h2>
           <ul class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
+            <li>
+              <strong class="font-medium text-ui-ink">Try the sample first.</strong>
+              Click <strong class="font-medium text-ui-ink">Load sample</strong> on the dashboard, or let the first empty MCP list create it. It is a sanitized walkthrough owned by you — not legal, tax, or other expert advice — and it uses one decision-tree slot.
+            </li>
             <li>
               <strong class="font-medium text-ui-ink">Connector first.</strong>
               URL + OAuth Client ID + OAuth connects SMEme. After OAuth, your agent loads the calling contract via <code class="text-xs font-mono px-1 py-0.5 rounded bg-ui-surface-muted">smeme_reasoning_guidance_get</code> — there is no separate install package.

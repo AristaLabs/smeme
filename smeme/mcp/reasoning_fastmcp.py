@@ -197,7 +197,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.8.0"
+REASONING_CAPABILITIES_VERSION = "3.9.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -220,6 +220,40 @@ async def _mcp_auth_user_only(request: Any, db: AsyncSession) -> User | str:
         return await get_mcp_user(request, db)
     except MCPAuthError as exc:
         return auth_error_tool_json(exc)
+
+
+async def _listed_trees_or_seed_sample(
+    db: AsyncSession,
+    user: User,
+) -> list[DecisionTree] | str:
+    """Return Listed trees, seeding the per-user sample only when the list is empty."""
+    result = await db.execute(select_decision_trees_for_assistant_tools_list(user.id))
+    rows = list(result.scalars().all())
+    if rows:
+        return rows
+
+    from smeme.decision_tree.sample_tree import SampleTreeError, ensure_sample_tree
+
+    try:
+        tree = await ensure_sample_tree(user, db)
+    except SampleTreeError as exc:
+        await db.rollback()
+        if exc.code == "quota_exceeded":
+            return tool_error_json(exc.code, exc.message)
+        logger.exception(
+            "Sample tree could not be prepared for first MCP list",
+            extra={"user_id": str(user.id), "sample_error": exc.code},
+        )
+        return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+    except Exception:
+        await db.rollback()
+        logger.exception(
+            "Sample tree failed during first MCP list",
+            extra={"user_id": str(user.id)},
+        )
+        return tool_error_json("internal_error", INTERNAL_ERROR_MESSAGE)
+
+    return [tree] if tree is not None else []
 
 
 async def _mcp_reserve_quota_and_bind(
@@ -389,7 +423,11 @@ def reasoning_capabilities_document(
                 "decision_tree_warnings_review_v1": True,
                 "inquire_chat_facade_v1": True,
             },
-            "list_response": {"review_metadata_v1": True},
+            "list_response": {
+                "review_metadata_v1": True,
+                "sample_key": True,
+                "sample_onboarding_v1": True,
+            },
             "counterfactual": {
                 "what_if": True,
                 "how_to_reach": True,
@@ -777,8 +815,11 @@ def _build_mcp_instructions(cfg: Settings) -> str:
         "Bulk/audit worksheet path: smeme_reasoning_template_get → "
         "smeme_reasoning_validate_answers → smeme_reasoning_evaluate_answers.\n\n"
         "smeme_reasoning_list returns only decision trees you can invoke now. "
-        "If empty, the user has not yet published/shared a decision tree — "
-        "do not guess decision tree ids."
+        "On a first empty list it may create the per-user sample (Deployed + "
+        "Listed). A persistent empty list is recovery: ask the user to click "
+        "Load sample on the dashboard, or Deploy and set Listed. Do not guess "
+        "decision tree ids. List rows use id; pass it as decision_tree_id. "
+        "Sample rows also include sample_key smeme_sample_v1."
     )
     if cfg.mcp_authoring_graph_tools_enabled:
         base += (
@@ -1275,22 +1316,25 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
         @_holder.tool(
             annotations=ToolAnnotations(
                 title="List decision trees",
-                readOnlyHint=True,
+                readOnlyHint=False,
+                destructiveHint=False,
             )
         )
         async def smeme_reasoning_list(ctx: Context) -> str:
-            """List the authenticated user's published decision trees that are discoverable for MCP tools.
+            """List the authenticated user's Deployed + Listed decision trees.
 
             Returns a JSON object with a ``decision_trees`` array and a ``count``. Each entry includes:
-            - ``id`` — decision tree UUID (pass to smeme_reasoning_evaluate / template tools)
+            - ``id`` — decision tree UUID (pass to later tools as ``decision_tree_id``)
             - ``title``, ``is_public``, ``reasoning_status`` (``compiled`` in this list)
+            - optional ``sample_key`` (``smeme_sample_v1`` on the per-user walkthrough)
             - optional ``effective_date``, ``review_by``, and ``warnings``; surface
               ``review_overdue`` instead of silently treating stale rules as current
 
-            A decision tree appears only when the owner has (1) published it for reasoning and
-            (2) set it to **Listed** on the SMEme dashboard. When ``count`` is ``0`` the response
-            includes a ``hint`` describing how the owner makes a decision tree appear — surface it to the
-            user instead of guessing a decision tree id.
+            If the caller has no Listed decision trees, the first call idempotently
+            creates, Deploys, and Lists the per-user sample tree (one decision-tree
+            slot; reuse consumes none). This onboarding write is why the tool is
+            not annotated read-only. At tree quota the tool returns
+            ``quota_exceeded`` instead of an empty first-run list.
 
             Requires ``Authorization: Bearer <Clerk OAuth token>``.
 
@@ -1308,10 +1352,10 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         bind_mcp_user(user, request=request)
 
-                        result = await db.execute(
-                            select_decision_trees_for_assistant_tools_list(user.id)
-                        )
-                        listed_rows = result.scalars().all()
+                        listed_rows = await _listed_trees_or_seed_sample(db, user)
+                        if isinstance(listed_rows, str):
+                            rec.note_json_response(listed_rows)
+                            return listed_rows
                         decision_trees = serialize_decision_trees_for_assistant_list(
                             user, listed_rows
                         )
@@ -1323,9 +1367,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                     if not decision_trees:
                         hint = (
                             "No decision trees are currently discoverable for your account. "
-                            "This is not an error. In the SMEme web app, make sure the decision tree is "
-                            "(1) published for reasoning from the editor and (2) set to Listed (not hidden) "
-                            "on your dashboard (Listed column), then try again. Do not guess a decision tree id."
+                            "This is not an error. In the SMEme web app, click Load sample "
+                            "on the dashboard, or make sure a decision tree is (1) Deployed "
+                            "and (2) set to Listed (not Hidden). Do not guess a decision tree id."
                         )
                         if cfg.mcp_authoring_graph_tools_enabled:
                             hint += (
@@ -3046,11 +3090,12 @@ def get_or_create_orchestrator_fastmcp(s: Settings | None = None) -> FastMCP | N
     @_orch.tool(
         annotations=ToolAnnotations(
             title="List decision trees",
-            readOnlyHint=True,
+            readOnlyHint=False,
+            destructiveHint=False,
         )
     )
     async def smeme_reasoning_list(ctx: Context) -> str:
-        """List the caller's Listed + deployed decision trees (owner-scoped)."""
+        """List Listed + deployed trees; seed the per-user sample when empty."""
         request = request_from_mcp_context(ctx)
         try:
             async with (
@@ -3062,8 +3107,10 @@ def get_or_create_orchestrator_fastmcp(s: Settings | None = None) -> FastMCP | N
                     rec.note_json_response(user_or_err)
                     return user_or_err
                 user = user_or_err
-                result = await db.execute(select_decision_trees_for_assistant_tools_list(user.id))
-                listed_rows = result.scalars().all()
+                listed_rows = await _listed_trees_or_seed_sample(db, user)
+                if isinstance(listed_rows, str):
+                    rec.note_json_response(listed_rows)
+                    return listed_rows
                 decision_trees = serialize_decision_trees_for_assistant_list(user, listed_rows)
                 payload: dict[str, Any] = {
                     "decision_trees": decision_trees,
@@ -3072,7 +3119,7 @@ def get_or_create_orchestrator_fastmcp(s: Settings | None = None) -> FastMCP | N
                 if not decision_trees:
                     payload["hint"] = (
                         "No decision trees are currently discoverable for your account. "
-                        "Publish for reasoning and set Listed on the dashboard."
+                        "Click Load sample on the dashboard, or Deploy and set Listed."
                     )
                 out = _tool_json(payload)
                 rec.note_json_response(out)

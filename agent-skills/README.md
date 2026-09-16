@@ -5,6 +5,13 @@
 ``smeme_reasoning_guidance_get``, which returns the calling contract as markdown.
 Agents do **not** install a local zip bundle — they ask the server for guidance.
 
+On a first empty ``smeme_reasoning_list``, the server may create the per-user
+sample (Deployed + Listed, ``sample_key: smeme_sample_v1``). List rows use
+``id`` (pass later as ``decision_tree_id``). List has MCP weight 0 but is not
+read-only because that call may write. Persistent empty is recovery (dashboard
+**Load sample**, or Deploy + Listed). SaaS is DCR-off: FastMCP examples must
+pass the public PKCE client ID; bare ``OAuth()`` is not the SaaS example.
+
 This folder is the **human authoring source** for that guidance (and related MCP
 content). Each skill is a directory with **`SKILL.md`** plus optional
 `reference.md` / `examples.md`. CI builds the served artifact from these files
@@ -69,7 +76,7 @@ After editing here, run ``scripts/build_guidance_artifact.py`` and ``scripts/val
 
 **Per decision tree skills** should not all sit in the default context. Preferred patterns:
 
-1. **Generated at publish** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + decision tree metadata.
+1. **Generated at Deploy** (recommended — CWP-5): SMEme emits `SKILL.md` from question nodes + decision tree metadata.
 2. **Template fill**: Use `templates/reasoning-question-manifest/SKILL.template.md` in CI or a small script; substitute title, slug, question list, and schema JSON.
 3. **Manual**: Early adopters add a generated skill to their agent project.
 

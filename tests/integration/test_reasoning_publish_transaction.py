@@ -161,9 +161,15 @@ async def premium_owner_publishable_decision_tree(test_session_factory):
 
     async with test_session_factory() as session:
         await session.execute(
-            delete(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_id)
+            delete(ReasoningCompiledArtifact).where(
+                ReasoningCompiledArtifact.decision_tree_id == decision_tree_id
+            )
         )
-        await session.execute(delete(DecisionTreeResearchCorpus).where(DecisionTreeResearchCorpus.decision_tree_id == decision_tree_id))
+        await session.execute(
+            delete(DecisionTreeResearchCorpus).where(
+                DecisionTreeResearchCorpus.decision_tree_id == decision_tree_id
+            )
+        )
         await session.execute(delete(DecisionTree).where(DecisionTree.id == decision_tree_id))
         await session.execute(delete(User).where(User.id == user.id))
         await session.commit()
@@ -235,7 +241,11 @@ async def test_publish_gate_failure_rolls_back(
     assert resp.status_code == 400
 
     async with test_session_factory() as session:
-        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        decision_tree = (
+            await session.execute(
+                select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"])
+            )
+        ).scalar_one()
         assert decision_tree.is_public is False
         assert await _count_artifacts(session, data["decision_tree_id"]) == 0
 
@@ -256,7 +266,11 @@ async def test_publish_happy_path_persists_contract_and_hash(
     assert resp.status_code == 303
 
     async with test_session_factory() as session:
-        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        decision_tree = (
+            await session.execute(
+                select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"])
+            )
+        ).scalar_one()
         assert decision_tree.is_public is False
         assert decision_tree.reasoning_status == "compiled"
         assert await _count_artifacts(session, data["decision_tree_id"]) == 1
@@ -320,7 +334,9 @@ async def test_publish_idempotent_redeploy_same_version(
             )
         ).scalar_one()
         decision_tree = (
-            await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))
+            await session.execute(
+                select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"])
+            )
         ).scalar_one()
         assert art.artifact_version == 1
         assert decision_tree.current_artifact_id == art.id
@@ -403,7 +419,7 @@ async def test_publish_contract_validates_and_round_trips(
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with auth_as(app_for_publish, data["user"]):
             with patch(
-                "smeme.decision_tree.editor.routes.induce_published_evidence_contract_at_publish",
+                "smeme.decision_tree.deploy.induce_published_evidence_contract_at_publish",
                 side_effect=fake_induce,
             ):
                 resp = await client.post(
@@ -460,7 +476,9 @@ async def test_publish_persists_research_corpus_hash_when_corpus_saved(
     async with test_session_factory() as session:
         art = (
             await session.execute(
-                select(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree_id)
+                select(ReasoningCompiledArtifact).where(
+                    ReasoningCompiledArtifact.decision_tree_id == decision_tree_id
+                )
             )
         ).scalar_one()
         assert art.research_corpus_hash == expected_hash
@@ -489,6 +507,10 @@ async def test_publish_commit_failure_no_durable_publish(
                     )
 
     async with test_session_factory() as session:
-        decision_tree = (await session.execute(select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"]))).scalar_one()
+        decision_tree = (
+            await session.execute(
+                select(DecisionTree).where(DecisionTree.id == data["decision_tree_id"])
+            )
+        ).scalar_one()
         assert decision_tree.is_public is False
         assert await _count_artifacts(session, data["decision_tree_id"]) == 0

@@ -1,0 +1,94 @@
+{
+  "sample_key": "smeme_sample_v1",
+  "title": "SMEme sample",
+  "canned_raw_answers": {
+    "q_demo": "Yes",
+    "q_mapped": "Yes"
+  },
+  "expected_conclusion_id": "c_apply",
+  "expected_result_kind": "concluded",
+  "graph": {
+    "nodes": [
+      {
+        "id": "q_demo",
+        "type": "question",
+        "data": {
+          "text": "Is this the SMEme sample walkthrough?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "required": true,
+          "help_text": "Demo tree only. Not legal advice.",
+          "authorities": []
+        }
+      },
+      {
+        "id": "q_mapped",
+        "type": "question",
+        "data": {
+          "text": "Are the answers already mapped to radio options?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "required": true,
+          "help_text": null,
+          "authorities": []
+        }
+      },
+      {
+        "id": "c_apply",
+        "type": "conclusion",
+        "data": {
+          "title": "Ready for Apply",
+          "summary": "Canned radio answers uniquely select this outcome.",
+          "recommendations": [],
+          "severity": "info"
+        }
+      },
+      {
+        "id": "c_inquire",
+        "type": "conclusion",
+        "data": {
+          "title": "Need Inquire",
+          "summary": "Answers are not yet mapped; use guided gather instead.",
+          "recommendations": [],
+          "severity": "info"
+        }
+      },
+      {
+        "id": "c_out",
+        "type": "conclusion",
+        "data": {
+          "title": "Out of sample scope",
+          "summary": "This walkthrough only covers the canned Apply path.",
+          "recommendations": [],
+          "severity": "info"
+        }
+      }
+    ],
+    "edges": [
+      {"source": "q_demo", "target": "c_out", "condition": "No"},
+      {"source": "q_demo", "target": "q_mapped", "condition": "Yes"},
+      {"source": "q_mapped", "target": "c_apply", "condition": "Yes"},
+      {"source": "q_mapped", "target": "c_inquire", "condition": "No"}
+    ],
+    "metadata": {
+      "title": "SMEme sample",
+      "description": "Tiny demo decision tree so an agent can call evaluate_answers. Not legal advice.",
+      "category": null,
+      "estimated_time": null,
+      "effective_date": null,
+      "review_by": null,
+      "version": "1.0.0",
+      "tags": ["sample"],
+      "regression_fixtures": [
+        {
+          "name": "canned_apply",
+          "raw_answers": {
+            "q_demo": "Yes",
+            "q_mapped": "Yes"
+          },
+          "expected_conclusion_id": "c_apply"
+        }
+      ]
+    }
+  }
+}

@@ -51,6 +51,8 @@ def serialize_decision_trees_for_assistant_list(
             "use_case": q.use_case,
         }
         metadata = graph.metadata
+        if getattr(q, "sample_key", None):
+            entry["sample_key"] = q.sample_key
         if metadata.effective_date is not None:
             entry["effective_date"] = metadata.effective_date.isoformat()
         if metadata.review_by is not None:
