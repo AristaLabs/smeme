@@ -76,14 +76,16 @@ uv sync --extra dev
 uv run uvicorn smeme.core_entrypoint:app --reload
 ```
 
-## Host example (langchain.mcp)
+## First report (no LLM)
 
-Guided gather from a LangGraph host — human `interrupt()` before
-`evaluate_continue`, next task from the solver:
+Get a first report without an LLM. OAuth to the running app, list the sample
+decision tree (the first empty MCP list seeds it; otherwise click **Load
+sample** on the dashboard), send canned `raw_answers`, print a `report`:
 
-[`examples/smeme_langgraph_withholding.py`](examples/smeme_langgraph_withholding.py)
+[`examples/smeme_apply_sample.py`](examples/smeme_apply_sample.py)
 
-Pins and SaaS OAuth notes (DCR off, Bearer not the cookie session):
+SaaS is DCR-off: pass the public PKCE `client_id`; do not use bare `OAuth()`.
+Pins and the LangGraph guided-gather listing (chapter two):
 [`examples/README.md`](examples/README.md). Help:
 [Discussions — Start here](https://github.com/AristaLabs/smeme/discussions).
 

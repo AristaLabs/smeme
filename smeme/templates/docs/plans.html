@@ -83,7 +83,7 @@
           <dl class="space-y-4 text-sm text-ui-ink-secondary leading-relaxed">
             <div>
               <dt class="font-medium text-ui-ink">Active decision tree</dt>
-              <dd class="mt-1">A non-deleted root decision tree you own. Deleting a decision tree frees a slot immediately. (Archive is a separate feature — availability depends on your deployment.)</dd>
+              <dd class="mt-1">A non-deleted root decision tree you own, including the per-user sample if you loaded it (or if the first empty MCP list created it). Deleting a decision tree frees a slot immediately. (Archive is a separate feature — availability depends on your deployment.)</dd>
             </div>
             <div>
               <dt class="font-medium text-ui-ink">MCP tool call</dt>
@@ -112,7 +112,7 @@
         <section aria-labelledby="exceeded-heading">
           <h2 id="exceeded-heading" class="text-base font-semibold text-ui-ink mb-3">When you hit a cap</h2>
           <ul class="space-y-2 text-sm text-ui-ink-secondary leading-relaxed list-disc pl-5">
-            <li><strong class="text-ui-ink">Decision trees</strong> — you cannot create a new decision tree until you delete/archive one or upgrade.</li>
+            <li><strong class="text-ui-ink">Decision trees</strong> — you cannot create a new decision tree, load the sample, or have the first empty MCP list seed it until you delete/archive one or upgrade.</li>
             <li><strong class="text-ui-ink">AI builds</strong> — you cannot start a new AI-assisted wizard build when your monthly allowance is exhausted.</li>
             <li><strong class="text-ui-ink">MCP</strong> — your agent receives a structured <code class="text-xs bg-ui-surface-muted px-1 rounded">quota_exceeded</code> error with remaining allowance and reset time.</li>
           </ul>

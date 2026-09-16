@@ -91,7 +91,9 @@ async def premium_owner(test_session_factory):
 
     async with test_session_factory() as session:
         await session.execute(
-            delete(ReasoningCompiledArtifact).where(ReasoningCompiledArtifact.decision_tree_id == decision_tree.id)
+            delete(ReasoningCompiledArtifact).where(
+                ReasoningCompiledArtifact.decision_tree_id == decision_tree.id
+            )
         )
         await session.execute(delete(DecisionTree).where(DecisionTree.id == decision_tree.id))
         await session.execute(delete(User).where(User.id == user.id))
@@ -195,17 +197,21 @@ async def test_publish_sets_reasoning_status_compiled(
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(return_value=_mock_ready_readiness()),
         ),
         auth_as(app_with_db, user),
     ):
-        r = await client.post(f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False)
+        r = await client.post(
+            f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False
+        )
 
     assert r.status_code in (303, 200)
 
     async with test_session_factory() as session:
-        result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
+        result = await session.execute(
+            select(DecisionTree).where(DecisionTree.id == decision_tree_id)
+        )
         updated_decision_tree = result.scalar_one()
 
     assert updated_decision_tree.reasoning_status == "compiled"
@@ -220,7 +226,7 @@ async def test_publish_redirects_to_dashboard_when_return_next_dashboard(
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(return_value=_mock_ready_readiness()),
         ),
         auth_as(app_with_db, user),
@@ -243,7 +249,7 @@ async def test_publish_redirects_to_editor_success_when_no_return_next(
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(return_value=_mock_ready_readiness()),
         ),
         auth_as(app_with_db, user),
@@ -254,7 +260,9 @@ async def test_publish_redirects_to_editor_success_when_no_return_next(
         )
 
     assert r.status_code == 303
-    assert r.headers["location"] == f"/decision-trees/{decision_tree_id}/editor?reasoning_compiled=1"
+    assert (
+        r.headers["location"] == f"/decision-trees/{decision_tree_id}/editor?reasoning_compiled=1"
+    )
 
 
 async def test_publish_redirects_to_tools_tab_when_return_next_tools(
@@ -265,7 +273,7 @@ async def test_publish_redirects_to_tools_tab_when_return_next_tools(
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(return_value=_mock_ready_readiness()),
         ),
         auth_as(app_with_db, user),
@@ -277,7 +285,10 @@ async def test_publish_redirects_to_tools_tab_when_return_next_tools(
         )
 
     assert r.status_code == 303
-    assert r.headers["location"] == f"/decision-trees/{decision_tree_id}/editor?view=tools&reasoning_compiled=1"
+    assert (
+        r.headers["location"]
+        == f"/decision-trees/{decision_tree_id}/editor?view=tools&reasoning_compiled=1"
+    )
 
 
 async def test_publish_does_not_set_is_public(
@@ -288,7 +299,7 @@ async def test_publish_does_not_set_is_public(
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(
                 return_value=PublishReadiness(
                     ready=True,
@@ -299,35 +310,41 @@ async def test_publish_does_not_set_is_public(
         ),
         auth_as(app_with_db, user),
     ):
-        await client.post(f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False)
+        await client.post(
+            f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False
+        )
 
     async with test_session_factory() as session:
-        result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
+        result = await session.execute(
+            select(DecisionTree).where(DecisionTree.id == decision_tree_id)
+        )
         updated_decision_tree = result.scalar_one()
 
     assert updated_decision_tree.is_public is False
 
 
-async def test_publish_allows_free_user(
-    client, app_with_db, free_owner, test_session_factory
-):
+async def test_publish_allows_free_user(client, app_with_db, free_owner, test_session_factory):
     """Deploy is not premium-gated."""
     decision_tree_id = free_owner["decision_tree"].id
     user = free_owner["user"]
 
     with (
         patch(
-            "smeme.decision_tree.editor.routes.assess_publish_readiness",
+            "smeme.decision_tree.deploy.assess_publish_readiness",
             new=AsyncMock(return_value=_mock_ready_readiness()),
         ),
         auth_as(app_with_db, user),
     ):
-        r = await client.post(f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False)
+        r = await client.post(
+            f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False
+        )
 
     assert r.status_code in (303, 200)
 
     async with test_session_factory() as session:
-        result = await session.execute(select(DecisionTree).where(DecisionTree.id == decision_tree_id))
+        result = await session.execute(
+            select(DecisionTree).where(DecisionTree.id == decision_tree_id)
+        )
         updated_decision_tree = result.scalar_one()
 
     assert updated_decision_tree.reasoning_status == "compiled"
@@ -337,7 +354,9 @@ async def test_publish_returns_403_for_non_owner(client, app_with_db, premium_ow
     decision_tree_id = premium_owner["decision_tree"].id
 
     with auth_as(app_with_db, other_user):
-        r = await client.post(f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False)
+        r = await client.post(
+            f"/decision-trees/editor/{decision_tree_id}/publish", follow_redirects=False
+        )
 
     assert r.status_code == 403
 

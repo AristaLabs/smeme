@@ -1,7 +1,7 @@
 ---
 name: smeme-reasoning-manifest-{{SLUG}}
 description: >-
-  UNFILLED TEMPLATE — do not invoke as a skill until generated from SMEme publish output;
+  UNFILLED TEMPLATE — do not invoke as a skill until generated from SMEme Deploy output;
   placeholders like {{SLUG}} must be replaced. After fill: flat question manifest for
   the SMEme reasoning decision tree "{{TITLE}}" (slug {{SLUG}}). Load only when this decision tree is the
   evaluation target. Each question is independently answerable from local context —
@@ -32,7 +32,7 @@ Structured answers must **align** with these ids and option labels (no new quest
 
 ## Answer formatting
 
-Published decision trees are **radio-only**: each question has a finite option set. Set `raw_answers_json.answers[node_id]` to the chosen option string **exactly** as listed in the schema (case and spacing must match).
+Deployed decision trees are **radio-only**: each question has a finite option set. Set `raw_answers_json.answers[node_id]` to the chosen option string **exactly** as listed in the schema (case and spacing must match).
 
 For **natural-language or document** evidence, map what the user said into `raw_answers_json.answers`: pick the option string from the schema that best matches each question. Do not put arbitrary freeform prose in answer values unless the manifest explicitly allows that shape (standard radio-only manifests do not).
 
@@ -48,4 +48,4 @@ For ordinary chat case runs without a full worksheet dump, prefer **`smeme_reaso
 
 ---
 
-_This file is generated from SMEme — do not hand-edit for production; regenerate on republish (CWP-5). Until filled from publish output, it is not a loaded skill._
+_This file is generated from SMEme — do not hand-edit for production; regenerate on Redeploy (CWP-5). Until filled from Deploy output, it is not a loaded skill._

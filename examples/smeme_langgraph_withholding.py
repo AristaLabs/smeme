@@ -130,9 +130,9 @@ def make_nodes(tools: dict[str, Any]):
 
     async def bootstrap(state: WithholdingState) -> WithholdingState:
         # Demo shortcut: falling back to the first Listed tree. In real use,
-        # pass decision_tree_id in the initial state — an empty list is a valid
-        # MCP result (count: 0 + hint), and the first tree may not be the
-        # withholding tree (ACME is the prose case).
+        # pass decision_tree_id in the initial state. A first empty list may
+        # seed the per-user sample; persistent empty is recovery. The first
+        # tree may not be the withholding tree (ACME is the prose case).
         tree_id = state.get("decision_tree_id")
         if not tree_id:
             listing = _payload(await tools["smeme_reasoning_list"].ainvoke({}))

@@ -9,7 +9,7 @@ description: >-
   Slot-fill (bulk): smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.8.0 -->
+<!-- installed_plugin_version: 3.9.0 -->
 
 # SMEme reasoning
 
@@ -24,10 +24,9 @@ description: >-
 
 These are normal preconditions. Call the tools; if one fails, follow the [error map](#reading-mcp-tool-errors).
 
-1. The user has **published** a reasoning-eligible **decision tree** in the **SMEme web app**.
-2. The **MCP connector** is connected (OAuth in your MCP client). On **`auth_error`**, reconnect once; do **not** retry in a loop.
-3. **The user has logged into SMEme web at least once** so their account is linked (Bearer `sub` matches their SMEme account).
-4. Pick the decision tree via **`smeme_reasoning_list`**. For ordinary chat evaluation, call **`smeme_reasoning_evaluate`** next — **not** ``template_get``.
+1. The **MCP connector** is connected (OAuth in your MCP client). On **`auth_error`**, reconnect once; do **not** retry in a loop.
+2. A local SMEme account exists for this Bearer (`sub` matches). If `auth_error` asks the user to complete web sign-in or legal consent, quote that message — do **not** treat a prior web login as a universal prerequisite.
+3. Pick the decision tree via **`smeme_reasoning_list`**. For ordinary chat evaluation, call **`smeme_reasoning_evaluate`** next — **not** ``template_get``. List rows use **`id`**; pass that value to later tools as **`decision_tree_id`**. Sample rows also include **`sample_key`: `"smeme_sample_v1"`**.
 
 ### Worksheet: `template_check` vs `template_get` (bulk/audit only)
 
@@ -41,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.8.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.9.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.8.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.9.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
@@ -62,7 +61,7 @@ When the user asks **what these tools let them do**, call **`smeme_reasoning_cap
 ## Case evaluation happy path (guided Inquire)
 
 1. **`smeme_reasoning_capabilities`** — session bootstrap; `reasoning.tools` is the authoritative tool list. See [Tool catalog](#tool-catalog).
-2. **`smeme_reasoning_list`** — your discoverable decision trees. **If this is empty, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
+2. **`smeme_reasoning_list`** — your discoverable decision trees. The first empty list may create the per-user sample (Deployed + Listed). **If the list stays empty or returns `quota_exceeded`, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
 3. **`smeme_reasoning_evaluate(decision_tree_id)`** — starts a durable inquiry. Returns a blind **`task`** (`question_id`, `stem`, `options`) and **`inquiry_session_id`**, or a terminal **`report`**, or **`isolated_evaluations_required`**.
 4. Gather evidence for **only that task** (subject-scoped files/chat). Do not dump the full worksheet.
 5. **`smeme_reasoning_evaluate_continue`** — pass `inquiry_session_id`, `question_id`, `selected_option`, `provenance_id` (omit option to abstain). Repeat until:
@@ -132,7 +131,7 @@ Optional reach assumptions \(\phi\): `force_reachable_ids` / `force_unreachable_
 | Field | Meaning |
 |-------|---------|
 | `conclusions[]` | Each possible decision tree outcome with `conclusion_id`, `conclusion_title`, `summary`, `reachable` |
-| `count` / `reachable_count` | Total conclusions vs structurally reachable under published rules |
+| `count` / `reachable_count` | Total conclusions vs structurally reachable under Deployed rules |
 | `workflow_rules_consistent` | `false` when branching rules cannot all hold together |
 | `hint` | Present when rules are inconsistent or some conclusions are unreachable |
 
@@ -255,8 +254,8 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 | `auth_error` | Not connected, or first-time signup gates failed | Read `error.message` and `auth_reason` to the user. Locked reasons: `no_local_user_for_clerk_sub` (flag off / complete web sign-in once), `email_not_verified`, `primary_email_missing`, `legal_consent_required`, `legal_config_incomplete`, `clerk_lookup_failed`, `provision_rate_limited`. Complete Clerk verify/consent (or web signup when URLs are present), **reconnect** the MCP connector, then retry once. Quote URLs from the error — do **not** retry in a loop. |
 | `not_found` | Decision tree id unknown, or not owned by this user | Call `smeme_reasoning_list` and use an `id` from there. Do not invent ids. |
 | `not_discoverable` | Decision tree exists but is hidden from MCP | Ask the user to go to their **SMEme dashboard**, find the decision tree, and turn on the **Listed** toggle. Then retry. |
-| `no_reasoning_artifact` | Decision tree not published/deployed for reasoning | Ask the user to **publish** the decision tree from the SMEme editor, then retry. |
-| `stale_theory` | Decision tree changed since it was last published | Ask the user to **re-publish** it from the SMEme editor, then retry the same answers. |
+| `no_reasoning_artifact` | Decision tree not Deployed for reasoning | Ask the user to **Deploy** the decision tree from the SMEme editor, then retry. |
+| `stale_theory` | Decision tree changed since it was last Deployed | Ask the user to **Redeploy** it from the SMEme editor, then retry the same answers. |
 | `account_downgrade_pending` | Plan/billing limits this decision tree right now | Surface the `message` (and any `choose_workflow_url`); the user resolves it in SMEme. Do not retry blindly. |
 | `quota_exceeded` | Monthly reasoning allowance reached | Tell the user plainly. The allowance resets at the start of their next billing period — they can see the exact date on the **SMEme billing page**. Suggest upgrading if they need access sooner. Do not retry. |
 | `concurrency_limit` | Another MCP tool call is already in flight for this account | Wait a moment and retry once. This is transient coordination, not a monthly cap hit — do not suggest upgrading. |
@@ -286,11 +285,17 @@ Every tool returns either a success object **or** `{"error": {"code": "...", "me
 
 ### When `smeme_reasoning_list` is empty
 
-An empty `decision_trees` array (`count: 0`) means nothing is currently discoverable for this account. Tell the user:
+The first empty list **creates** the per-user sample when the account currently has zero Listed trees: a sanitized walkthrough, owned by this user, created **Deployed + Listed**. It consumes one decision-tree slot; later list calls reuse it. Sample rows expose **`sample_key`: `"smeme_sample_v1"`**. Pass list **`id`** to later tools as **`decision_tree_id`**.
 
-> "Nothing showed up in the list. On your **SMEme dashboard**, find the decision tree and make sure (1) it's been **published** from the editor, and (2) the **Listed** toggle is **on**. Then I'll try again."
+`smeme_reasoning_list` has MCP weight 0 but is **not** read-only, because that first call may write. **`validate_answers`** and **`evaluate_answers`** consume MCP allowance.
 
-Never fabricate a `decision_tree_id` to work around an empty list.
+A **persistent** empty `decision_trees` array (`count: 0`) is a recovery case, not the ordinary first-run outcome. Tell the user:
+
+> "Nothing showed up in the list. On your **SMEme dashboard**, click **Load sample**, or **Deploy** your own decision tree and set **Listed**. Then I'll try again."
+
+If the error is **`quota_exceeded`**, the account is at its decision-tree cap — do not invent an id; tell the user to free a slot or upgrade.
+
+Never fabricate a `decision_tree_id`.
 
 ### When the user asks what MCP tools exist
 
@@ -300,7 +305,7 @@ If `reasoning.tools` includes **`smeme_authoring_design_guidance`** /
 **`smeme_authoring_validate_graph`** / **`smeme_authoring_create_draft`** /
 **`smeme_authoring_get_draft`** / **`smeme_authoring_update_draft`**, those
 are for **building or revising** a decision tree in chat — they create or update an
-**unpublished** working graph in the user’s SMEme account (`create_draft` /
+**undeployed** working graph in the user’s SMEme account (`create_draft` /
 `update_draft` return `editor_url` and a `graph_hash`). That decision tree
 is **not** ready for evaluate until the user **Deploys** it and sets **Listed**.
 Do not use these tools for case evaluation. For the build path, call
@@ -315,7 +320,8 @@ capabilities) — do **not** load the full evaluation contract via
 - **Same `id` for list and evaluate** — pass the exact `id` from `smeme_reasoning_list` into the evaluate/template tools.
 - **Exact option strings** — answer values must match the worksheet's option labels exactly (case and spacing). When unsure, re-read `template_get`.
 - **Bulk provenance + `harness_next`** — for worksheet Apply, every answered question needs ≥1 evidence ref; validate first; only call **`evaluate_answers`** when **`harness_next` is `phase_2_ok`** (or after resolving `user_input_needed` / `phase_1_continue`). Guided chat uses **`evaluate` / `evaluate_continue`** instead.
-- **Re-publish fixes most "it changed" errors** — `stale_theory` / `no_reasoning_artifact` are almost always resolved by publishing in the SMEme editor.
+- **Redeploy fixes most "it changed" errors** — `stale_theory` / `no_reasoning_artifact` are almost always resolved by Deploy / Redeploy in the SMEme editor.
+- **First report without an LLM** — a host that already has worksheet `raw_answers` can skip guided gather: list (which may seed the sample) → **`validate_answers`** → **`evaluate_answers`**. See Core `examples/smeme_apply_sample.py`. That Apply example does not use an LLM; SMEme-assisted authoring and evidence mapping still may.
 - **Logical analysis** — reuse the evaluate envelope when one exists; otherwise build a baseline envelope. Do not force evaluate first unless the tool requires a forced path/target.
 - **`what_if`** — same provenance envelope for `base_raw_answers_json` and `override_raw_answers_json`; optional shared `force_*_ids`; narrate using `delta` fields (see [Logical analysis tools](#logical-analysis-tools-success-shapes)).
 - **`decisive_support`** — **minimal sufficient evidence** only when the target is already forced; narrate `supports[].support_answers`. Never use for incomplete or inconsistent evaluate results; never describe it as abduction.

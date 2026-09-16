@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from smeme.auth.clerk_auth import (
+    ProvisionError,
     ProvisionFailureReason,
     ProvisionResult,
     assert_provision_gates,
@@ -27,20 +28,20 @@ from smeme.mcp.bearer_auth import (
 
 
 def _legal_settings(**overrides):
-    base = dict(
-        mcp_first_provisioning_enabled=True,
-        legal_terms_url="https://www.smeme.ai/legal/terms",
-        legal_privacy_url="https://www.smeme.ai/legal/privacy",
-        legal_terms_version="2026-07-20",
-        legal_privacy_version="2026-07-20",
-        clerk_oauth_issuer="https://clerk.example.com",
-        effective_base_url="https://www.smeme.ai",
-        mcp_first_provision_rate_limit_per_ip_per_minute=10,
-        mcp_first_provision_rate_limit_per_sub_per_minute=5,
-        mcp_allowed_oauth_client_ids=[],
-        mcp_oauth_access_token_audience=None,
-        clerk_secret_key="sk_test",
-    )
+    base = {
+        "mcp_first_provisioning_enabled": True,
+        "legal_terms_url": "https://www.smeme.ai/legal/terms",
+        "legal_privacy_url": "https://www.smeme.ai/legal/privacy",
+        "legal_terms_version": "2026-07-20",
+        "legal_privacy_version": "2026-07-20",
+        "clerk_oauth_issuer": "https://clerk.example.com",
+        "effective_base_url": "https://www.smeme.ai",
+        "mcp_first_provision_rate_limit_per_ip_per_minute": 10,
+        "mcp_first_provision_rate_limit_per_sub_per_minute": 5,
+        "mcp_allowed_oauth_client_ids": [],
+        "mcp_oauth_access_token_audience": None,
+        "clerk_secret_key": "sk_test",
+    }
     base.update(overrides)
 
     def mcp_first_legal_config_complete():
@@ -54,7 +55,9 @@ def _legal_settings(**overrides):
     return MagicMock(mcp_first_legal_config_complete=mcp_first_legal_config_complete, **base)
 
 
-def _clerk_user(*, verified: bool = True, legal_ts: int | None = 1_720_000_000, email="a@example.com"):
+def _clerk_user(
+    *, verified: bool = True, legal_ts: int | None = 1_720_000_000, email="a@example.com"
+):
     verification = SimpleNamespace(status="verified" if verified else "unverified")
     ea = SimpleNamespace(
         id="idn_1",
@@ -77,9 +80,7 @@ def test_normalize_clerk_profile_verified_and_legal():
 
 def test_normalize_clerk_profile_legal_accepted_at_milliseconds():
     """Live Clerk Backend may return ms; seconds path must not 500."""
-    profile = normalize_clerk_profile(
-        "user_abc", _clerk_user(legal_ts=1_720_000_000_000)
-    )
+    profile = normalize_clerk_profile("user_abc", _clerk_user(legal_ts=1_720_000_000_000))
     assert profile.legal_accepted_at == datetime.fromtimestamp(1_720_000_000, tz=UTC)
 
 
@@ -107,27 +108,23 @@ def test_assert_gates_locked_reasons(monkeypatch):
     monkeypatch.setattr("smeme.auth.clerk_auth.settings", _legal_settings())
     no_primary = _clerk_user()
     no_primary.primary_email_address_id = None
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(ProvisionError) as excinfo:
         assert_provision_gates(normalize_clerk_profile("user_abc", no_primary))
     assert excinfo.value.reason == ProvisionFailureReason.PRIMARY_EMAIL_MISSING
 
-    with pytest.raises(Exception) as excinfo:
-        assert_provision_gates(
-            normalize_clerk_profile("user_abc", _clerk_user(verified=False))
-        )
+    with pytest.raises(ProvisionError) as excinfo:
+        assert_provision_gates(normalize_clerk_profile("user_abc", _clerk_user(verified=False)))
     assert excinfo.value.reason == ProvisionFailureReason.EMAIL_NOT_VERIFIED
 
-    with pytest.raises(Exception) as excinfo:
-        assert_provision_gates(
-            normalize_clerk_profile("user_abc", _clerk_user(legal_ts=None))
-        )
+    with pytest.raises(ProvisionError) as excinfo:
+        assert_provision_gates(normalize_clerk_profile("user_abc", _clerk_user(legal_ts=None)))
     assert excinfo.value.reason == ProvisionFailureReason.LEGAL_CONSENT_REQUIRED
 
     monkeypatch.setattr(
         "smeme.auth.clerk_auth.settings",
         _legal_settings(legal_terms_url=""),
     )
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(ProvisionError) as excinfo:
         assert_provision_gates(normalize_clerk_profile("user_abc", _clerk_user()))
     assert excinfo.value.reason == ProvisionFailureReason.LEGAL_CONFIG_INCOMPLETE
 
@@ -220,9 +217,7 @@ async def test_get_mcp_user_provisions_when_gates_pass(monkeypatch):
         ),
         patch(
             "smeme.auth.clerk_auth.resolve_local_user_for_clerk",
-            new=AsyncMock(
-                return_value=ProvisionResult(user=user, telemetry_event="created")
-            ),
+            new=AsyncMock(return_value=ProvisionResult(user=user, telemetry_event="created")),
         ),
     ):
         mock_cache.get_public_key = AsyncMock(return_value=MagicMock())
@@ -342,9 +337,7 @@ async def test_resolve_existing_user_no_clerk_fetch(monkeypatch):
     db.refresh = AsyncMock()
     db.add = MagicMock()
     with patch("smeme.auth.clerk_auth.fetch_clerk_profile", new=AsyncMock()) as fetch:
-        outcome = await resolve_local_user_for_clerk(
-            db, "user_old", enforce_new_user_gates=True
-        )
+        outcome = await resolve_local_user_for_clerk(db, "user_old", enforce_new_user_gates=True)
         fetch.assert_not_called()
     assert outcome.user is existing
     assert outcome.telemetry_event == "grandfathered"

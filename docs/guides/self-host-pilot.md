@@ -134,11 +134,39 @@ Run in order; stop at the first failure.
    (`{BASE_URL}{MCP_HTTP_PATH}`).
 4. **Authenticated tools** — `smeme_reasoning_capabilities` then
    `smeme_reasoning_guidance_get` succeed.
-5. **List / evaluate** — with a **Listed** deployed tree, list + evaluate return a
-   server **report**.
-6. **Draft authoring (optional)** — `smeme_authoring_design_guidance` returns 2.5.0
+5. **List / evaluate** — `smeme_reasoning_list` on a first empty list may create
+   the per-user sample (Deployed + Listed, one decision-tree slot). Pass list
+   `id` as `decision_tree_id`. Persistent empty is recovery: dashboard
+   **Load sample**, or Deploy + Listed. At tree quota, list returns
+   `quota_exceeded` instead of seeding.
+6. **First report without an LLM** — see [§7](#7-first-report-without-an-llm).
+7. **Draft authoring (optional)** — `smeme_authoring_design_guidance` returns 2.5.0
    content; validate + create draft; confirm dashboard draft (no auto-Deploy).
-7. **Wizard (optional)** — open generation UI; complete a brief with keys set.
+8. **Wizard (optional)** — open generation UI; complete a brief with keys set.
+
+## 7. First report without an LLM
+
+Use the Core Apply example as the first-report check. Success is a **report**,
+not a dashboard screenshot. The no-LLM claim applies to this Apply path; SMEme-assisted
+authoring and evidence mapping may still use an LLM.
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install 'fastmcp==4.0.3'
+export SMEME_MCP_URL="${BASE_URL%/}/api/v1/mcp"
+export SMEME_OAUTH_CLIENT_ID=<your static PKCE client id>
+python examples/smeme_apply_sample.py
+```
+
+- Self-host with DCR off: set both `SMEME_MCP_URL` and `SMEME_OAUTH_CLIENT_ID`.
+  Do not use bare `OAuth()`. FastMCP listens on `http://localhost:8787/callback`
+  — allow that URI on the Clerk MCP OAuth app.
+- Dashboard fallback: any signed-in user can click **Load sample** (subject to
+  decision-tree quota). Idempotent reuse consumes no extra slot.
+- `validate_answers` and `evaluate_answers` consume MCP allowance; list has
+  weight 0 but may write the sample.
+- The sample is a sanitized per-user walkthrough, not legal, tax, or other
+  expert advice.
 
 ## Stuck?
 

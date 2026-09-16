@@ -88,6 +88,9 @@ def test_generated_markdown_is_non_empty_and_connector_safe() -> None:
     assert "installed_plugin_version" not in GUIDANCE_CONTENT_MARKDOWN
     assert "Download the latest bundle" not in GUIDANCE_CONTENT_MARKDOWN
     assert "SMEme Reasoning — Agent Guidance" in GUIDANCE_CONTENT_MARKDOWN
+    assert "sample_key" in GUIDANCE_CONTENT_MARKDOWN
+    assert "smeme_sample_v1" in GUIDANCE_CONTENT_MARKDOWN
+    assert "Load sample" in GUIDANCE_CONTENT_MARKDOWN
     assert_blind_protocol_safe(GUIDANCE_CONTENT_MARKDOWN)
 
 

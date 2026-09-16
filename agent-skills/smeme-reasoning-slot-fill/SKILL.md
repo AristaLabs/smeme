@@ -54,7 +54,7 @@ Establish **one subject** (case, patient, vendor, matter, etc.) before wide sear
 
 ## Slot-fill steps
 
-1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to re-publish the decision tree in the SMEme web app.
+1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to **Redeploy** the decision tree in the SMEme web app.
 2. **Subject** — Confirm with the user when ambiguous.
 3. **Gather** — Subject-scoped connectors, files, chat.
 4. **Build envelope** — Map each question to one exact option string; register each source in **`evidence_items`** with a **`locator`** you can reuse to read the full document again.

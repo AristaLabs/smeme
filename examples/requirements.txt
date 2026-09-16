@@ -1,4 +1,6 @@
-# Host-side pins for examples/smeme_langgraph_withholding.py
+# Host-side pins for examples/.
+# smeme_apply_sample.py needs only fastmcp.
+# smeme_langgraph_withholding.py additionally needs langchain[mcp] and langchain-openai.
 # (not Core appliance dependencies — install in a separate venv)
 langchain[mcp]==1.4.0
 fastmcp==4.0.3
