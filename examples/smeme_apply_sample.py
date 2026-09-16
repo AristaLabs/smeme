@@ -61,6 +61,16 @@ def _oauth() -> Any:
 def _payload(result: Any) -> Any:
     data = getattr(result, "data", None)
     if data is not None:
+        model_dump = getattr(data, "model_dump", None)
+        if callable(model_dump):
+            return model_dump(mode="json")
+        if isinstance(data, dict):
+            return data
+        if isinstance(data, str):
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                return {"_raw": data}
         return data
     structured = getattr(result, "structured_content", None)
     if structured is not None:
