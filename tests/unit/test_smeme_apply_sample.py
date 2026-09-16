@@ -29,6 +29,17 @@ def test_payload_decodes_fastmcp_4_typed_output(payload) -> None:
     assert payload(result) == {"reasoning": {"tools": ["smeme_reasoning_list"]}}
 
 
+def test_payload_decodes_fastmcp_top_level_generated_wrapper(payload) -> None:
+    capabilities_json = '{"reasoning":{"tools":["smeme_reasoning_list"]}}'
+    output_type = create_model(
+        "smeme_reasoning_capabilitiesOutput",
+        result=(str, ...),
+    )
+    result = output_type(result=capabilities_json)
+
+    assert payload(result) == {"reasoning": {"tools": ["smeme_reasoning_list"]}}
+
+
 @pytest.mark.parametrize(
     ("data", "expected"),
     [

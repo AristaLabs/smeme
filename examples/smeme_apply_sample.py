@@ -59,6 +59,13 @@ def _oauth() -> Any:
 
 
 def _payload(result: Any) -> Any:
+    model_dump = getattr(result, "model_dump", None)
+    if callable(model_dump):
+        dumped = model_dump(mode="json")
+        if isinstance(dumped, dict) and set(dumped) == {"result"}:
+            return _payload(dumped["result"])
+        return dumped
+
     data = getattr(result, "data", None)
     if data is not None:
         model_dump = getattr(data, "model_dump", None)
