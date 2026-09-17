@@ -12,9 +12,34 @@ from pydantic import create_model
 
 
 @pytest.fixture(scope="module")
-def payload():
-    script = Path(__file__).resolve().parents[2] / "examples" / "smeme_apply_sample.py"
-    return runpy.run_path(str(script))["_payload"]
+def script_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "examples" / "smeme_apply_sample.py"
+
+
+@pytest.fixture(scope="module")
+def payload(script_path):
+    return runpy.run_path(str(script_path))["_payload"]
+
+
+def test_script_declares_isolated_uv_dependencies(script_path) -> None:
+    source = script_path.read_text(encoding="utf-8")
+
+    assert source.startswith("# /// script\n")
+    assert '# requires-python = ">=3.13"' in source
+    assert '#   "fastmcp==4.0.3",' in source
+    assert "# ///\n" in source
+
+
+def test_canned_answers_include_provenance_for_every_question(script_path) -> None:
+    namespace = runpy.run_path(str(script_path))
+    envelope = namespace["_canned_ingest_envelope"]()
+    answers = envelope["answers"]
+    evidence_items = envelope["evidence_items"]
+    evidence_refs = envelope["evidence_refs"]
+
+    evidence_ids = {item["id"] for item in evidence_items}
+    assert set(evidence_refs) == set(answers)
+    assert all(refs and set(refs) <= evidence_ids for refs in evidence_refs.values())
 
 
 def test_payload_decodes_fastmcp_4_typed_output(payload) -> None:

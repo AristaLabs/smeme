@@ -30,7 +30,11 @@ from smeme.reasoning.assistant_tools_row_status import reasoning_tools_row_state
 from smeme.reasoning.ir.serialize import ir_from_json
 from smeme.reasoning.publish_readiness import assess_publish_readiness_sync
 from smeme.reasoning.runtime.evaluate import evaluate_reasoning
-from smeme.reasoning.runtime.ingest_envelope import ParsedIngestEnvelope
+from smeme.reasoning.runtime.ingest_envelope import (
+    ParsedIngestEnvelope,
+    parse_ingest_envelope_dict,
+    validate_reasoning_ingest_envelope,
+)
 from smeme.reasoning.runtime.report_builder import build_evaluation_report
 from tests.conftest import auth_as
 
@@ -88,6 +92,18 @@ def test_example_selects_only_durably_identified_sample() -> None:
     assert namespace["CANNED_RAW_ANSWERS"] == CANNED_RAW_ANSWERS
     assert namespace["_pick_tree"]([{"id": "unrelated", "title": "Another tree"}]) is None
     assert namespace["_pick_tree"]([{"id": "collision", "title": SAMPLE_TITLE}]) is None
+
+
+def test_example_canned_envelope_passes_grounding_validation() -> None:
+    script_path = Path(__file__).resolve().parents[2] / "examples" / "smeme_apply_sample.py"
+    namespace = runpy.run_path(str(script_path))
+    envelope = parse_ingest_envelope_dict(namespace["_canned_ingest_envelope"]())
+    readiness = assess_publish_readiness_sync(sample_graph())
+
+    assert readiness.ir is not None
+    warnings, harness_next = validate_reasoning_ingest_envelope(readiness.ir, envelope)
+    assert warnings == []
+    assert harness_next == "phase_2_ok"
 
 
 async def _make_user(session, *, prefix: str) -> User:
