@@ -32,7 +32,7 @@ curl -fsS http://127.0.0.1:8000/api/v1/health/db
 ```
 
 - App (loopback): http://127.0.0.1:8000 → redirects toward `/decision-trees/dashboard`
-- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.18`
+- Default image in `.env.core.example`: `ghcr.io/aristalabs/smeme:v0.9.19`
 - Prefer digest pins in production (copy from the GitHub Release / GHCR evidence
   for that tag after publish) — see [self-host-env.md](self-host-env.md)
 
