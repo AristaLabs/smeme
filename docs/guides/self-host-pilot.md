@@ -151,18 +151,22 @@ not a dashboard screenshot. The no-LLM claim applies to this Apply path; SMEme-a
 authoring and evidence mapping may still use an LLM.
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install 'fastmcp==4.0.3'
 export SMEME_MCP_URL="${BASE_URL%/}/api/v1/mcp"
 export SMEME_OAUTH_CLIENT_ID=<your static PKCE client id>
-python examples/smeme_apply_sample.py
+uv run examples/smeme_apply_sample.py
 ```
 
+- The script declares its tested FastMCP dependency with PEP 723 metadata.
+  `uv run` creates a project-isolated environment; do not activate the Core
+  `.venv` or install FastMCP manually.
 - Self-host with DCR off: set both `SMEME_MCP_URL` and `SMEME_OAUTH_CLIENT_ID`.
   Do not use bare `OAuth()`. FastMCP listens on `http://localhost:8787/callback`
   — allow that URI on the Clerk MCP OAuth app.
 - Dashboard fallback: any signed-in user can click **Load sample** (subject to
   decision-tree quota). Idempotent reuse consumes no extra slot.
+- Automatic MCP seeding occurs only when list is empty. If the account has
+  other Listed trees but no sample, click **Load sample** before running the
+  example.
 - `validate_answers` and `evaluate_answers` consume MCP allowance; list has
   weight 0 but may write the sample.
 - The sample is a sanitized per-user walkthrough, not legal, tax, or other

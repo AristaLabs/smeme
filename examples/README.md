@@ -11,18 +11,71 @@ MCP list seeds it; otherwise click **Load sample** on the dashboard), send
 canned radio `raw_answers`, print a `report`. Success is: the solver returned
 a report.
 
-SaaS is **DCR-off**. Do not use bare `OAuth()`. Pass the public PKCE
-`client_id` (default matches `/docs/mcp`). FastMCP callback
-`http://localhost:8787/callback` must be on the Clerk MCP OAuth app. Bearer,
-not the browser cookie.
+### Run it
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install 'fastmcp==4.0.3'
-# export SMEME_MCP_URL=...           # optional; default https://www.smeme.ai/api/v1/mcp
-# export SMEME_OAUTH_CLIENT_ID=...   # optional; default public PKCE id
-python examples/smeme_apply_sample.py
+uv run examples/smeme_apply_sample.py
 ```
+
+That is the complete production command. The script's
+[PEP 723](https://peps.python.org/pep-0723/) metadata asks uv for the tested
+FastMCP version and isolates it from this project's dependencies. Do not
+activate `.venv` or install FastMCP manually.
+
+The command opens a browser for OAuth consent and starts a temporary callback
+listener at `http://localhost:8787/callback`. Sign in to the same SMEme account
+that owns the sample. Success ends with:
+
+```text
+result_kind='...'
+headline='...'
+the solver returned a report.
+```
+
+The in-memory OAuth-token warning is expected for this one-shot example.
+
+### Before running
+
+- Use an account with the SMEme sample already loaded, **or** an account with
+  zero Listed decision trees. The first empty `smeme_reasoning_list` may create
+  the sample automatically.
+- If the account has other Listed trees but no sample, list is intentionally
+  non-empty and does not seed. Click **Load sample** on the dashboard first.
+- The sample consumes one decision-tree slot. At the plan limit, loading or
+  seeding returns `quota_exceeded`.
+- The script selects only `sample_key: smeme_sample_v1`; it will never send
+  canned sample answers to another tree.
+
+### Another deployment
+
+The defaults target `https://www.smeme.ai` and its public PKCE client. For
+staging or self-hosting, override **both** values with that deployment's MCP
+URL and registered OAuth client:
+
+```bash
+SMEME_MCP_URL=https://your-host.example/api/v1/mcp \
+SMEME_OAUTH_CLIENT_ID=your_registered_public_client_id \
+uv run examples/smeme_apply_sample.py
+```
+
+SaaS is **DCR-off**. Do not use bare `OAuth()`. The OAuth application must
+allow the exact callback `http://localhost:8787/callback`. Authentication uses
+an OAuth Bearer token, not the browser session cookie.
+
+### Troubleshooting
+
+- **`invalid_client`** — the client ID does not exist in the OAuth tenant for
+  the target URL. Use that deployment's registered client ID; production and
+  internal staging tenants can differ.
+- **`redirect_uri` mismatch** — add
+  `http://localhost:8787/callback` to the OAuth application's allowed redirect
+  URIs, or set `SMEME_OAUTH_CALLBACK_HOST` /
+  `SMEME_OAUTH_CALLBACK_PORT` consistently.
+- **No Listed `'SMEme sample'` tree** — if list returned other trees, click
+  **Load sample**. Automatic creation happens only when list is empty.
+- **`ModuleNotFoundError` or mixed `fastmcp`/`mcp` imports** — use the exact
+  `uv run examples/smeme_apply_sample.py` command from the repository root.
+  Inline metadata isolates the script; manual virtualenv setup is unnecessary.
 
 Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions/30).
 

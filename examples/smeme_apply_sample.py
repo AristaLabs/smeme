@@ -1,13 +1,28 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "fastmcp==4.0.3",
+# ]
+# ///
+
 """SMEme Apply — no-LLM client against the sample decision tree.
 
 Talks to the **running app** over MCP: OAuth, list, canned ``raw_answers``,
 ``evaluate_answers``, print a ``report``. Success is a report, not a dashboard
 screenshot. The LangGraph interrupt listing is chapter 2.
 
+From the Core checkout, run ``uv run examples/smeme_apply_sample.py``. The
+inline dependency metadata gives uv a project-isolated FastMCP environment; do
+not activate the Core virtualenv or install client packages by hand.
+
 SaaS is DCR-off: do **not** use bare ``OAuth()``. Pass the public PKCE
 ``client_id`` (default matches /docs/mcp). FastMCP listens on
 ``http://localhost:8787/callback`` — that exact URI must be allowed on the
 Clerk MCP OAuth application. Bearer, not the browser cookie.
+
+The default URL and client ID target production. Operators testing another
+deployment must set both ``SMEME_MCP_URL`` and ``SMEME_OAUTH_CLIENT_ID`` to
+values registered by that deployment's OAuth provider.
 
 License: source-available / fair-code (SMEme SUL 1.0), not OSS.
 Help: https://github.com/AristaLabs/smeme/discussions/30
@@ -40,12 +55,37 @@ SAMPLE_FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 SAMPLE_KEY = SAMPLE_FIXTURE["sample_key"]
 SAMPLE_TITLE = SAMPLE_FIXTURE["title"]
 CANNED_RAW_ANSWERS = SAMPLE_FIXTURE["canned_raw_answers"]
+CANNED_EVIDENCE_ID = "fixture:smeme_sample_v1"
 
 REQUIRED_TOOLS = {
     "smeme_reasoning_list",
     "smeme_reasoning_validate_answers",
     "smeme_reasoning_evaluate_answers",
 }
+
+
+def _canned_ingest_envelope() -> dict[str, Any]:
+    """Wrap fixture answers in explicit provenance required by current validation."""
+    return {
+        "answers": CANNED_RAW_ANSWERS,
+        "evidence_items": [
+            {
+                "id": CANNED_EVIDENCE_ID,
+                "source_id": SAMPLE_KEY,
+                "title": "Bundled SMEme sample answers",
+                "locator": (
+                    "https://github.com/AristaLabs/smeme/blob/main/"
+                    "smeme/decision_tree/fixtures/smeme_sample_v1.json"
+                ),
+                "locator_kind": "url",
+                "excerpt": (
+                    "The bundled walkthrough answers Yes to both sample questions "
+                    "to exercise the deterministic Apply path."
+                ),
+            }
+        ],
+        "evidence_refs": {question_id: [CANNED_EVIDENCE_ID] for question_id in CANNED_RAW_ANSWERS},
+    }
 
 
 def _oauth() -> Any:
@@ -142,7 +182,7 @@ async def main() -> int:
     print("SaaS is DCR-off: public PKCE client id, not bare OAuth().")
     print("If Clerk says redirect_uri mismatch, add that exact URI to the MCP OAuth app.")
 
-    raw_answers_json = json.dumps(CANNED_RAW_ANSWERS)
+    raw_answers_json = json.dumps(_canned_ingest_envelope())
     async with Client(SMEME_MCP_URL, auth=_oauth()) as client:
         capabilities = _payload(await client.call_tool("smeme_reasoning_capabilities", {}))
         _pp("smeme_reasoning_capabilities", capabilities)
