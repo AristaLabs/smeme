@@ -346,6 +346,7 @@ def make_nodes(
         return {
             "proposed_answer": {
                 "question_id": task["question_id"],
+                "stem": task.get("stem"),
                 "raw": proposed.get("raw"),
                 "value": value,
                 "options": task["options"],
@@ -585,7 +586,8 @@ def prompt_admission(
     proposal: dict[str, Any],
     input_fn: Callable[[str], str] = input,
 ) -> dict[str, Any]:
-    print(f"\nQuestion proposal: {proposal.get('raw')}")
+    print(f"\nQuestion: {proposal.get('stem') or '[stem unavailable]'}")
+    print(f"Proposal: {proposal.get('raw')}")
     options = proposal["options"]
     for index, option in enumerate(options, start=1):
         print(f"  {index}. {option}")

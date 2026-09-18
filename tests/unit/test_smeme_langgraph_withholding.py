@@ -143,8 +143,15 @@ async def test_model_factory_is_lazy_and_injectable() -> None:
     assert created == 1
 
 
-def test_prompt_supports_admit_edit_and_reject() -> None:
-    proposal = {"raw": "Yes", "value": "Yes", "options": ["Yes", "No"]}
+def test_prompt_shows_stem_and_supports_admit_edit_and_reject(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    proposal = {
+        "stem": "Is the payee foreign?",
+        "raw": "Yes",
+        "value": "Yes",
+        "options": ["Yes", "No"],
+    }
 
     answers = iter(["a", "source-1"])
     assert example.prompt_admission(proposal, lambda _: next(answers)) == {
@@ -152,6 +159,7 @@ def test_prompt_supports_admit_edit_and_reject() -> None:
         "value": "Yes",
         "provenance_id": "source-1",
     }
+    assert "Question: Is the payee foreign?" in capsys.readouterr().out
     answers = iter(["e", "2", "source-2"])
     assert example.prompt_admission(proposal, lambda _: next(answers)) == {
         "admit": True,
@@ -172,6 +180,7 @@ async def test_rejection_loops_without_continuation_then_admission_calls_once() 
         config,
     )
     assert paused["__interrupt__"]
+    assert paused["__interrupt__"][0].value["proposal"]["stem"] == "Question?"
 
     paused_again = await app.ainvoke(Command(resume={"admit": False}), config)
     assert paused_again["__interrupt__"]
