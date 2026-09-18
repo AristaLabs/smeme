@@ -83,9 +83,14 @@ Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/di
 
 Guided gather against a **Deployed + Listed** decision tree:
 
-`list` → `evaluate(decision_tree_id)` → model proposes one option → human
-`interrupt()` → `evaluate_continue` → report **or** the next task the solver
-chooses.
+`list` → `evaluate(decision_tree_id)` → host or optional model proposes one
+option → human `interrupt()` → `evaluate_continue` → report, the next task the
+solver chooses, **or** `isolated_evaluations_required`.
+
+The last outcome is an intentional fail-closed boundary: the chat connector
+does not fabricate the independent verification trials. Apply remains the
+shortest first-run path when the host already has a reviewed worksheet and
+wants a deterministic report.
 
 The ACME withholding file (CRM #123) is the prose case from
 [*Introducing SMEme*](https://aristalabs.ai/introducing-smeme.html). Point
