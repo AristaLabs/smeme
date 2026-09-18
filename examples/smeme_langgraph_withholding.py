@@ -587,23 +587,34 @@ def prompt_admission(
     input_fn: Callable[[str], str] = input,
 ) -> dict[str, Any]:
     print(f"\nQuestion: {proposal.get('stem') or '[stem unavailable]'}")
-    print(f"Proposal: {proposal.get('raw')}")
     options = proposal["options"]
+    proposed_value = proposal.get("value")
+    has_proposal = proposed_value in options
+    if has_proposal:
+        print(f"Proposed option: {proposed_value}")
+    else:
+        print("Selection mode: manual operator selection")
     for index, option in enumerate(options, start=1):
         print(f"  {index}. {option}")
-    action = input_fn("[a]dmit proposal, [e]dit/select option, or [r]eject? ").strip().lower()
-    if action in {"r", "reject"}:
-        return {"admit": False}
-    proposed_value = proposal.get("value")
-    if action in {"a", "admit"} and proposed_value in options:
-        selected = proposed_value
-    elif action in {"a", "admit", "e", "edit"}:
-        raw_index = input_fn("Option number: ").strip()
-        try:
-            selected = options[int(raw_index) - 1]
-        except (ValueError, IndexError):
+
+    if has_proposal:
+        action = input_fn("[a]dmit proposal, [e]dit/select option, or [r]eject? ").strip().lower()
+        if action in {"r", "reject"}:
+            return {"admit": False}
+        if action in {"a", "admit"}:
+            selected = proposed_value
+        elif action in {"e", "edit"}:
+            raw_index = input_fn("Option number: ").strip()
+            selected = _option_at(options, raw_index)
+        else:
             return {"admit": False}
     else:
+        raw_index = input_fn("Option number, or [r]eject? ").strip()
+        if raw_index.lower() in {"r", "reject"}:
+            return {"admit": False}
+        selected = _option_at(options, raw_index)
+
+    if selected is None:
         return {"admit": False}
     provenance_id = input_fn("Non-empty provenance id: ").strip()
     if not provenance_id:
@@ -613,6 +624,16 @@ def prompt_admission(
         "value": selected,
         "provenance_id": provenance_id,
     }
+
+
+def _option_at(options: list[str], raw_index: str) -> str | None:
+    try:
+        index = int(raw_index)
+    except ValueError:
+        return None
+    if 1 <= index <= len(options):
+        return options[index - 1]
+    return None
 
 
 # Prose case from Introducing SMEme. Not a live Listed-tree stem.

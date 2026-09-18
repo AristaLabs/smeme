@@ -169,6 +169,26 @@ def test_prompt_shows_stem_and_supports_admit_edit_and_reject(
     assert example.prompt_admission(proposal, lambda _: "r") == {"admit": False}
 
 
+def test_manual_prompt_accepts_option_number_directly(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    proposal = {
+        "stem": "Is the payee foreign?",
+        "raw": "No model proposal; operator selection required.",
+        "value": None,
+        "options": ["Yes", "No"],
+    }
+    answers = iter(["1", "source-1"])
+
+    assert example.prompt_admission(proposal, lambda _: next(answers)) == {
+        "admit": True,
+        "value": "Yes",
+        "provenance_id": "source-1",
+    }
+    assert "Selection mode: manual operator selection" in capsys.readouterr().out
+    assert example.prompt_admission(proposal, lambda _: "0") == {"admit": False}
+
+
 @pytest.mark.asyncio
 async def test_rejection_loops_without_continuation_then_admission_calls_once() -> None:
     tools = _tools()
