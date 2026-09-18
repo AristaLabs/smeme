@@ -93,12 +93,23 @@ The ACME withholding file (CRM #123) is the prose case from
 
 ### Pins
 
+The script carries isolated PEP 723 pins, so the recommended setup is:
+
 ```bash
-python -m venv .venv && source .venv/bin/activate
+uv run examples/smeme_langgraph_withholding.py --help
+```
+
+For a reusable examples environment instead, install the same exact pins:
+
+```bash
+python -m venv .venv-examples
+source .venv-examples/bin/activate
 pip install -r examples/requirements.txt
 ```
 
-`langchain.mcp` is flagged **BETA** in langchain 1.4.0.
+`langchain.mcp` is flagged **BETA** in LangChain 1.4.0. The tested client
+versions are LangChain 1.4.0, LangGraph 1.2.11, FastMCP 4.0.3, and
+langchain-openai 1.1.7.
 
 ### SaaS OAuth (DCR off)
 
@@ -108,22 +119,58 @@ PKCE `client_id` (default matches `/docs/mcp`). FastMCP listens on
 `http://localhost:8787/callback` — that exact URI must be allowed on the MCP
 OAuth application. Tokens stay in memory; each run re-opens the browser.
 
-Self-host with DCR off: set `SMEME_MCP_URL` and `SMEME_OAUTH_CLIENT_ID` to your
-pre-registered client.
+Self-hosted MCP is not a Clerk-free, one-command authenticated path. Configure
+an external OIDC/OAuth issuer, the local user mapping, a registered public
+client, and the exact callback URI. Then set `SMEME_MCP_URL` and
+`SMEME_OAUTH_CLIENT_ID` for that deployment.
 
 ### Run
 
+The default is model-free and manual. The operator sees every solver task,
+selects or edits an exact offered option, supplies a non-empty provenance ID,
+and explicitly admits or rejects it:
+
 ```bash
-export OPENAI_API_KEY=...          # or a Hugging Face / TGI token
-# export OPENAI_BASE_URL=https://...   # optional; ChatOpenAI is OpenAI-compatible
-# export MODEL_ID=meta-llama/Llama-3.3-70B-Instruct
 export SMEME_DECISION_TREE_ID=<uuid from smeme_reasoning_list.id>
 
-python examples/smeme_langgraph_withholding.py
+uv run examples/smeme_langgraph_withholding.py
 ```
 
-`run()` always hits `interrupt()` and then resumes with `Command(resume=…)`.
-The file's auto-admit is mechanical so the loop compiles; a human sits at that
-gate in production.
+Tree selection is mandatory. The script checks that this exact ID appears in
+the Listed-tree response; it never falls back to the first row.
+
+To add a lazy OpenAI-compatible proposal model:
+
+```bash
+export OPENAI_API_KEY=...              # or provider token
+# export OPENAI_BASE_URL=https://...   # Hugging Face endpoint, TGI, vLLM, etc.
+# export MODEL_ID=meta-llama/Llama-3.3-70B-Instruct
+uv run examples/smeme_langgraph_withholding.py --model
+```
+
+The model only proposes. The same operator admission prompt still runs before
+`evaluate_continue`.
+
+For non-interactive smoke testing only:
+
+```bash
+uv run examples/smeme_langgraph_withholding.py --mechanical-first-option
+```
+
+That flag prints **MECHANICAL DEMONSTRATION ONLY** and admits the first offered
+option. It is not the default or a reference admission policy. A rejection
+loops back to proposal/manual selection and sends no continuation call.
+
+For a bounded hosted verification, reject once, admit once, and use:
+
+```bash
+uv run examples/smeme_langgraph_withholding.py \
+  --stop-after-first-admission \
+  --evidence-output /tmp/smeme-langgraph-hosted-evidence.json
+```
+
+The evidence file contains package versions, tool names, response kinds, and
+sanitized interrupt metadata. It never serializes OAuth objects, tokens,
+headers, task stems, option text, matter context, or provenance values.
 
 Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions/30).
