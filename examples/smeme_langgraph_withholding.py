@@ -29,7 +29,7 @@ The claim, in the graph itself:
   bootstrap: list items are keyed by id; pass that UUID to
              evaluate(decision_tree_id). The server returns one blind task
              {question_id, stem, options} with options a list of strings.
-  propose:   open model picks EXACTLY ONE option from the task, citing a source
+  propose:   host or optional model proposes EXACTLY ONE offered option
   admit:     interrupt() — counsel admits / edits (among the same options) / rejects
   continue:  evaluate_continue(inquiry_session_id, question_id,
                                selected_option, provenance_id)
