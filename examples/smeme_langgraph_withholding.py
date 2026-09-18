@@ -3,7 +3,7 @@
 # dependencies = [
 #   "fastmcp==4.0.3",
 #   "langchain[mcp]==1.4.0",
-#   "langchain-openai==1.1.7",
+#   "langchain-openai==1.6.2",
 #   "langgraph==1.2.11",
 # ]
 # ///

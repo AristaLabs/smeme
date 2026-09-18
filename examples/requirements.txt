@@ -4,5 +4,5 @@
 # (not Core appliance dependencies — install in a separate venv)
 langchain[mcp]==1.4.0
 fastmcp==4.0.3
-langchain-openai==1.1.7
+langchain-openai==1.6.2
 langgraph==1.2.11

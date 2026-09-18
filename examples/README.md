@@ -114,7 +114,7 @@ pip install -r examples/requirements.txt
 
 `langchain.mcp` is flagged **BETA** in LangChain 1.4.0. The tested client
 versions are LangChain 1.4.0, LangGraph 1.2.11, FastMCP 4.0.3, and
-langchain-openai 1.1.7.
+langchain-openai 1.6.2.
 
 ### SaaS OAuth (DCR off)
 
