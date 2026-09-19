@@ -169,6 +169,27 @@ def test_g1_2_verify_walk_over_resolving_support() -> None:
     _ = fixture
 
 
+def test_analyze_emits_bounded_internal_telemetry(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO", logger="smeme.reasoning.runtime.inquire.analyze")
+
+    _fixture, _admitted, directive = _analyze(
+        fork_g2_graph(),
+        {"q1": "Yes", "q2": "B"},
+    )
+
+    assert directive.action == "VERIFY"
+    record = next(
+        record for record in caplog.records if record.message == "Inquire ANALYZE completed"
+    )
+    assert record.inquire_phase == "resolving_support"
+    assert record.inquire_sat_calls > 0
+    assert record.inquire_general_sat_calls > 0
+    assert record.inquire_resolving_support_sat_calls > 0
+    assert record.inquire_elapsed_ms >= 0
+    assert record.inquire_max_resolving_support_sat_calls == 2000
+    assert record.inquire_resolving_support_timeout_ms == 5000
+
+
 @pytest.mark.parametrize("support_status", ["budget", "timeout", "unknown"])
 def test_resolved_support_miss_is_resolving_support_incomplete(
     support_status: str,
@@ -194,9 +215,37 @@ def test_resolved_support_miss_is_resolving_support_incomplete(
     assert directive.action == "STOP"
     assert directive.stop_reason == "resolving_support_incomplete"
     assert directive.operational_status == support_status
+    assert directive.diagnostics is not None
+    assert directive.diagnostics.phase == "resolving_support"
+    assert directive.diagnostics.operational_status == support_status
     assert directive.stop_reason != "operational_budget"
     assert directive.stop_reason != "operational_timeout"
     assert directive.stop_reason != "operational_unknown"
+
+
+def test_resolving_support_budget_reports_measured_diagnostics() -> None:
+    fixture = compile_golden(fork_g2_graph())
+    live = _admit(fixture.ir, {"q1": "Yes", "q2": "B"})
+
+    directive = analyze_inquiry(
+        fixture.ir,
+        live,
+        EMPTY_ASSUMPTIONS,
+        frozenset(),
+        InquiryBudget(max_resolving_support_sat_calls=1),
+        fixture.catalog,
+        artifact_identity=SENTINEL_ARTIFACT,
+        pv_version=SENTINEL_PV_VERSION,
+    )
+
+    assert directive.stop_reason == "resolving_support_incomplete"
+    assert directive.operational_status == "budget"
+    assert directive.diagnostics is not None
+    assert directive.diagnostics.resolving_support_sat_calls == 1
+    assert directive.diagnostics.sat_calls > 1
+    assert directive.diagnostics.elapsed_ms >= 0
+    assert directive.diagnostics.max_resolving_support_sat_calls == 1
+    assert directive.diagnostics.resolving_support_timeout_ms == 5000
 
 
 def test_g3_0_verify_not_entailment_support() -> None:

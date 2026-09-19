@@ -12,19 +12,25 @@ from smeme.mcp.inquire.codec import (
     InquireCodecError,
     assert_blind_task_payload,
     decode_admitted,
+    decode_budget,
+    decode_ir,
     decode_verified,
     decode_wire_observations,
     decode_worksheet_catalog,
     encode_admitted,
     encode_blind_task,
     encode_directive,
+    encode_ir,
     encode_verified,
     encode_worksheet_catalog,
 )
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.orchestration.inquire import DEFAULT_PV_VERSION
-from smeme.reasoning.runtime.inquire.types import InquiryDirective
-from smeme.mcp.inquire.codec import decode_ir, encode_ir
+from smeme.reasoning.runtime.inquire.types import (
+    HARD_MAX_RESOLVING_SUPPORT_SAT_CALLS,
+    InquiryDiagnostics,
+    InquiryDirective,
+)
 from tests.unit.reasoning.runtime.inquire_fixtures import (
     SENTINEL_ARTIFACT,
     compile_golden,
@@ -100,6 +106,62 @@ def test_encode_directive_includes_verify_metadata() -> None:
     assert encoded["action"] == "VERIFY"
     assert encoded["verification_key"]["pv_version"] == DEFAULT_PV_VERSION
     assert encoded["verification_key"]["artifact_identity"] == SENTINEL_ARTIFACT
+
+
+def test_budget_codec_accepts_dedicated_support_limits_and_enforces_ceiling() -> None:
+    budget = decode_budget(
+        json.dumps(
+            {
+                "max_resolving_support_sat_calls": 4321,
+                "resolving_support_timeout_ms": 6789,
+            }
+        )
+    )
+    assert budget.max_resolving_support_sat_calls == 4321
+    assert budget.resolving_support_timeout_ms == 6789
+
+    with pytest.raises(InquireCodecError, match="max_resolving_support_sat_calls"):
+        decode_budget(
+            json.dumps(
+                {"max_resolving_support_sat_calls": (HARD_MAX_RESOLVING_SUPPORT_SAT_CALLS + 1)}
+            )
+        )
+
+
+def test_encode_operational_directive_includes_bounded_diagnostics() -> None:
+    directive = InquiryDirective(
+        action="STOP",
+        stop_reason="resolving_support_incomplete",
+        operational_status="budget",
+        diagnostics=InquiryDiagnostics(
+            phase="resolving_support",
+            operational_status="budget",
+            sat_calls=2015,
+            general_sat_calls=15,
+            resolving_support_sat_calls=2000,
+            elapsed_ms=123.456,
+            max_sat_calls=2000,
+            timeout_ms=5000,
+            max_resolving_support_sat_calls=2000,
+            resolving_support_timeout_ms=5000,
+        ),
+    )
+
+    encoded = encode_directive(directive)
+
+    assert encoded["operational_status"] == "budget"
+    assert encoded["diagnostics"] == {
+        "phase": "resolving_support",
+        "operational_status": "budget",
+        "sat_calls": 2015,
+        "general_sat_calls": 15,
+        "resolving_support_sat_calls": 2000,
+        "elapsed_ms": 123.456,
+        "max_sat_calls": 2000,
+        "timeout_ms": 5000,
+        "max_resolving_support_sat_calls": 2000,
+        "resolving_support_timeout_ms": 5000,
+    }
 
 
 def test_decode_wire_observations() -> None:

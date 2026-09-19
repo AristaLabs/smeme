@@ -242,14 +242,23 @@ def decode_budget(budget_json: str | None) -> InquiryBudget:
         return InquiryBudget()
     data = parse_json_object(budget_json, label="budget_json")
     kwargs: dict[str, Any] = {}
-    for field in ("max_sat_calls", "timeout_ms", "max_residual_sat_calls"):
+    for field in (
+        "max_sat_calls",
+        "timeout_ms",
+        "max_residual_sat_calls",
+        "max_resolving_support_sat_calls",
+        "resolving_support_timeout_ms",
+    ):
         if field in data and data[field] is not None:
             if not isinstance(data[field], int):
                 raise InquireCodecError(
                     "inquire_invalid_payload", f"budget_json.{field} must be an integer"
                 )
             kwargs[field] = data[field]
-    return InquiryBudget(**kwargs)
+    try:
+        return InquiryBudget(**kwargs)
+    except ValueError as exc:
+        raise InquireCodecError("inquire_invalid_payload", f"invalid budget_json: {exc}") from exc
 
 
 def encode_blind_task(task: ExtractionTask) -> dict[str, Any]:
@@ -337,6 +346,21 @@ def encode_directive(directive: InquiryDirective) -> dict[str, Any]:
         out["inconsistency_cause"] = directive.inconsistency_cause
     if directive.operational_status is not None:
         out["operational_status"] = directive.operational_status
+    if directive.diagnostics is not None:
+        out["diagnostics"] = {
+            "phase": directive.diagnostics.phase,
+            "operational_status": directive.diagnostics.operational_status,
+            "sat_calls": directive.diagnostics.sat_calls,
+            "general_sat_calls": directive.diagnostics.general_sat_calls,
+            "resolving_support_sat_calls": (directive.diagnostics.resolving_support_sat_calls),
+            "elapsed_ms": directive.diagnostics.elapsed_ms,
+            "max_sat_calls": directive.diagnostics.max_sat_calls,
+            "timeout_ms": directive.diagnostics.timeout_ms,
+            "max_resolving_support_sat_calls": (
+                directive.diagnostics.max_resolving_support_sat_calls
+            ),
+            "resolving_support_timeout_ms": (directive.diagnostics.resolving_support_timeout_ms),
+        }
     return out
 
 

@@ -160,7 +160,9 @@ The model only proposes. The same operator admission prompt still runs before
 
 Terminal JSON keeps the report together with warnings, `harness_next`, status,
 and stop reasons. `isolated_evaluations_required` is rendered under
-`verification_required`, not as a generic terminal error.
+`verification_required`, not as a generic terminal error. Operational stops
+also retain the bounded Inquire status and SAT/timing diagnostics returned by
+the server.
 
 To ground that proposal in the frozen public ACME dataset, provide the
 public-distribution artifact `smeme-acme-dataset-distributed.zip` and run:

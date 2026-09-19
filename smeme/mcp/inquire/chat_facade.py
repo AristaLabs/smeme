@@ -116,6 +116,8 @@ def merge_chat_stop_onto_apply(
     *,
     inquiry_session_id: str,
     stop_reason: str | None,
+    operational_status: str | None = None,
+    diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Attach Inquire STOP metadata onto a successful Apply report payload.
 
@@ -129,6 +131,10 @@ def merge_chat_stop_onto_apply(
     out["status"] = STATUS_STOPPED
     out["stop_reason"] = stop_reason
     out["inquire_stop_reason"] = stop_reason
+    if operational_status is not None:
+        out["inquire_operational_status"] = operational_status
+    if diagnostics is not None:
+        out["inquire_diagnostics"] = dict(diagnostics)
     if stop_reason in _OPERATIONAL_OR_INCOMPLETE_STOPS:
         warnings = list(out.get("warnings") or [])
         warnings.append(
@@ -183,12 +189,16 @@ async def _active_task_or_terminal(
         )
 
     if action == "STOP" or status == STATUS_STOPPED:
+        directive = wire.get("directive")
+        directive = directive if isinstance(directive, dict) else {}
         return {
             "_chat_stop": True,
             "inquiry_session_id": session_id,
             "revision": revision,
             "status": STATUS_STOPPED,
             "stop_reason": wire.get("stop_reason"),
+            "operational_status": directive.get("operational_status"),
+            "diagnostics": directive.get("diagnostics"),
             "admitted": wire.get("admitted"),
         }
 

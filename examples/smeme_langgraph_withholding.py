@@ -324,6 +324,8 @@ def _observed_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "headline": report.get("headline") if isinstance(report, dict) else None,
         "stop_reason": payload.get("stop_reason"),
         "inquire_stop_reason": payload.get("inquire_stop_reason"),
+        "inquire_operational_status": payload.get("inquire_operational_status"),
+        "inquire_diagnostics": payload.get("inquire_diagnostics"),
         "warning_codes": [
             warning.get("code")
             for warning in warnings or []
@@ -926,9 +928,15 @@ def _write_sanitized_evidence(path: Path, evidence: dict[str, Any]) -> None:
 
 def _terminal_summary(state: dict[str, Any]) -> dict[str, Any]:
     summary: dict[str, Any] = {"paused": bool(state.get("__interrupt__"))}
-    payload = state.get("terminal_payload")
-    if not isinstance(payload, dict):
-        payload = state.get("report") if isinstance(state.get("report"), dict) else {}
+    terminal_candidate = state.get("terminal_payload")
+    report_candidate = state.get("report")
+    payload: dict[str, Any]
+    if isinstance(terminal_candidate, dict):
+        payload = terminal_candidate
+    elif isinstance(report_candidate, dict):
+        payload = report_candidate
+    else:
+        payload = {}
     nested_report = payload.get("report")
     report = nested_report if isinstance(nested_report, dict) else None
     if report is None and (
@@ -955,7 +963,14 @@ def _terminal_summary(state: dict[str, Any]) -> dict[str, Any]:
                 "message": error.get("message"),
                 "status": error.get("status"),
             }
-    for key in ("status", "harness_next", "stop_reason", "inquire_stop_reason"):
+    for key in (
+        "status",
+        "harness_next",
+        "stop_reason",
+        "inquire_stop_reason",
+        "inquire_operational_status",
+        "inquire_diagnostics",
+    ):
         if payload.get(key) is not None:
             summary[key] = payload[key]
     warnings = payload.get("warnings")

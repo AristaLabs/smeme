@@ -10,12 +10,16 @@ from smeme.reasoning.runtime.consistency_gate import (
     InconsistencyCause,
     PremiseInvariantError,
 )
-from smeme.reasoning.runtime.counterfactual import (
-    DEFAULT_CHECK_TIMEOUT_MS,
-    MAX_REPAIR_SAT_CALLS,
-)
 
 CanonicalProvenanceId = NewType("CanonicalProvenanceId", str)
+
+DEFAULT_INQUIRE_MAX_SAT_CALLS = 2000
+HARD_MAX_INQUIRE_SAT_CALLS = 10_000
+DEFAULT_INQUIRE_TIMEOUT_MS = 5000
+HARD_MAX_INQUIRE_TIMEOUT_MS = 30_000
+DEFAULT_RESOLVING_SUPPORT_MAX_SAT_CALLS = 2000
+HARD_MAX_RESOLVING_SUPPORT_SAT_CALLS = 10_000
+DEFAULT_RESOLVING_SUPPORT_TIMEOUT_MS = 5000
 
 InquiryAction = Literal["VERIFY", "ACQUIRE", "STOP"]
 StopReason = Literal[
@@ -95,9 +99,66 @@ def verification_key_for(
 class InquiryBudget:
     """Shared operational budget for one ``ANALYZE`` call."""
 
-    max_sat_calls: int = MAX_REPAIR_SAT_CALLS
-    timeout_ms: int = DEFAULT_CHECK_TIMEOUT_MS
+    max_sat_calls: int = DEFAULT_INQUIRE_MAX_SAT_CALLS
+    timeout_ms: int = DEFAULT_INQUIRE_TIMEOUT_MS
     max_residual_sat_calls: int | None = None
+    max_resolving_support_sat_calls: int = DEFAULT_RESOLVING_SUPPORT_MAX_SAT_CALLS
+    resolving_support_timeout_ms: int = DEFAULT_RESOLVING_SUPPORT_TIMEOUT_MS
+
+    def __post_init__(self) -> None:
+        _require_budget_range(
+            "max_sat_calls",
+            self.max_sat_calls,
+            minimum=1,
+            maximum=HARD_MAX_INQUIRE_SAT_CALLS,
+        )
+        _require_budget_range(
+            "timeout_ms",
+            self.timeout_ms,
+            minimum=1,
+            maximum=HARD_MAX_INQUIRE_TIMEOUT_MS,
+        )
+        if self.max_residual_sat_calls is not None:
+            _require_budget_range(
+                "max_residual_sat_calls",
+                self.max_residual_sat_calls,
+                minimum=0,
+                maximum=HARD_MAX_INQUIRE_SAT_CALLS,
+            )
+        _require_budget_range(
+            "max_resolving_support_sat_calls",
+            self.max_resolving_support_sat_calls,
+            minimum=1,
+            maximum=HARD_MAX_RESOLVING_SUPPORT_SAT_CALLS,
+        )
+        _require_budget_range(
+            "resolving_support_timeout_ms",
+            self.resolving_support_timeout_ms,
+            minimum=1,
+            maximum=HARD_MAX_INQUIRE_TIMEOUT_MS,
+        )
+
+
+def _require_budget_range(name: str, value: int, *, minimum: int, maximum: int) -> None:
+    if not minimum <= value <= maximum:
+        message = f"{name} must be between {minimum} and {maximum}"
+        raise ValueError(message)
+
+
+@dataclass(frozen=True, slots=True)
+class InquiryDiagnostics:
+    """Bounded operational diagnostics; attached to non-semantic ANALYZE stops."""
+
+    phase: str
+    operational_status: OperationalStatus
+    sat_calls: int
+    general_sat_calls: int
+    resolving_support_sat_calls: int
+    elapsed_ms: float
+    max_sat_calls: int
+    timeout_ms: int
+    max_resolving_support_sat_calls: int
+    resolving_support_timeout_ms: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +183,7 @@ class InquiryDirective:
     stop_reason: StopReason | None = None
     inconsistency_cause: InconsistencyCause | None = None
     operational_status: OperationalStatus | None = None
+    diagnostics: InquiryDiagnostics | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -9,6 +9,10 @@ Cons / Resolved / D1 / residual witness search).
 
 from __future__ import annotations
 
+import logging
+from dataclasses import replace
+from time import perf_counter
+
 from smeme.reasoning.ir.types import IR
 from smeme.reasoning.runtime.assumptions import EMPTY_ASSUMPTIONS, ReasoningAssumptions
 from smeme.reasoning.runtime.consistency_gate import PremiseInvariantError
@@ -23,12 +27,15 @@ from smeme.reasoning.runtime.inquire.support import resolving_support
 from smeme.reasoning.runtime.inquire.types import (
     AdmittedAssertion,
     InquiryBudget,
+    InquiryDiagnostics,
     InquiryDirective,
     VerificationKey,
     WorksheetCatalog,
     logical_evidence,
     verification_key_for,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _operational_stop(status: str) -> InquiryDirective:
@@ -85,43 +92,101 @@ def analyze_inquiry(
     pv_version: str,
 ) -> InquiryDirective:
     """Stateless ANALYZE. Derived ``C_poss`` / ``S_R`` / ``D_1`` are not returned or stored."""
+    started = perf_counter()
     _ = worksheet_catalog
     phi = assumptions if assumptions is not None else EMPTY_ASSUMPTIONS
     evidence = logical_evidence(admitted)
     base = compile_working_base(ir, evidence, phi, budget)
 
+    def finish(
+        directive: InquiryDirective,
+        *,
+        phase: str,
+        resolving_support_sat_calls: int = 0,
+    ) -> InquiryDirective:
+        elapsed_ms = round((perf_counter() - started) * 1000, 3)
+        general_sat_calls = base.sat_calls[0]
+        total_sat_calls = general_sat_calls + resolving_support_sat_calls
+        logger.info(
+            "Inquire ANALYZE completed",
+            extra={
+                "inquire_action": directive.action,
+                "inquire_stop_reason": directive.stop_reason,
+                "inquire_operational_status": directive.operational_status,
+                "inquire_phase": phase,
+                "inquire_sat_calls": total_sat_calls,
+                "inquire_general_sat_calls": general_sat_calls,
+                "inquire_resolving_support_sat_calls": resolving_support_sat_calls,
+                "inquire_elapsed_ms": elapsed_ms,
+                "inquire_max_sat_calls": budget.max_sat_calls,
+                "inquire_timeout_ms": budget.timeout_ms,
+                "inquire_max_resolving_support_sat_calls": (budget.max_resolving_support_sat_calls),
+                "inquire_resolving_support_timeout_ms": (budget.resolving_support_timeout_ms),
+            },
+        )
+        if directive.operational_status is None:
+            return directive
+        diagnostics = InquiryDiagnostics(
+            phase=phase,
+            operational_status=directive.operational_status,
+            sat_calls=total_sat_calls,
+            general_sat_calls=general_sat_calls,
+            resolving_support_sat_calls=resolving_support_sat_calls,
+            elapsed_ms=elapsed_ms,
+            max_sat_calls=budget.max_sat_calls,
+            timeout_ms=budget.timeout_ms,
+            max_resolving_support_sat_calls=budget.max_resolving_support_sat_calls,
+            resolving_support_timeout_ms=budget.resolving_support_timeout_ms,
+        )
+        return replace(directive, diagnostics=diagnostics)
+
     cons = check_cons(base)
     if cons.status in ("budget", "timeout", "unknown"):
-        return _operational_stop(cons.status)
+        return finish(_operational_stop(cons.status), phase="consistency")
     if cons.status == "inconsistent":
-        return InquiryDirective(
-            action="STOP",
-            stop_reason="inconsistent",
-            inconsistency_cause=cons.cause,
+        return finish(
+            InquiryDirective(
+                action="STOP",
+                stop_reason="inconsistent",
+                inconsistency_cause=cons.cause,
+            ),
+            phase="consistency",
         )
 
     resolved = resolved_conclusion(base)
     if resolved.status in ("budget", "timeout", "unknown"):
-        return _operational_stop(resolved.status)
+        return finish(_operational_stop(resolved.status), phase="resolved")
     if resolved.status == "inconsistent":
-        return InquiryDirective(
-            action="STOP",
-            stop_reason="inconsistent",
-            inconsistency_cause=resolved.cause,
+        return finish(
+            InquiryDirective(
+                action="STOP",
+                stop_reason="inconsistent",
+                inconsistency_cause=resolved.cause,
+            ),
+            phase="resolved",
         )
     if resolved.status == "resolved":
         if resolved.conclusion_id is None:
             raise PremiseInvariantError("Resolved status without conclusion_id")
-        support = resolving_support(base, resolved.conclusion_id)
+        support = resolving_support(
+            base,
+            resolved.conclusion_id,
+            max_sat_calls=budget.max_resolving_support_sat_calls,
+            timeout_ms=budget.resolving_support_timeout_ms,
+        )
         if support.status in ("budget", "timeout", "unknown"):
             # Case may already be Resolved; S_R enumeration (esp. larger sheets) exhausted
-            # the shared ANALYZE budget. Do not collapse this into generic operational_budget —
+            # its dedicated SAT budget. Do not collapse this into generic operational_budget —
             # chat Apply can still emit a concluded report from admitted answers.
             op = support.status if support.status in ("budget", "timeout", "unknown") else "unknown"
-            return InquiryDirective(
-                action="STOP",
-                stop_reason="resolving_support_incomplete",
-                operational_status=op,  # type: ignore[arg-type]
+            return finish(
+                InquiryDirective(
+                    action="STOP",
+                    stop_reason="resolving_support_incomplete",
+                    operational_status=op,  # type: ignore[arg-type]
+                ),
+                phase="resolving_support",
+                resolving_support_sat_calls=support.sat_calls,
             )
         for pair in support.pairs:
             if not _pair_verified(
@@ -133,34 +198,51 @@ def analyze_inquiry(
                 pv_version=pv_version,
             ):
                 assertion = _assertion_for_pair(admitted, pair.question_id, pair.option)
-                return InquiryDirective(
-                    action="VERIFY",
-                    question_id=assertion.question_id,
-                    option=assertion.option,
-                    verification_key=verification_key_for(
-                        assertion,
-                        artifact_identity=artifact_identity,
-                        pv_version=pv_version,
+                return finish(
+                    InquiryDirective(
+                        action="VERIFY",
+                        question_id=assertion.question_id,
+                        option=assertion.option,
+                        verification_key=verification_key_for(
+                            assertion,
+                            artifact_identity=artifact_identity,
+                            pv_version=pv_version,
+                        ),
                     ),
+                    phase="resolving_support",
+                    resolving_support_sat_calls=support.sat_calls,
                 )
-        return InquiryDirective(
-            action="STOP",
-            stop_reason="verified_resolved_consequence",
+        return finish(
+            InquiryDirective(
+                action="STOP",
+                stop_reason="verified_resolved_consequence",
+            ),
+            phase="resolving_support",
+            resolving_support_sat_calls=support.sat_calls,
         )
 
     d1 = myopic_discriminators(base)
     if d1.status in ("budget", "timeout", "unknown"):
-        return _operational_stop(d1.status)
+        return finish(_operational_stop(d1.status), phase="myopic_discriminators")
     if d1.status == "ok" and d1.question_ids:
-        return InquiryDirective(action="ACQUIRE", question_id=d1.question_ids[0])
+        return finish(
+            InquiryDirective(action="ACQUIRE", question_id=d1.question_ids[0]),
+            phase="myopic_discriminators",
+        )
 
     witness = search_resolving_witness(base, budget)
     if witness.status == "acquire":
-        return InquiryDirective(action="ACQUIRE", question_id=witness.question_id)
+        return finish(
+            InquiryDirective(action="ACQUIRE", question_id=witness.question_id),
+            phase="residual_witness",
+        )
     if witness.status == "not_resolvable":
-        return InquiryDirective(
-            action="STOP",
-            stop_reason="not_resolvable_by_remaining_evidence_vocabulary",
+        return finish(
+            InquiryDirective(
+                action="STOP",
+                stop_reason="not_resolvable_by_remaining_evidence_vocabulary",
+            ),
+            phase="residual_witness",
         )
     if witness.status == "budget_miss":
         op = (
@@ -173,9 +255,12 @@ def analyze_inquiry(
             )
             else "budget"
         )
-        return InquiryDirective(
-            action="STOP",
-            stop_reason="no_joint_discriminator_within_budget",
-            operational_status=op,  # type: ignore[arg-type]
+        return finish(
+            InquiryDirective(
+                action="STOP",
+                stop_reason="no_joint_discriminator_within_budget",
+                operational_status=op,  # type: ignore[arg-type]
+            ),
+            phase="residual_witness",
         )
-    return _operational_stop("unknown")
+    return finish(_operational_stop("unknown"), phase="residual_witness")

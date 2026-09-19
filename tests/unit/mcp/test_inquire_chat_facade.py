@@ -99,10 +99,19 @@ def test_merge_chat_stop_onto_apply_flags_resolving_support_incomplete() -> None
         },
         inquiry_session_id="bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
         stop_reason="resolving_support_incomplete",
+        operational_status="budget",
+        diagnostics={
+            "phase": "resolving_support",
+            "sat_calls": 2015,
+            "elapsed_ms": 123.456,
+        },
     )
     assert merged["status"] == "STOPPED"
     assert merged["stop_reason"] == "resolving_support_incomplete"
     assert merged["inquire_stop_reason"] == "resolving_support_incomplete"
+    assert merged["inquire_operational_status"] == "budget"
+    assert merged["inquire_diagnostics"]["phase"] == "resolving_support"
+    assert merged["inquire_diagnostics"]["sat_calls"] == 2015
     assert merged["report"]["result_kind"] == "concluded"
     assert merged["report"]["headline"] == "On"
     assert [w["code"] for w in merged["warnings"]] == [
@@ -160,7 +169,11 @@ async def test_active_task_or_terminal_stop_marker() -> None:
             "inquiry_session_id": session_id,
             "revision": 5,
             "status": "STOPPED",
-            "directive": {"action": "STOP"},
+            "directive": {
+                "action": "STOP",
+                "operational_status": "budget",
+                "diagnostics": {"phase": "resolving_support", "sat_calls": 2000},
+            },
             "stop_reason": "resolved",
             "admitted": [{"question_id": "q1", "option": "Yes"}],
         },
@@ -168,6 +181,8 @@ async def test_active_task_or_terminal_stop_marker() -> None:
     assert out["_chat_stop"] is True
     assert out["status"] == "STOPPED"
     assert out["stop_reason"] == "resolved"
+    assert out["operational_status"] == "budget"
+    assert out["diagnostics"]["sat_calls"] == 2000
     assert "evaluations" not in out
 
 

@@ -187,6 +187,34 @@ MCP is one transport over `smeme.reasoning.orchestration.inquire` (+ persist).
 It is not a second kernel. LangGraph, CLI, and unit tests should drive the same
 package.
 
+## Resolving-support calibration
+
+Exact \(S_R\) search uses a dedicated budget; it does not consume the
+counterfactual repair limit or the general ANALYZE counter. For each candidate
+subconjunction of an already-consistent resolved base, one combined SAT query
+checks whether the target remains entailed and every alternative conclusion
+remains impossible. This is proof-equivalent to repeating generic
+Resolved/possibility checks, while avoiding repeated consistency work.
+
+Calibration on 2026-09-19 used Python 3.13.5 and Z3 4.16.0 on arm64 macOS:
+
+- two-question synthetic full-support tree: 6 support SAT calls, 1.3 ms;
+- canonical nine-question ACME treaty path: 521 calls, 460 ms;
+- ten-question synthetic full-support tree: 1,034 calls, 560 ms;
+- twelve-question stress tree: 4,108 calls, 2.61 s with an explicit 5,000-call
+  override.
+
+The measured default is `2000` support SAT calls: 3.8× the ACME observation and
+enough for the ten-question representative tree. The hard ceiling is `10000`.
+The per-check default timeout remains `5000` ms with a `30000` ms hard ceiling.
+Larger exponential cases still fail closed with
+`resolving_support_incomplete`; operators may make a bounded override from
+measured workload data.
+
+Every ANALYZE logs phase, operational status, general/support SAT counts,
+elapsed milliseconds, and active limits. Operational STOP directives also
+carry bounded diagnostics through the orchestrator and chat STOP response.
+
 ## Out of scope here
 
 Approved paraphrases, cross-family evaluator slots, automated RETRACT/REPLACE,

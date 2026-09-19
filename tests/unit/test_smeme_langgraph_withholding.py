@@ -494,6 +494,11 @@ def test_terminal_summary_keeps_report_qualifications_and_verification_status() 
                 "harness_next": "user_input_needed",
                 "stop_reason": "resolving_support_incomplete",
                 "inquire_stop_reason": "resolving_support_incomplete",
+                "inquire_operational_status": "budget",
+                "inquire_diagnostics": {
+                    "phase": "resolving_support",
+                    "sat_calls": 2015,
+                },
                 "warnings": [{"code": "missing_evidence_ref", "message": "Missing evidence"}],
                 "report": report,
             },
@@ -504,6 +509,8 @@ def test_terminal_summary_keeps_report_qualifications_and_verification_status() 
     assert summary["harness_next"] == "user_input_needed"
     assert summary["stop_reason"] == "resolving_support_incomplete"
     assert summary["inquire_stop_reason"] == "resolving_support_incomplete"
+    assert summary["inquire_operational_status"] == "budget"
+    assert summary["inquire_diagnostics"]["phase"] == "resolving_support"
     assert summary["warnings"] == [{"code": "missing_evidence_ref", "message": "Missing evidence"}]
 
     verification = example._terminal_summary(
