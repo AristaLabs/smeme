@@ -87,6 +87,10 @@ Guided gather against a **Deployed + Listed** decision tree:
 option → human `interrupt()` → `evaluate_continue` → report, the next task the
 solver chooses, **or** `isolated_evaluations_required`.
 
+For the account fixture, public case-file download, and dashboard-generated
+command, follow the
+[five-minute ACME LangGraph quickstart](../docs/guides/acme-langgraph-quickstart.md).
+
 The last outcome is an intentional fail-closed boundary: the chat connector
 does not fabricate the independent verification trials. Apply remains the
 shortest first-run path when the host already has a reviewed worksheet and
