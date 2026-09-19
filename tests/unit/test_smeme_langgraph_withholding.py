@@ -363,7 +363,10 @@ def test_prompt_shows_stem_and_supports_admit_edit_and_reject(
         "value": "No",
         "provenance_id": "source-2",
     }
-    assert example.prompt_admission(proposal, lambda _: "r") == {"admit": False}
+    assert example.prompt_admission(proposal, lambda _: "r") == {
+        "admit": False,
+        "rejected": True,
+    }
 
 
 def test_prompt_can_confirm_dataset_option_and_source_together(
@@ -436,7 +439,94 @@ def test_manual_prompt_accepts_option_number_directly(
         "provenance_id": "source-1",
     }
     assert "Selection mode: manual operator selection" in capsys.readouterr().out
-    assert example.prompt_admission(proposal, lambda _: "0") == {"admit": False}
+    invalid_then_reject = iter(["", "not-a-number", "0", "r"])
+    assert example.prompt_admission(proposal, lambda _: next(invalid_then_reject)) == {
+        "admit": False,
+        "rejected": True,
+    }
+    output = capsys.readouterr().out
+    assert output.count("Enter an option number from 1 to 2, or r.") == 3
+
+
+def test_prompt_reprompts_invalid_actions_and_blank_provenance(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    proposal = {
+        "stem": "Is the payee foreign?",
+        "raw": "Yes",
+        "value": "Yes",
+        "options": ["Yes", "No"],
+    }
+    answers = iter(["reject", "", "a", "", " ", "source-1"])
+
+    assert example.prompt_admission(proposal, lambda _: next(answers)) == {
+        "admit": True,
+        "value": "Yes",
+        "provenance_id": "source-1",
+    }
+    output = capsys.readouterr().out
+    assert output.count("Enter a, e, or r.") == 2
+    assert output.count("Provenance id cannot be blank") == 2
+
+
+def test_empty_provenance_can_explicitly_cancel_without_rejection() -> None:
+    proposal = {
+        "stem": "Is the payee foreign?",
+        "raw": "No model proposal; operator selection required.",
+        "value": None,
+        "options": ["Yes", "No"],
+    }
+    answers = iter(["1", "", "c"])
+
+    assert example.prompt_admission(proposal, lambda _: next(answers)) == {
+        "admit": False,
+        "cancelled": True,
+    }
+
+
+def test_terminal_summary_keeps_report_qualifications_and_verification_status() -> None:
+    report = {"result_kind": "concluded", "headline": "Done"}
+    summary = example._terminal_summary(
+        {
+            "report": report,
+            "terminal_payload": {
+                "status": "STOPPED",
+                "harness_next": "user_input_needed",
+                "stop_reason": "resolving_support_incomplete",
+                "inquire_stop_reason": "resolving_support_incomplete",
+                "warnings": [{"code": "missing_evidence_ref", "message": "Missing evidence"}],
+                "report": report,
+            },
+        }
+    )
+    assert summary["report"] == report
+    assert summary["status"] == "STOPPED"
+    assert summary["harness_next"] == "user_input_needed"
+    assert summary["stop_reason"] == "resolving_support_incomplete"
+    assert summary["inquire_stop_reason"] == "resolving_support_incomplete"
+    assert summary["warnings"] == [{"code": "missing_evidence_ref", "message": "Missing evidence"}]
+
+    verification = example._terminal_summary(
+        {
+            "report": {
+                "error": {
+                    "code": "isolated_evaluations_required",
+                    "message": "Run isolated verification.",
+                    "status": "verification_required",
+                }
+            },
+            "terminal_payload": {
+                "error": {
+                    "code": "isolated_evaluations_required",
+                    "message": "Run isolated verification.",
+                    "status": "verification_required",
+                }
+            },
+        }
+    )
+    assert verification["verification_required"]["code"] == "isolated_evaluations_required"
+    assert "report" not in verification
+    assert "terminal_error" not in verification
 
 
 @pytest.mark.asyncio
@@ -452,7 +542,10 @@ async def test_rejection_loops_without_continuation_then_admission_calls_once() 
     assert paused["__interrupt__"]
     assert paused["__interrupt__"][0].value["proposal"]["stem"] == "Question?"
 
-    paused_again = await app.ainvoke(Command(resume={"admit": False}), config)
+    paused_again = await app.ainvoke(
+        Command(resume={"admit": False, "rejected": True}),
+        config,
+    )
     assert paused_again["__interrupt__"]
     assert tools["smeme_reasoning_evaluate_continue"].calls == []
 

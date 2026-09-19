@@ -133,7 +133,9 @@ client, and the exact callback URI. Then set `SMEME_MCP_URL` and
 
 The default is model-free and manual. The operator sees every solver task,
 selects or edits an exact offered option, supplies a non-empty provenance ID,
-and explicitly admits or rejects it:
+and explicitly admits or rejects it. Blank, nonnumeric, and out-of-range input
+re-prompts locally. Only `r` records a rejection; `c` explicitly cancels option
+editing or provenance entry without calling `evaluate_continue`:
 
 ```bash
 export SMEME_DECISION_TREE_ID=<uuid from smeme_reasoning_list.id>
@@ -155,6 +157,10 @@ uv run examples/smeme_langgraph_withholding.py --model
 
 The model only proposes. The same operator admission prompt still runs before
 `evaluate_continue`.
+
+Terminal JSON keeps the report together with warnings, `harness_next`, status,
+and stop reasons. `isolated_evaluations_required` is rendered under
+`verification_required`, not as a generic terminal error.
 
 To ground that proposal in the frozen public ACME dataset, provide the
 public-distribution artifact `smeme-acme-dataset-distributed.zip` and run:
