@@ -117,6 +117,21 @@ def test_invalid_answer_option_maps_to_ingest_code() -> None:
     assert ei.value.code == IngestErrorCode.ingest_invalid_answer_option
 
 
+@pytest.mark.parametrize("answer", ["yes", "YES", " Yes", "Yes "])
+def test_answer_option_requires_exact_offered_string(answer: str) -> None:
+    from tests.unit.reasoning.runtime.test_evaluate_raw_answers_goldens import _exclusive_radio_ir
+
+    ir = _exclusive_radio_ir()
+    with pytest.raises(ReasoningIngestError) as ei:
+        prepare_evaluate_ingest(ir, {"Q1": answer})
+    assert ei.value.code == IngestErrorCode.ingest_invalid_answer_option
+    assert ei.value.details == {
+        "question_id": "Q1",
+        "received": answer,
+        "allowed_options": ["Yes", "No"],
+    }
+
+
 def test_prepare_evaluate_ingest_with_evidence_refs_no_warning() -> None:
     ir = _simple_ir()
     flat, env, warnings, hn = prepare_evaluate_ingest(

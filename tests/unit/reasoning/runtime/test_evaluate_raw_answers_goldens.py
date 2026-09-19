@@ -103,8 +103,39 @@ def test_radio_match_golden():
 
 def test_radio_no_match_rejected_at_ingest():
     ir = _exclusive_radio_ir()
-    with pytest.raises(ReasoningInputValidationError, match="does not match any option"):
+    with pytest.raises(ReasoningInputValidationError, match="must exactly match an offered option"):
         validate_raw_answers_for_ir(ir, {"Q1": "maybe"})
+
+
+def test_case_distinct_options_project_only_exact_admitted_label() -> None:
+    ir = IR(
+        format_version=IR_FORMAT_VERSION,
+        nodes=(
+            IRNode(
+                id="Q1",
+                kind=IRNodeKind.QUESTION,
+                question=IRQuestionShape(qtype="radio", options=("Yes", "yes")),
+            ),
+            IRNode(id="C_upper", kind=IRNodeKind.CONCLUSION, question=None),
+            IRNode(id="C_lower", kind=IRNodeKind.CONCLUSION, question=None),
+        ),
+        edges=(
+            IREdge(source="Q1", target="C_upper", guard_id="g_upper"),
+            IREdge(source="Q1", target="C_lower", guard_id="g_lower"),
+        ),
+        guards=(
+            Guard(id="g_upper", expr="Yes"),
+            Guard(id="g_lower", expr="yes"),
+        ),
+    )
+
+    validate_raw_answers_for_ir(ir, {"Q1": "Yes"})
+    facts = raw_answers_to_canonical_facts(ir, {"Q1": "Yes"})
+
+    assert [(fact.option_label, fact.value) for fact in facts] == [
+        ("Yes", True),
+        ("yes", False),
+    ]
 
 
 def test_radio_none_absent_golden():

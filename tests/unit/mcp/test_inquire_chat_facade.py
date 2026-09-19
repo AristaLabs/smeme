@@ -9,6 +9,7 @@ import pytest
 
 from smeme.mcp.inquire import chat_facade as facade
 from smeme.mcp.inquire.chat_facade import (
+    admitted_assertions_to_apply_envelope,
     isolated_evaluations_required_payload,
     merge_chat_stop_onto_apply,
     strip_chat_active_response,
@@ -40,6 +41,67 @@ def test_chat_admit_idempotency_key_matches_request_hash_identity() -> None:
         )
         == f"chat-{digest}"
     )
+
+
+def test_admitted_assertions_to_apply_envelope_preserves_provenance() -> None:
+    first = MagicMock(
+        question_id="q1",
+        option="Foreign person",
+        provenance_id="ACME-123-REG-001",
+    )
+    second = MagicMock(
+        question_id="q2",
+        option="Yes",
+        provenance_id="workspace/source two.json",
+    )
+
+    assert admitted_assertions_to_apply_envelope([second, first]) == {
+        "answers": {
+            "q1": "Foreign person",
+            "q2": "Yes",
+        },
+        "evidence_items": [
+            {
+                "id": "inquire-provenance-0001",
+                "source_id": "ACME-123-REG-001",
+            },
+            {
+                "id": "inquire-provenance-0002",
+                "source_id": "workspace/source two.json",
+            },
+        ],
+        "evidence_refs": {
+            "q1": ["inquire-provenance-0001"],
+            "q2": ["inquire-provenance-0002"],
+        },
+    }
+
+
+def test_admitted_apply_envelope_has_no_missing_evidence_warning() -> None:
+    from smeme.reasoning.runtime.ingest_envelope import prepare_evaluate_ingest
+    from tests.unit.reasoning.runtime.test_ingest_envelope import _simple_ir
+
+    envelope = admitted_assertions_to_apply_envelope(
+        [
+            MagicMock(
+                question_id="Q1",
+                option="Yes",
+                provenance_id="ACME-123-REG-001",
+            )
+        ]
+    )
+
+    answers, parsed, warnings, harness_next = prepare_evaluate_ingest(_simple_ir(), envelope)
+
+    assert answers == {"Q1": "Yes"}
+    assert parsed.evidence_items == [
+        {
+            "id": "inquire-provenance-0001",
+            "source_id": "ACME-123-REG-001",
+        }
+    ]
+    assert warnings == []
+    assert harness_next == "phase_2_ok"
 
 
 def test_strip_chat_active_response_has_no_control_channel() -> None:

@@ -1401,9 +1401,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             Same auth and load gates as ``smeme_reasoning_evaluate_answers``. On success returns
             ``status``, ``warnings`` (deterministic order), and ``harness_next`` (see capabilities).
 
-            ``harness_next: phase_2_ok`` means the envelope is structurally valid **and**
-            answers ground into canonical facts (same Stage A path Apply uses). It does
-            **not** run the solver or promise a conclusion.
+            ``status: ok`` means the call parsed and ran. Rank ``harness_next`` over that
+            status: ``phase_2_ok`` means the envelope is structurally valid **and**
+            answers ground into canonical facts (same Stage A path Apply uses);
+            ``user_input_needed`` with ``missing_evidence_ref`` is the intended signal
+            to gather evidence, not a hard ingest error. This tool does **not** run
+            the solver or promise a conclusion. Every non-empty radio answer must
+            exactly match an offered option string; Core does not trim or case-fold it.
             """
             try:
                 async with mcp_invocation_scope("smeme_reasoning_validate_answers", ctx) as rec:
@@ -1557,9 +1561,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """
             from smeme.decision_tree.helpers.db_queries import parse_graph_data
             from smeme.mcp.inquire.chat_facade import (
-                admitted_flat_answers_for_session,
+                admitted_apply_envelope_for_session,
+                apply_envelope_to_raw_json,
                 chat_evaluate_start,
-                flat_answers_to_legacy_raw_json,
                 merge_chat_stop_onto_apply,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
@@ -1623,14 +1627,14 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                             return out
                         if facade.get("_chat_stop"):
                             session_id = UUID(str(facade["inquiry_session_id"]))
-                            flat = await admitted_flat_answers_for_session(
+                            apply_envelope = await admitted_apply_envelope_for_session(
                                 db,
                                 user=user,
                                 inquiry_session_id=session_id,
                             )
                             apply_out = await _smeme_reasoning_evaluate_body(
                                 decision_tree_id=decision_tree_id,
-                                raw_answers_json=flat_answers_to_legacy_raw_json(flat),
+                                raw_answers_json=apply_envelope_to_raw_json(apply_envelope),
                                 ctx=ctx,
                                 persist=True,
                                 reserve_quota=False,
@@ -1692,9 +1696,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             not on ``operational_budget`` alone.
             """
             from smeme.mcp.inquire.chat_facade import (
-                admitted_flat_answers_for_session,
+                admitted_apply_envelope_for_session,
+                apply_envelope_to_raw_json,
                 chat_evaluate_continue,
-                flat_answers_to_legacy_raw_json,
                 merge_chat_stop_onto_apply,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
@@ -1755,14 +1759,14 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 for_update=False,
                             )
                             tree_id = str(session_row.decision_tree_id)
-                            flat = await admitted_flat_answers_for_session(
+                            apply_envelope = await admitted_apply_envelope_for_session(
                                 db,
                                 user=user,
                                 inquiry_session_id=session_uuid,
                             )
                             apply_out = await _smeme_reasoning_evaluate_body(
                                 decision_tree_id=tree_id,
-                                raw_answers_json=flat_answers_to_legacy_raw_json(flat),
+                                raw_answers_json=apply_envelope_to_raw_json(apply_envelope),
                                 ctx=ctx,
                                 persist=True,
                                 reserve_quota=False,
@@ -1818,6 +1822,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 raw_answers_json: JSON-encoded **legacy flat answers** or **provenance envelope** object:
                     ``{"answers": {...}, "evidence_items": [...], "evidence_refs": {...}}``.
                     If ``evidence_items`` or ``evidence_refs`` is present, ``answers`` is required.
+                    Non-empty radio answers must exactly match offered option strings.
                     Legacy example: ``{"Q1": "Yes"}``.
 
                     IMPORTANT: pass the bare JSON object, e.g. ``{}``, NOT the string

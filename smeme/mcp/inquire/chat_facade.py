@@ -283,25 +283,63 @@ async def chat_evaluate_continue(
     return await _active_task_or_terminal(db, user=user, wire=wire)
 
 
-async def admitted_flat_answers_for_session(
+async def _admitted_assertions_for_session(
     db: AsyncSession,
     *,
     user: User,
     inquiry_session_id: UUID,
-) -> dict[str, str]:
-    """Load admitted (q → option) for Apply after Inquire STOP."""
+) -> list[InquiryAdmittedAssertion]:
+    """Load authorized admitted assertions in deterministic question order."""
     session = await load_owned_session(
         db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
     )
     result = await db.execute(
-        select(InquiryAdmittedAssertion).where(InquiryAdmittedAssertion.session_id == session.id)
+        select(InquiryAdmittedAssertion).where(
+            InquiryAdmittedAssertion.session_id == session.id  # type: ignore[arg-type]
+        )
     )
-    flat: dict[str, str] = {}
-    for row in result.scalars().all():
-        flat[row.question_id] = row.option
-    return flat
+    return list(result.scalars().all())
 
 
-def flat_answers_to_legacy_raw_json(flat: dict[str, str]) -> str:
-    """Legacy flat answers object for Apply ingest."""
-    return json.dumps(flat, ensure_ascii=False, separators=(",", ":"))
+def admitted_assertions_to_apply_envelope(
+    rows: list[InquiryAdmittedAssertion],
+) -> dict[str, Any]:
+    """Map admitted ``(question, option, provenance)`` rows to an Apply envelope."""
+    answers: dict[str, str] = {}
+    evidence_items: list[dict[str, str]] = []
+    evidence_refs: dict[str, list[str]] = {}
+    for index, row in enumerate(sorted(rows, key=lambda item: item.question_id), start=1):
+        evidence_id = f"inquire-provenance-{index:04d}"
+        answers[row.question_id] = row.option
+        evidence_items.append(
+            {
+                "id": evidence_id,
+                "source_id": row.provenance_id,
+            }
+        )
+        evidence_refs[row.question_id] = [evidence_id]
+    return {
+        "answers": answers,
+        "evidence_items": evidence_items,
+        "evidence_refs": evidence_refs,
+    }
+
+
+async def admitted_apply_envelope_for_session(
+    db: AsyncSession,
+    *,
+    user: User,
+    inquiry_session_id: UUID,
+) -> dict[str, Any]:
+    """Load admitted answers and preserve provenance for terminal Apply."""
+    rows = await _admitted_assertions_for_session(
+        db,
+        user=user,
+        inquiry_session_id=inquiry_session_id,
+    )
+    return admitted_assertions_to_apply_envelope(rows)
+
+
+def apply_envelope_to_raw_json(envelope: dict[str, Any]) -> str:
+    """Serialize a provenance-preserving Apply ingest envelope."""
+    return json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
