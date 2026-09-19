@@ -175,6 +175,7 @@ class WithholdingState(TypedDict, total=False):
     selected_option: str  # exact option string
     provenance_id: str  # non-empty when admitted; citation ref (not a check)
     report: dict | None  # also carries terminal non-report payloads; see evaluate
+    terminal_payload: dict | None  # complete terminal envelope, including qualifications
 
 
 ProposalProvider = Callable[
@@ -323,6 +324,8 @@ def _observed_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "headline": report.get("headline") if isinstance(report, dict) else None,
         "stop_reason": payload.get("stop_reason"),
         "inquire_stop_reason": payload.get("inquire_stop_reason"),
+        "inquire_operational_status": payload.get("inquire_operational_status"),
+        "inquire_diagnostics": payload.get("inquire_diagnostics"),
         "warning_codes": [
             warning.get("code")
             for warning in warnings or []
@@ -639,7 +642,11 @@ def make_nodes(
                 "inquiry_session_id": started["inquiry_session_id"],
                 "open_task": started["task"],
             }
-        return {"decision_tree_id": tree_id, "report": started}
+        return {
+            "decision_tree_id": tree_id,
+            "report": started.get("report") or started,
+            "terminal_payload": started,
+        }
 
     async def propose(state: WithholdingState) -> WithholdingState:
         task = state["open_task"]
@@ -673,19 +680,17 @@ def make_nodes(
     def admit(state: WithholdingState) -> WithholdingState:
         """THE GATE — host interrupt before evaluate_continue, always.
 
-        Rejection never reaches MCP. Out-of-set value or empty provenance_id
-        takes the same reject edge as an explicit reject (re-propose). Production
-        UIs should re-interrupt on a bad resume; this listing does not add a
-        third path.
+        Rejection never reaches MCP. Invalid or cancelled admissions re-propose
+        without being recorded as human rejection.
         """
         decision = interrupt({"type": "admission_required", "proposal": state["proposed_answer"]})
         if not decision.get("admit"):
-            return {"admission": "rejected"}
+            return {"admission": "rejected" if decision.get("rejected") is True else "cancelled"}
         value = decision.get("value")
         prov = (decision.get("provenance_id") or "").strip()
         # Radio-only, enforced. An out-of-set value is not an admission.
         if value not in state["proposed_answer"]["options"] or not prov:
-            return {"admission": "rejected"}
+            return {"admission": "invalid"}
         return {
             "admission": "admitted",
             "selected_option": value,  # exact option string
@@ -730,7 +735,10 @@ def make_nodes(
             }
         # Terminal: report, isolated_evaluations_required, or error.
         # Branch on report.result_kind downstream. Do not invent VERIFY.
-        return {"report": result.get("report") or result}
+        return {
+            "report": result.get("report") or result,
+            "terminal_payload": result,
+        }
 
     return bootstrap, propose, admit, evaluate
 
@@ -883,7 +891,11 @@ async def run(
             record(
                 {
                     "event": "admission",
-                    "action": "admitted" if decision.get("admit") else "rejected",
+                    "action": (
+                        "admitted"
+                        if decision.get("admit")
+                        else ("rejected" if decision.get("rejected") else "cancelled")
+                    ),
                     "continuation_called": bool(decision.get("admit")),
                     "review_mode": (
                         "out_of_band_exact_match" if reviewed_admission is not None else "prompt"
@@ -916,20 +928,54 @@ def _write_sanitized_evidence(path: Path, evidence: dict[str, Any]) -> None:
 
 def _terminal_summary(state: dict[str, Any]) -> dict[str, Any]:
     summary: dict[str, Any] = {"paused": bool(state.get("__interrupt__"))}
-    report = state.get("report")
+    terminal_candidate = state.get("terminal_payload")
+    report_candidate = state.get("report")
+    payload: dict[str, Any]
+    if isinstance(terminal_candidate, dict):
+        payload = terminal_candidate
+    elif isinstance(report_candidate, dict):
+        payload = report_candidate
+    else:
+        payload = {}
+    nested_report = payload.get("report")
+    report = nested_report if isinstance(nested_report, dict) else None
+    if report is None and (
+        payload.get("result_kind") is not None or payload.get("headline") is not None
+    ):
+        report = payload
     if isinstance(report, dict):
-        error = report.get("error")
-        if isinstance(error, dict):
+        summary["report"] = {
+            "result_kind": report.get("result_kind"),
+            "headline": report.get("headline"),
+        }
+    error = payload.get("error")
+    if isinstance(error, dict):
+        error_summary = {
+            "code": error.get("code"),
+            "message": error.get("message"),
+            "status": error.get("status"),
+        }
+        if error.get("code") == "isolated_evaluations_required":
+            summary["verification_required"] = error_summary
+        else:
             summary["terminal_error"] = {
                 "code": error.get("code"),
                 "message": error.get("message"),
                 "status": error.get("status"),
             }
-        else:
-            summary["report"] = {
-                "result_kind": report.get("result_kind"),
-                "headline": report.get("headline"),
-            }
+    for key in (
+        "status",
+        "harness_next",
+        "stop_reason",
+        "inquire_stop_reason",
+        "inquire_operational_status",
+        "inquire_diagnostics",
+    ):
+        if payload.get(key) is not None:
+            summary[key] = payload[key]
+    warnings = payload.get("warnings")
+    if isinstance(warnings, list) and warnings:
+        summary["warnings"] = warnings
     if state.get("__interrupt__"):
         proposal = state["__interrupt__"][0].value.get("proposal", {})
         summary["next_interrupt"] = {
@@ -965,31 +1011,35 @@ def prompt_admission(
         print(f"  {index}. {option}")
 
     if has_proposal:
-        action = input_fn("[a]dmit proposal, [e]dit/select option, or [r]eject? ").strip().lower()
-        if action in {"r", "reject"}:
-            return {"admit": False}
-        if action in {"a", "admit"}:
-            selected = proposed_value
-            provenance_id = (proposal.get("source_id") or "").strip()
-            if not provenance_id:
-                provenance_id = input_fn("Non-empty provenance id: ").strip()
-        elif action in {"e", "edit"}:
-            raw_index = input_fn("Option number: ").strip()
-            selected = _option_at(options, raw_index)
-            provenance_id = input_fn("Non-empty provenance id: ").strip()
-        else:
-            return {"admit": False}
+        while True:
+            action = (
+                input_fn("[a]dmit proposal, [e]dit/select option, or [r]eject? ").strip().lower()
+            )
+            if action == "r":
+                return {"admit": False, "rejected": True}
+            if action == "a":
+                selected = proposed_value
+                provenance_id = (proposal.get("source_id") or "").strip()
+                break
+            if action == "e":
+                selected = _prompt_option(options, input_fn, allow_reject=False)
+                if selected is None:
+                    return {"admit": False, "cancelled": True}
+                provenance_id = ""
+                break
+            print("Enter a, e, or r.")
     else:
-        raw_index = input_fn("Option number, or [r]eject? ").strip()
-        if raw_index.lower() in {"r", "reject"}:
-            return {"admit": False}
-        selected = _option_at(options, raw_index)
-        provenance_id = input_fn("Non-empty provenance id: ").strip()
+        selected = _prompt_option(options, input_fn, allow_reject=True)
+        if selected == "__rejected__":
+            return {"admit": False, "rejected": True}
+        if selected is None:
+            return {"admit": False, "cancelled": True}
+        provenance_id = ""
 
-    if selected is None:
-        return {"admit": False}
     if not provenance_id:
-        return {"admit": False}
+        provenance_id = _prompt_provenance(input_fn)
+    if provenance_id is None:
+        return {"admit": False, "cancelled": True}
     return {
         "admit": True,
         "value": selected,
@@ -1024,6 +1074,38 @@ def _option_at(options: list[str], raw_index: str) -> str | None:
     if 1 <= index <= len(options):
         return options[index - 1]
     return None
+
+
+def _prompt_option(
+    options: list[str],
+    input_fn: Callable[[str], str],
+    *,
+    allow_reject: bool,
+) -> str | None:
+    prompt = "Option number, or [r]eject? " if allow_reject else "Option number, or [c]ancel? "
+    while True:
+        raw = input_fn(prompt).strip().lower()
+        if allow_reject and raw == "r":
+            return "__rejected__"
+        if not allow_reject and raw == "c":
+            return None
+        selected = _option_at(options, raw)
+        if selected is not None:
+            return selected
+        if allow_reject:
+            print(f"Enter an option number from 1 to {len(options)}, or r.")
+        else:
+            print(f"Enter an option number from 1 to {len(options)}, or c.")
+
+
+def _prompt_provenance(input_fn: Callable[[str], str]) -> str | None:
+    while True:
+        provenance_id = input_fn("Non-empty provenance id, or [c]ancel: ").strip()
+        if provenance_id:
+            if provenance_id.lower() == "c":
+                return None
+            return provenance_id
+        print("Provenance id cannot be blank; enter a value or c to cancel.")
 
 
 # Prose case from Introducing SMEme. Not a live Listed-tree stem.

@@ -1647,6 +1647,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                         apply_payload,
                                         inquiry_session_id=str(session_id),
                                         stop_reason=facade.get("stop_reason"),
+                                        operational_status=facade.get("operational_status"),
+                                        diagnostics=facade.get("diagnostics"),
                                     )
                                 )
                             rec.note_json_response(apply_out)
@@ -1776,6 +1778,8 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                         apply_payload,
                                         inquiry_session_id=str(session_uuid),
                                         stop_reason=facade.get("stop_reason"),
+                                        operational_status=facade.get("operational_status"),
+                                        diagnostics=facade.get("diagnostics"),
                                     )
                                 )
                             rec.note_json_response(apply_out)

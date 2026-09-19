@@ -88,7 +88,11 @@ value). When ANALYZE stops for an **operational** reason (`operational_budget` /
 (Resolved held, exact \(S_R\) search exhausted budget), chat still Applies and may
 return a **concluded** report — that is Apply over admitted facts, **not** an MCP
 quota denial. Those stops also append warning `inquire_operational_stop`. Do not
-treat `stop_reason: operational_budget` alone as “no conclusion.”
+treat `stop_reason: operational_budget` alone as “no conclusion.” Operational
+STOP responses include `inquire_operational_status` and bounded
+`inquire_diagnostics` (phase, SAT-call counts, elapsed milliseconds, and active
+limits); ordinary ACTIVE and VERIFY chat responses do not expose that control
+telemetry.
 
 | `stop_reason` (selected) | Meaning |
 |--------------------------|---------|

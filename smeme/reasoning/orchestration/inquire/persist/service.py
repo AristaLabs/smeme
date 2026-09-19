@@ -14,6 +14,7 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from smeme.core.config import settings
 from smeme.core.models import (
     DecisionTree,
     InquiryAdmittedAssertion,
@@ -287,6 +288,27 @@ def _session_wire_envelope(
     return out
 
 
+def _server_budget_json() -> str:
+    return json.dumps(
+        {
+            "max_resolving_support_sat_calls": (settings.inquire_resolving_support_max_sat_calls),
+            "resolving_support_timeout_ms": settings.inquire_resolving_support_timeout_ms,
+        }
+    )
+
+
+def _stop_event_payload(
+    session: InquirySession,
+    directive: dict[str, Any],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"stop_reason": session.stop_reason}
+    if directive.get("operational_status") is not None:
+        payload["operational_status"] = directive["operational_status"]
+    if isinstance(directive.get("diagnostics"), dict):
+        payload["diagnostics"] = dict(directive["diagnostics"])
+    return payload
+
+
 def _run_analyze_for_session(
     *,
     ir: IR,
@@ -305,6 +327,7 @@ def _run_analyze_for_session(
         artifact_identity=session.artifact_identity,
         force_reachable_ids=fr,
         force_unreachable_ids=fu,
+        budget_json=_server_budget_json(),
     )
 
 
@@ -371,7 +394,7 @@ async def start_inquiry(
             db,
             session=session,
             event_type=EVENT_SESSION_STOPPED,
-            payload={"stop_reason": session.stop_reason},
+            payload=_stop_event_payload(session, analyze_payload["directive"]),
         )
     await db.commit()
     await db.refresh(session)
@@ -577,7 +600,7 @@ async def admit_to_session(
             db,
             session=session,
             event_type=EVENT_SESSION_STOPPED,
-            payload={"stop_reason": session.stop_reason},
+            payload=_stop_event_payload(session, analyze_payload["directive"]),
             receipt_id=receipt.id,
         )
     await db.commit()
@@ -638,6 +661,7 @@ async def verify_session(
         observations_json=json.dumps(observations),
         force_reachable_ids=fr,
         force_unreachable_ids=fu,
+        budget_json=_server_budget_json(),
     )
 
     decision = verify_payload.get("decision") or {}
@@ -708,7 +732,7 @@ async def verify_session(
             db,
             session=session,
             event_type=EVENT_SESSION_STOPPED,
-            payload={"stop_reason": session.stop_reason},
+            payload=_stop_event_payload(session, analyze_payload["directive"]),
             receipt_id=receipt.id,
         )
     await db.commit()

@@ -338,6 +338,24 @@ class Settings(BaseSettings):
     Independent of ``MCP_AUTHORING_GRAPH_TOOLS_ENABLED``.
     """
 
+    inquire_resolving_support_max_sat_calls: int = Field(
+        default=2000,
+        alias="SMEME_INQUIRE_RESOLVING_SUPPORT_MAX_SAT_CALLS",
+        ge=1,
+        le=10_000,
+        description=(
+            "Per-ANALYZE exact resolving-support SAT-call budget; independent of "
+            "counterfactual repair and capped at 10000."
+        ),
+    )
+    inquire_resolving_support_timeout_ms: int = Field(
+        default=5000,
+        alias="SMEME_INQUIRE_RESOLVING_SUPPORT_TIMEOUT_MS",
+        ge=1,
+        le=30_000,
+        description="Per-check exact resolving-support timeout in milliseconds.",
+    )
+
     # D026 — MCP-first local User provision (temporary operational rollout switch; not licensing).
     mcp_first_provisioning_enabled: bool = Field(
         default=False,

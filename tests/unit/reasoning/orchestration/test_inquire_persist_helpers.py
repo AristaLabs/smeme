@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
 from smeme.reasoning.orchestration.inquire.persist.catalog import (
     catalog_json_dict,
     worksheet_catalog_from_graph_and_ir,
 )
 from smeme.reasoning.orchestration.inquire.persist.service import (
+    _server_budget_json,
     _should_reject_stale_admit_replay,
+    _stop_event_payload,
     canonical_request_hash,
 )
 from tests.unit.reasoning.runtime.inquire_fixtures import compile_golden, fork_g2_graph
@@ -25,8 +30,12 @@ def test_worksheet_catalog_from_graph_and_ir() -> None:
 
 
 def test_canonical_request_hash_stable() -> None:
-    a = canonical_request_hash({"operation": "admit", "question_id": "q1", "selected_option": "Yes"})
-    b = canonical_request_hash({"selected_option": "Yes", "question_id": "q1", "operation": "admit"})
+    a = canonical_request_hash(
+        {"operation": "admit", "question_id": "q1", "selected_option": "Yes"}
+    )
+    b = canonical_request_hash(
+        {"selected_option": "Yes", "question_id": "q1", "operation": "admit"}
+    )
     assert a == b
     assert len(a) == 64
 
@@ -48,3 +57,29 @@ def test_should_reject_stale_admit_replay() -> None:
         session_revision=4,
         receipt_response={},
     )
+
+
+def test_server_budget_json_carries_dedicated_support_configuration() -> None:
+    budget = json.loads(_server_budget_json())
+    assert budget == {
+        "max_resolving_support_sat_calls": 2000,
+        "resolving_support_timeout_ms": 5000,
+    }
+
+
+def test_stop_event_payload_retains_operational_diagnostics() -> None:
+    payload = _stop_event_payload(
+        SimpleNamespace(stop_reason="resolving_support_incomplete"),
+        {
+            "action": "STOP",
+            "operational_status": "budget",
+            "diagnostics": {
+                "phase": "resolving_support",
+                "sat_calls": 2015,
+                "elapsed_ms": 123.456,
+            },
+        },
+    )
+    assert payload["stop_reason"] == "resolving_support_incomplete"
+    assert payload["operational_status"] == "budget"
+    assert payload["diagnostics"]["sat_calls"] == 2015

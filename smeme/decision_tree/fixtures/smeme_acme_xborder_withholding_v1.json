@@ -1,0 +1,772 @@
+{
+  "sample_key": "smeme_acme_xborder_withholding_v1",
+  "title": "U.S. Withholding on Cross-Border Payments to Foreign Businesses",
+  "fictional_demo_disclaimer": "Fictional technical demonstration only. This decision tree and its synthetic case files are provided solely to demonstrate SMEme and LangGraph integration. They are incomplete and are not legal, tax, accounting, compliance, or other professional advice. They must not be used to determine obligations in any real transaction.\n\nACME, Inc., party D, matter numbers, people, records, and transactions are fictional.\n\nAny resemblance to real people, organizations, or transactions is coincidental.\n\nThe example does not claim to encode complete or current tax law.\n\nProvenance records where an answer came from; it does not establish that a source is true, authoritative, current, or legally sufficient.\n\nA qualified professional must independently review real decision procedures and evidence.\n\nNo real taxpayer identifiers, addresses, credentials, account numbers, signatures, personal data, or live private URLs appear anywhere in this fixture.\n\nThe tax rules, rates, citations, and 2026 statements encoded in the decision procedure have not been reviewed by qualified tax counsel.",
+  "source_graph_hash": "0aa2e969c7ecc57336904cc19599d0aa5aed8025686e4a526e47fee5a1ab4858",
+  "public_graph_hash": "8ef94026608f5901a4ae10a4f0a706886e384b11968002b55b3dc1d565c4467e",
+  "graph": {
+    "nodes": [
+      {
+        "id": "q1",
+        "type": "question",
+        "data": {
+          "text": "Is the payee a U.S. person or a foreign person?",
+          "type": "radio",
+          "options": [
+            "U.S. person (valid Form W-9 on file)",
+            "Foreign person",
+            "Undocumented (no valid W-9 or W-8 on file)",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "A valid Form W-9 documents U.S. status and removes the payment from chapter 3 and chapter 4 withholding (ordinary domestic reporting rules still apply). A Form W-8 series certificate documents foreign status. If no valid certificate is on file, the withholding agent must apply the presumption rules.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 1441, 1442; Treas. Reg. § 1.1441-1(b)(3)",
+              "title": "Presumption rules for undocumented payees",
+              "url": "https://www.irs.gov/instructions/iw8"
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Documentation",
+              "title": null,
+              "url": "https://www.irs.gov/publications/p515"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q1b",
+        "type": "question",
+        "data": {
+          "text": "Applying the presumption rules, is the undocumented entity payee presumed foreign or presumed a U.S. person?",
+          "type": "radio",
+          "options": [
+            "Presumed foreign",
+            "Presumed U.S. person",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "For an undocumented entity, the regulations generally presume foreign status where the agent has indicia of foreign status (e.g., a foreign address, an entity type known to be foreign) and U.S. status otherwise. A presumed-U.S. non-exempt recipient without a TIN is subject to backup withholding on reportable payments. No treaty benefit or ECI exemption can be claimed on an undocumented basis.",
+          "authorities": [
+            {
+              "citation": "Treas. Reg. § 1.1441-1(b)(3)(iii)",
+              "title": "Presumptions for entity payees",
+              "url": null
+            },
+            {
+              "citation": "IRC § 3406",
+              "title": "Backup withholding",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "q10",
+        "type": "question",
+        "data": {
+          "text": "Is the payment U.S.-source fixed or determinable annual or periodical (FDAP) income?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "On the undocumented-foreign path only U.S.-source FDAP income (interest, dividends, rents, royalties, U.S.-performed services, and similar) is subject to NRA withholding, and it must be withheld at the full statutory rate because no treaty or ECI claim can be supported. Purchases of goods and foreign-source income are outside the withholding regime.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 861-865, 871(a), 881(a)",
+              "title": "Sourcing and FDAP income",
+              "url": null
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Income Subject to Withholding",
+              "title": null,
+              "url": "https://www.irs.gov/publications/p515"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q2",
+        "type": "question",
+        "data": {
+          "text": "Does the payment fall under a special withholding regime?",
+          "type": "radio",
+          "options": [
+            "Sale or disposition of a U.S. real property interest (FIRPTA)",
+            "Transfer of a partnership interest",
+            "Neither",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Chapter 3 (NRA) withholding does not include withholding under § 1445 (dispositions of U.S. real property interests, generally 15% of the amount realized) or § 1446(f) (dispositions of interests in partnerships engaged in a U.S. trade or business, generally 10% of the amount realized). These regimes have their own certifications and exceptions and are routed out of this tree. The two special-regime options both reach the same conclusion by design so that the reasoning path records which regime applies.",
+          "authorities": [
+            {
+              "citation": "IRC § 1445; Treas. Reg. §§ 1.1445-1 to -11",
+              "title": "FIRPTA withholding",
+              "url": "https://www.irs.gov/individuals/international-taxpayers/definitions-of-terms-and-procedures-unique-to-firpta"
+            },
+            {
+              "citation": "IRC § 1446(f); Treas. Reg. § 1.1446(f)-2",
+              "title": "Withholding on transfers of partnership interests",
+              "url": "https://www.irs.gov/individuals/international-taxpayers/partnership-withholding"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q3",
+        "type": "question",
+        "data": {
+          "text": "What is the character of the payment?",
+          "type": "radio",
+          "options": [
+            "Purchase of tangible goods or inventory",
+            "Compensation for services",
+            "Royalties, license fees, or software/IP payments",
+            "Interest",
+            "Dividends or corporate distributions",
+            "Rent or other FDAP income",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Character determines the sourcing rule and whether the amount is FDAP income at all. Payments for the purchase of tangible goods are not FDAP income and are not subject to NRA withholding. Dividends paid by a U.S. corporation are U.S.-source by definition. Use 'Rent or other FDAP income' for rents, guarantee fees, consent fees, settlement payments and similar periodical amounts.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 871(a)(1), 881(a)(1); Treas. Reg. § 1.1441-2(b)",
+              "title": "Definition of FDAP income",
+              "url": null
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Withholding on Specific Income",
+              "title": null,
+              "url": "https://www.irs.gov/individuals/international-taxpayers/withholding-on-specific-income"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q4a",
+        "type": "question",
+        "data": {
+          "text": "Where were the services physically performed?",
+          "type": "radio",
+          "options": [
+            "Entirely outside the United States",
+            "Wholly or partly within the United States",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Compensation for services is sourced by place of performance. Services performed entirely outside the U.S. produce foreign-source income that is not subject to NRA withholding regardless of where the payer is located. If services are split, withholding applies to the portion allocable to U.S. performance (typically by days).",
+          "authorities": [
+            {
+              "citation": "IRC §§ 861(a)(3), 862(a)(3); Treas. Reg. § 1.861-4",
+              "title": "Source of compensation for services",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "q4b",
+        "type": "question",
+        "data": {
+          "text": "Where is the licensed intangible used?",
+          "type": "radio",
+          "options": [
+            "Solely outside the United States",
+            "Within the United States (in whole or in part)",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Royalties are sourced by the place of use of the intangible, not the residence of the licensor or licensee. Software payments require a preliminary characterization (royalty vs. sale of a copyrighted article vs. services) under Treas. Reg. § 1.861-18; if that characterization is unsettled, answer Unsure.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 861(a)(4), 862(a)(4); Treas. Reg. § 1.861-18",
+              "title": "Source of royalties; software transactions",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "q4c",
+        "type": "question",
+        "data": {
+          "text": "Is the obligor on the debt a U.S. person?",
+          "type": "radio",
+          "options": [
+            "Yes, U.S. obligor",
+            "No, foreign obligor",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Interest is generally sourced by the residence of the obligor. Interest paid by a U.S. company on its own debt is U.S.-source. Interest paid on behalf of a foreign affiliate's obligation is generally foreign-source.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 861(a)(1), 862(a)(1)",
+              "title": "Source of interest",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "q4c2",
+        "type": "question",
+        "data": {
+          "text": "Does the portfolio interest or bank deposit interest exemption apply?",
+          "type": "radio",
+          "options": [
+            "Yes, portfolio interest or bank deposit interest exemption applies",
+            "No statutory exemption",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Portfolio interest is exempt from withholding where the obligation is in registered form, the withholding agent holds a valid W-8BEN-E, the recipient is not a 10% shareholder, not a related-party CFC, not a bank on an ordinary loan, and the interest is not contingent interest. Interest on ordinary U.S. bank deposits is also exempt from chapter 3 withholding, though information reporting may apply.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 871(h), 881(c), 881(a)(1); Treas. Reg. § 1.1441-1(b)(4)",
+              "title": "Portfolio interest and bank deposit interest exemptions",
+              "url": null
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Interest",
+              "title": null,
+              "url": "https://www.irs.gov/publications/p515"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q4d",
+        "type": "question",
+        "data": {
+          "text": "Is the underlying property or activity located in the United States?",
+          "type": "radio",
+          "options": [
+            "Yes, within the United States",
+            "No, outside the United States",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Rents are sourced by the location of the property. For other FDAP items (guarantee fees, consent fees, settlement payments), apply the applicable sourcing rule; guarantee fees for obligations of a U.S. person are U.S.-source under § 861(a)(9).",
+          "authorities": [
+            {
+              "citation": "IRC §§ 861(a)(4), 861(a)(9), 862(a)",
+              "title": "Source of rents and other income",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "q5",
+        "type": "question",
+        "data": {
+          "text": "Is the income effectively connected with the payee's U.S. trade or business?",
+          "type": "radio",
+          "options": [
+            "Yes, and a valid Form W-8ECI is on file",
+            "No, not effectively connected",
+            "Effectively connected status is claimed but no valid Form W-8ECI is on file",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "No chapter 3 withholding is required on income that is effectively connected with the conduct of a U.S. trade or business and includible in the beneficial owner's gross income, provided the payee furnishes a valid Form W-8ECI with a U.S. TIN. Without the certificate the agent must treat the amount as FDAP income subject to withholding. ECI is not a withholdable payment under chapter 4. The two non-exempt options converge by design so the reasoning path records whether ECI was denied or merely undocumented.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 864(c), 1441(c)(1), 1442(a); Treas. Reg. § 1.1441-4(a)",
+              "title": "Exemption for effectively connected income",
+              "url": null
+            },
+            {
+              "citation": "Instructions for Form W-8ECI (Rev. Oct. 2021)",
+              "title": null,
+              "url": "https://www.irs.gov/instructions/iw8eci"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q6",
+        "type": "question",
+        "data": {
+          "text": "Is chapter 4 (FATCA) withholding triggered on this payment?",
+          "type": "radio",
+          "options": [
+            "Not a chapter 4 withholdable payment",
+            "Withholdable payment, and the payee's chapter 4 status is validly documented",
+            "Withholdable payment to a nonparticipating FFI or a payee whose chapter 4 status is not established",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "Chapter 4 withholding applies at 30% to withholdable payments of U.S.-source FDAP income made to nonparticipating FFIs and to certain NFFEs that fail to document their substantial U.S. owners. Where chapter 4 withholding is applied, chapter 3 withholding is not separately required on the same amount. Non-financial payments (most services, rents, licenses of IP used in the ordinary course of business) are excluded from the definition of withholdable payment. Options that converge on the same next step are kept separate so the reasoning path records which fact applied.",
+          "authorities": [
+            {
+              "citation": "IRC §§ 1471-1474; Treas. Reg. §§ 1.1471-2, 1.1473-1(a)",
+              "title": "FATCA withholding and withholdable payments",
+              "url": null
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Chapter 4 Withholding Requirements",
+              "title": null,
+              "url": "https://www.irs.gov/individuals/international-taxpayers/withholding-and-reporting-obligations"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q7",
+        "type": "question",
+        "data": {
+          "text": "Is a valid, current Form W-8BEN-E from the beneficial owner on file?",
+          "type": "radio",
+          "options": [
+            "Yes, valid and current",
+            "No, expired, incomplete, or not on file",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "A W-8BEN-E is generally valid from signature through December 31 of the third succeeding calendar year and must be refreshed within 30 days of a change in circumstances. The form must be completed by the beneficial owner (or a hybrid entity claiming on its own behalf), not an intermediary. Missing required fields, an unsigned form, or a U.S. address without explanation render it invalid.",
+          "authorities": [
+            {
+              "citation": "Treas. Reg. § 1.1441-1(e)(4)(ii)",
+              "title": "Validity period of withholding certificates",
+              "url": null
+            },
+            {
+              "citation": "Instructions for Form W-8BEN-E (Rev. Oct. 2021)",
+              "title": null,
+              "url": "https://www.irs.gov/instructions/iw8bene"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q8",
+        "type": "question",
+        "data": {
+          "text": "Does the Form W-8BEN-E contain a complete and supportable treaty claim?",
+          "type": "radio",
+          "options": [
+            "Yes: treaty in force, residence certified, limitation-on-benefits provision identified, and article/rate stated",
+            "No treaty claim, or the claim is incomplete, or the payee's country has no in-force treaty",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "A treaty claim on Part III requires (a) an income tax treaty currently in force with the payee's residence country, (b) certification of residence, (c) identification of the specific LOB provision satisfied, and (d) for special rates, the article and rate. Note that the U.S.-Hungary treaty ceased to apply to withholding as of January 1, 2024, and the U.S.-Russia treaty has been suspended for withholding as of August 16, 2024; payees in those countries are withheld at 30%.",
+          "authorities": [
+            {
+              "citation": "Treas. Reg. § 1.1441-6(b), (c)",
+              "title": "Claim of reduced withholding under a treaty",
+              "url": null
+            },
+            {
+              "citation": "IRS Pub. 515 (2026), Tax Treaties; What's New",
+              "title": null,
+              "url": "https://www.irs.gov/publications/p515"
+            },
+            {
+              "citation": "IRM 4.10.21.9.3",
+              "title": "Treaty claim due diligence",
+              "url": "https://www.irs.gov/irm/part4/irm_04-010-021"
+            }
+          ]
+        }
+      },
+      {
+        "id": "q9",
+        "type": "question",
+        "data": {
+          "text": "Does the withholding agent have actual knowledge or reason to know that the treaty claim is unreliable or incorrect?",
+          "type": "radio",
+          "options": [
+            "No red flags",
+            "Yes, red flags are present",
+            "Unsure"
+          ],
+          "required": true,
+          "help_text": "The agent may rely on the certificate unless it knows or has reason to know a claim is unreliable or incorrect, in which case it must withhold at 30%. Red flags include a U.S. mailing or permanent address, a residence country that differs from the treaty country claimed, a treaty that does not exist or is not in force, an LOB provision that is inconsistent with the entity's stated type, or standing instructions to pay to a U.S. account without explanation.",
+          "authorities": [
+            {
+              "citation": "Treas. Reg. §§ 1.1441-7(b), 1.1441-6(b)(1)",
+              "title": "Withholding agent's standard of knowledge",
+              "url": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "c_no_withholding",
+        "type": "conclusion",
+        "data": {
+          "title": "No Withholding Required",
+          "summary": "No chapter 3 or chapter 4 withholding is required on this payment. Depending on the path this is because the payee is a documented U.S. person, the income is foreign-source, the payment is for the purchase of goods, the income is effectively connected and documented on Form W-8ECI, or a statutory exemption (portfolio interest or bank deposit interest) applies.",
+          "recommendations": [
+            "Retain the withholding certificate or Form W-9 supporting the determination.",
+            "If the payee is foreign and the amount is U.S.-source, file Form 1042-S reporting the exempt amount with the applicable exemption code.",
+            "If the payee is a U.S. person, apply ordinary Form 1099 reporting rules.",
+            "Re-evaluate if the facts change (e.g., services begin to be performed in the U.S.)."
+          ],
+          "severity": "info"
+        }
+      },
+      {
+        "id": "c_treaty_rate",
+        "type": "conclusion",
+        "data": {
+          "title": "Withhold at Reduced Treaty Rate",
+          "summary": "The payment is U.S.-source FDAP income to a documented foreign beneficial owner with a complete treaty claim and no red flags. Withhold at the reduced rate specified in the applicable treaty article for this income type.",
+          "recommendations": [
+            "Confirm the treaty rate for the specific income category (dividends, interest, royalties, other income) and any ownership thresholds.",
+            "Deposit withheld tax and file Forms 1042 and 1042-S with the treaty exemption code and treaty country.",
+            "Calendar the W-8BEN-E expiration date and re-solicit before it lapses.",
+            "Document the LOB analysis in the withholding file."
+          ],
+          "severity": "info"
+        }
+      },
+      {
+        "id": "c_statutory_30",
+        "type": "conclusion",
+        "data": {
+          "title": "Withhold at Statutory 30%",
+          "summary": "The payment is U.S.-source FDAP income to a foreign person (or presumed foreign person) and no valid treaty claim, ECI certification, or statutory exemption reduces the rate. Withhold 30% of the gross amount under chapter 3 (or chapter 4 where the payee's FATCA status is not established).",
+          "recommendations": [
+            "Withhold 30% at the time of payment and deposit under the Form 1042 deposit rules.",
+            "File Forms 1042 and 1042-S; use the appropriate chapter 3 and chapter 4 status codes.",
+            "Notify the payee that a valid Form W-8BEN-E with a treaty claim (or Form W-8ECI, if applicable) may reduce future withholding.",
+            "Do not refund over-withheld amounts to the payee outside the reimbursement or set-off procedures."
+          ],
+          "severity": "warning"
+        }
+      },
+      {
+        "id": "c_backup",
+        "type": "conclusion",
+        "data": {
+          "title": "Backup Withholding Applies (24%)",
+          "summary": "The payee is undocumented and, under the presumption rules, is treated as a U.S. non-exempt recipient. Reportable payments are subject to backup withholding at the rate under IRC § 3406 rather than NRA withholding.",
+          "recommendations": [
+            "Withhold at the section 3406 backup withholding rate (24%) on reportable payments.",
+            "Solicit Form W-9 (or a Form W-8 if the payee is in fact foreign) before the next payment.",
+            "Report on Form 1099 and Form 945.",
+            "If a valid Form W-8 is later received, re-run this analysis for subsequent payments."
+          ],
+          "severity": "warning"
+        }
+      },
+      {
+        "id": "c_special_regime",
+        "type": "conclusion",
+        "data": {
+          "title": "Special-Regime Withholding Applies",
+          "summary": "The transaction is governed by a separate withholding regime outside chapter 3: FIRPTA (IRC § 1445, generally 15% of the amount realized on a disposition of a U.S. real property interest) or IRC § 1446(f) (generally 10% of the amount realized on a transfer of an interest in a partnership engaged in a U.S. trade or business). Apply that regime's certifications, exceptions, and forms.",
+          "recommendations": [
+            "FIRPTA: obtain a certification of non-foreign status or a withholding certificate application; otherwise withhold 15% and file Forms 8288 and 8288-A within 20 days of the transfer.",
+            "Section 1446(f): obtain a Form W-9, a certification of non-foreign status, or an applicable exception certification; otherwise withhold 10% and file Forms 8288 and 8288-A.",
+            "Confirm which regime controls where both could apply and withhold the greater amount if required.",
+            "Refer to tax counsel for exception and treaty coordination."
+          ],
+          "severity": "warning"
+        }
+      },
+      {
+        "id": "c_escalate",
+        "type": "conclusion",
+        "data": {
+          "title": "Escalate to Tax Counsel",
+          "summary": "One or more facts needed to determine the withholding obligation are unknown, unsettled, or conflicting. Do not release the payment without withholding until the open point is resolved; where a payment must be made now, withhold at the statutory 30% rate as the conservative default.",
+          "recommendations": [
+            "Identify the specific open fact from the reasoning path (source, character, ECI status, chapter 4 status, treaty eligibility, or documentation).",
+            "Request the missing certificate or supporting information from the payee.",
+            "If payment cannot be delayed, withhold 30% and pursue reimbursement or refund procedures once the facts are established.",
+            "Record the basis for escalation in the withholding file."
+          ],
+          "severity": "critical"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "q1",
+        "target": "c_no_withholding",
+        "condition": "U.S. person (valid Form W-9 on file)"
+      },
+      {
+        "source": "q1",
+        "target": "q2",
+        "condition": "Foreign person"
+      },
+      {
+        "source": "q1",
+        "target": "q1b",
+        "condition": "Undocumented (no valid W-9 or W-8 on file)"
+      },
+      {
+        "source": "q1b",
+        "target": "q10",
+        "condition": "Presumed foreign"
+      },
+      {
+        "source": "q1b",
+        "target": "c_backup",
+        "condition": "Presumed U.S. person"
+      },
+      {
+        "source": "q1b",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q10",
+        "target": "c_statutory_30",
+        "condition": "Yes"
+      },
+      {
+        "source": "q10",
+        "target": "c_no_withholding",
+        "condition": "No"
+      },
+      {
+        "source": "q10",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q2",
+        "target": "c_special_regime",
+        "condition": "Sale or disposition of a U.S. real property interest (FIRPTA)"
+      },
+      {
+        "source": "q2",
+        "target": "c_special_regime",
+        "condition": "Transfer of a partnership interest"
+      },
+      {
+        "source": "q2",
+        "target": "q3",
+        "condition": "Neither"
+      },
+      {
+        "source": "q2",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q3",
+        "target": "c_no_withholding",
+        "condition": "Purchase of tangible goods or inventory"
+      },
+      {
+        "source": "q3",
+        "target": "q4a",
+        "condition": "Compensation for services"
+      },
+      {
+        "source": "q3",
+        "target": "q4b",
+        "condition": "Royalties, license fees, or software/IP payments"
+      },
+      {
+        "source": "q3",
+        "target": "q4c",
+        "condition": "Interest"
+      },
+      {
+        "source": "q3",
+        "target": "q5",
+        "condition": "Dividends or corporate distributions"
+      },
+      {
+        "source": "q3",
+        "target": "q4d",
+        "condition": "Rent or other FDAP income"
+      },
+      {
+        "source": "q3",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4a",
+        "target": "c_no_withholding",
+        "condition": "Entirely outside the United States"
+      },
+      {
+        "source": "q4a",
+        "target": "q5",
+        "condition": "Wholly or partly within the United States"
+      },
+      {
+        "source": "q4a",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4b",
+        "target": "c_no_withholding",
+        "condition": "Solely outside the United States"
+      },
+      {
+        "source": "q4b",
+        "target": "q5",
+        "condition": "Within the United States (in whole or in part)"
+      },
+      {
+        "source": "q4b",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4c",
+        "target": "q4c2",
+        "condition": "Yes, U.S. obligor"
+      },
+      {
+        "source": "q4c",
+        "target": "c_no_withholding",
+        "condition": "No, foreign obligor"
+      },
+      {
+        "source": "q4c",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4c2",
+        "target": "q5",
+        "condition": "No statutory exemption"
+      },
+      {
+        "source": "q4c2",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4d",
+        "target": "q5",
+        "condition": "Yes, within the United States"
+      },
+      {
+        "source": "q4d",
+        "target": "c_no_withholding",
+        "condition": "No, outside the United States"
+      },
+      {
+        "source": "q4d",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q5",
+        "target": "c_no_withholding",
+        "condition": "Yes, and a valid Form W-8ECI is on file"
+      },
+      {
+        "source": "q5",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q6",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q7",
+        "target": "q8",
+        "condition": "Yes, valid and current"
+      },
+      {
+        "source": "q7",
+        "target": "c_statutory_30",
+        "condition": "No, expired, incomplete, or not on file"
+      },
+      {
+        "source": "q7",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q8",
+        "target": "q9",
+        "condition": "Yes: treaty in force, residence certified, limitation-on-benefits provision identified, and article/rate stated"
+      },
+      {
+        "source": "q8",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q9",
+        "target": "c_treaty_rate",
+        "condition": "No red flags"
+      },
+      {
+        "source": "q9",
+        "target": "c_statutory_30",
+        "condition": "Yes, red flags are present"
+      },
+      {
+        "source": "q9",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q1",
+        "target": "c_escalate",
+        "condition": "Unsure"
+      },
+      {
+        "source": "q4c2",
+        "target": "c_no_withholding",
+        "condition": "Yes, portfolio interest or bank deposit interest exemption applies"
+      },
+      {
+        "source": "q6",
+        "target": "c_statutory_30",
+        "condition": "Withholdable payment to a nonparticipating FFI or a payee whose chapter 4 status is not established"
+      },
+      {
+        "source": "q8",
+        "target": "c_statutory_30",
+        "condition": "No treaty claim, or the claim is incomplete, or the payee's country has no in-force treaty"
+      },
+      {
+        "source": "q5",
+        "target": "q6",
+        "condition": "No, not effectively connected"
+      },
+      {
+        "source": "q5",
+        "target": "q6",
+        "condition": "Effectively connected status is claimed but no valid Form W-8ECI is on file"
+      },
+      {
+        "source": "q6",
+        "target": "q7",
+        "condition": "Not a chapter 4 withholdable payment"
+      },
+      {
+        "source": "q6",
+        "target": "q7",
+        "condition": "Withholdable payment, and the payee's chapter 4 status is validly documented"
+      }
+    ],
+    "metadata": {
+      "title": "U.S. Withholding on Cross-Border Payments to Foreign Businesses",
+      "description": null,
+      "category": null,
+      "estimated_time": 12,
+      "effective_date": "2026-09-17",
+      "review_by": "2027-01-31",
+      "version": "1.0.0",
+      "tags": [],
+      "regression_fixtures": []
+    }
+  }
+}

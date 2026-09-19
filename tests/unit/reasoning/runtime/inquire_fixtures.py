@@ -177,3 +177,34 @@ def fork_g8_graph() -> DTGraph:
         ],
         metadata=DTGraphMetadata(title="Inquire G8 unreachable"),
     )
+
+
+def full_support_chain_graph(question_count: int) -> DTGraph:
+    """Synthetic benchmark where reaching ``target`` requires every admitted answer."""
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
+    for index in range(1, question_count + 1):
+        question_id = f"q{index}"
+        nodes.append(
+            _question(
+                question_id,
+                f"Continue through gate {index}?",
+                ["Continue", "Exit"],
+            )
+        )
+        exit_id = f"c{index}"
+        nodes.append(_conclusion(exit_id, f"Exit {index}", "Synthetic benchmark exit."))
+        edges.append(GraphEdge(source=question_id, target=exit_id, condition="Exit"))
+        edges.append(
+            GraphEdge(
+                source=question_id,
+                target=f"q{index + 1}" if index < question_count else "target",
+                condition="Continue",
+            )
+        )
+    nodes.append(_conclusion("target", "Target", "Synthetic benchmark target."))
+    return DTGraph(
+        nodes=nodes,
+        edges=edges,
+        metadata=DTGraphMetadata(title=f"Inquire {question_count}-gate support benchmark"),
+    )

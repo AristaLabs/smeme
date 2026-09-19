@@ -17,6 +17,7 @@ from tests.unit.reasoning.runtime.inquire_fixtures import (
     compile_golden,
     fork_g2_graph,
     fork_g8_graph,
+    full_support_chain_graph,
     joint_g6_graph,
     xor_g1_graph,
 )
@@ -148,8 +149,29 @@ def test_sr_budget_miss_is_operational_not_g7() -> None:
     budget = InquiryBudget(max_sat_calls=10)
     base = compile_working_base(fixture.ir, admitted, EMPTY_ASSUMPTIONS, budget)
     base.sat_calls[0] = budget.max_sat_calls
-    support = resolving_support(base, "c1")
+    support = resolving_support(base, "c1", max_sat_calls=1)
     assert support.status == "budget"
+    assert support.sat_calls == 1
+    assert base.sat_calls[0] == budget.max_sat_calls
+
+
+def test_default_support_budget_covers_ten_question_representative_tree() -> None:
+    from smeme.reasoning.runtime.inquire.support import resolving_support
+
+    question_count = 10
+    fixture = compile_golden(full_support_chain_graph(question_count))
+    admitted = {f"q{index}": "Continue" for index in range(1, question_count + 1)}
+    base = compile_working_base(fixture.ir, admitted, EMPTY_ASSUMPTIONS, _BUDGET)
+    resolved = resolved_conclusion(base)
+    assert resolved.status == "resolved"
+    assert resolved.conclusion_id == "target"
+
+    support = resolving_support(base, resolved.conclusion_id)
+
+    assert support.status == "ok"
+    assert len(support.pairs) == question_count
+    assert support.sat_calls == 1034
+    assert support.sat_calls < _BUDGET.max_resolving_support_sat_calls
 
 
 def test_empty_u_proves_not_resolvable_without_sat() -> None:
