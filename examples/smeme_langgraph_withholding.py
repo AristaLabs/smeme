@@ -14,10 +14,11 @@ withholding decision tree, run on ACME, Inc.'s sale of asset X to party D
 (CRM matter #123). That post ran Inquire from ordinary chat. This listing is
 the same loop as a controlled LangGraph graph.
 
-The ACME file is the **prose** case. Live Listed trees on an account may be a
-different matter — pass ``decision_tree_id`` (list item ``id``) and keep
-``matter_context`` in the host. Do not paste live task stems into public copy
-as if they were the withholding walkthrough.
+Without ``--case-bundle``, the ACME file is only a **prose** case. With the
+frozen public-distribution ZIP, the host safely loads one fictional matter and
+requires the optional model to cite a verbatim source excerpt. Live Listed
+trees on an account may still be a different matter — pass ``decision_tree_id``
+(list item ``id``) deliberately.
 
 Pins: langchain==1.4.0 (langchain.mcp is BETA), fastmcp==4.0.3.
 
@@ -65,13 +66,18 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import inspect
+import io
 import json
 import os
+import stat
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
-from pathlib import Path
-from typing import Any, TypedDict
+from pathlib import Path, PurePosixPath
+from typing import Any, NoReturn, TypedDict
+from zipfile import BadZipFile, ZipFile
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, StateGraph
@@ -83,6 +89,12 @@ SMEME_MCP_URL = os.environ.get("SMEME_MCP_URL", "https://www.smeme.ai/api/v1/mcp
 SMEME_OAUTH_CLIENT_ID = os.environ.get("SMEME_OAUTH_CLIENT_ID", "NRdsdBvrio0DW9yo")
 OAUTH_CALLBACK_PORT = int(os.environ.get("SMEME_OAUTH_CALLBACK_PORT", "8787"))
 OAUTH_CALLBACK_HOST = os.environ.get("SMEME_OAUTH_CALLBACK_HOST", "localhost")
+
+ACME_DATASET_SHA256 = "96b8534209b11ca64899be4f054077ca6000ead1059437cd6343968554add560"
+ACME_SAMPLE_KEY = "smeme_acme_xborder_withholding_v1"
+MAX_ARCHIVE_MEMBERS = 256
+MAX_ARCHIVE_UNCOMPRESSED_BYTES = 10 * 1024 * 1024
+MAX_SOURCE_BYTES = 1024 * 1024
 
 REQUIRED_TOOLS = {
     "smeme_reasoning_capabilities",
@@ -97,8 +109,64 @@ class IntegrationError(RuntimeError):
     """Actionable hosted-client contract failure."""
 
 
+def _fail(message: str, cause: Exception | None = None) -> NoReturn:
+    if cause is not None:
+        raise IntegrationError(message) from cause
+    raise IntegrationError(message)
+
+
+@dataclass(frozen=True)
+class PublicSource:
+    """One neutral source from the public synthetic case bundle."""
+
+    source_id: str
+    title: str
+    relative_locator: str
+    content: str
+
+
+@dataclass(frozen=True)
+class PublicCaseBundle:
+    """Validated host-side source material for one fictional matter."""
+
+    case_id: str
+    sample_key: str
+    sha256: str
+    sources: tuple[PublicSource, ...]
+
+    def source_catalog(self) -> dict[str, dict[str, str]]:
+        return {
+            source.source_id: {
+                "title": source.title,
+                "relative_locator": source.relative_locator,
+                "content": source.content,
+            }
+            for source in self.sources
+        }
+
+    def matter_context(self) -> str:
+        sections = [
+            (
+                f"SOURCE {source.source_id}\n"
+                f"Title: {source.title}\n"
+                f"Locator: {source.relative_locator}\n"
+                f"Content:\n{source.content}"
+            )
+            for source in self.sources
+        ]
+        return (
+            f"Fictional synthetic case {self.case_id}. "
+            "Use only the sources below. Source identifiers are attributions, not truth claims.\n\n"
+            + "\n\n---\n\n".join(sections)
+        )
+
+
 class WithholdingState(TypedDict, total=False):
     matter_context: str  # ACME file: agreement, intake memo, email, CRM #123
+    source_catalog: dict[str, dict[str, str]]  # public source id -> title/locator/content
+    case_id: str
+    dataset_sha256: str
+    sample_key: str
     decision_tree_id: str  # list item id; pass to evaluate as decision_tree_id
     inquiry_session_id: str
     open_task: dict  # {question_id, stem, options} — from the SOLVER
@@ -114,6 +182,127 @@ ProposalProvider = Callable[
     dict[str, Any] | Awaitable[dict[str, Any]],
 ]
 EventSink = Callable[[dict[str, Any]], None]
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _safe_zip_infos(zf: ZipFile) -> dict[str, Any]:
+    infos = zf.infolist()
+    if len(infos) > MAX_ARCHIVE_MEMBERS:
+        _fail(f"Case bundle has {len(infos)} members; maximum is {MAX_ARCHIVE_MEMBERS}")
+    total_size = sum(info.file_size for info in infos)
+    if total_size > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+        _fail(f"Case bundle uncompressed size exceeds {MAX_ARCHIVE_UNCOMPRESSED_BYTES} bytes")
+    by_name: dict[str, Any] = {}
+    for info in infos:
+        member = PurePosixPath(info.filename)
+        if member.is_absolute() or ".." in member.parts:
+            _fail(f"Case bundle contains unsafe path {info.filename!r}")
+        if stat.S_ISLNK(info.external_attr >> 16):
+            _fail(f"Case bundle contains symlink {info.filename!r}")
+        if info.flag_bits & 0x1:
+            _fail(f"Case bundle contains encrypted member {info.filename!r}")
+        if info.filename in by_name:
+            _fail(f"Case bundle contains duplicate member {info.filename!r}")
+        by_name[info.filename] = info
+    bad_member = zf.testzip()
+    if bad_member is not None:
+        _fail(f"Case bundle failed ZIP integrity at {bad_member!r}")
+    return by_name
+
+
+def _manifest_object(zf: ZipFile, members: dict[str, Any]) -> dict[str, Any]:
+    info = members.get("dataset_manifest.json")
+    if info is None or info.is_dir():
+        raise IntegrationError("Case bundle is missing dataset_manifest.json")
+    if info.file_size > MAX_SOURCE_BYTES:
+        raise IntegrationError("dataset_manifest.json exceeds the per-file size limit")
+    try:
+        manifest = json.loads(zf.read(info))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise IntegrationError("dataset_manifest.json is not valid UTF-8 JSON") from exc
+    if not isinstance(manifest, dict):
+        raise IntegrationError("dataset_manifest.json must contain an object")
+    return manifest
+
+
+def load_public_case_bundle(
+    path: Path,
+    case_id: str,
+    *,
+    expected_sha256: str = ACME_DATASET_SHA256,
+) -> PublicCaseBundle:
+    """Load one case from the frozen public ZIP without extracting it."""
+    encoded = path.read_bytes()
+    digest = _sha256_bytes(encoded)
+    if expected_sha256 and digest != expected_sha256:
+        _fail(f"Case bundle SHA-256 is {digest}; expected {expected_sha256}")
+    try:
+        with ZipFile(io.BytesIO(encoded)) as zf:
+            members = _safe_zip_infos(zf)
+            manifest = _manifest_object(zf, members)
+            sample_key = manifest.get("sample_key")
+            if sample_key != ACME_SAMPLE_KEY:
+                _fail(f"Case bundle sample_key is {sample_key!r}; expected {ACME_SAMPLE_KEY!r}")
+            cases = manifest.get("cases")
+            if not isinstance(cases, list):
+                raise IntegrationError("Case bundle manifest has no cases list")
+            case = next(
+                (
+                    candidate
+                    for candidate in cases
+                    if isinstance(candidate, dict) and candidate.get("case_id") == case_id
+                ),
+                None,
+            )
+            if case is None:
+                _fail(f"Case bundle has no case_id {case_id!r}")
+            source_rows = case.get("sources")
+            if not isinstance(source_rows, list) or not source_rows:
+                _fail(f"Case {case_id!r} has no sources")
+            sources: list[PublicSource] = []
+            seen_source_ids: set[str] = set()
+            for row in source_rows:
+                if not isinstance(row, dict):
+                    _fail(f"Case {case_id!r} contains malformed source metadata")
+                source_id = row.get("source_id")
+                title = row.get("title")
+                locator = row.get("relative_locator")
+                if not all(
+                    isinstance(value, str) and value.strip()
+                    for value in (source_id, title, locator)
+                ):
+                    _fail(f"Case {case_id!r} contains incomplete source metadata")
+                if source_id in seen_source_ids:
+                    _fail(f"Case {case_id!r} repeats source_id {source_id!r}")
+                seen_source_ids.add(source_id)
+                info = members.get(locator)
+                if info is None or info.is_dir():
+                    _fail(f"Source {source_id!r} locator {locator!r} is missing")
+                if info.file_size > MAX_SOURCE_BYTES:
+                    _fail(f"Source {source_id!r} exceeds the per-file size limit")
+                try:
+                    content = zf.read(info).decode()
+                except UnicodeDecodeError as exc:
+                    _fail(f"Source {source_id!r} is not UTF-8 text", exc)
+                sources.append(
+                    PublicSource(
+                        source_id=source_id,
+                        title=title,
+                        relative_locator=locator,
+                        content=content,
+                    )
+                )
+    except BadZipFile as exc:
+        raise IntegrationError("Case bundle is not a valid ZIP archive") from exc
+    return PublicCaseBundle(
+        case_id=case_id,
+        sample_key=ACME_SAMPLE_KEY,
+        sha256=digest,
+        sources=tuple(sources),
+    )
 
 
 def _package_version(name: str) -> str:
@@ -217,6 +406,91 @@ async def _manual_proposal(state: WithholdingState) -> dict[str, Any]:
     }
 
 
+def _message_text(message: Any) -> str:
+    raw = getattr(message, "content", message)
+    if isinstance(raw, str):
+        return raw.strip()
+    if isinstance(raw, list):
+        blocks = [
+            block.get("text", "")
+            for block in raw
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        return "\n".join(blocks).strip()
+    return str(raw).strip()
+
+
+def _validated_source_proposal(
+    text: str,
+    task: dict[str, Any],
+    source_catalog: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    try:
+        candidate = json.loads(text)
+    except json.JSONDecodeError:
+        return {
+            "raw": text,
+            "value": None,
+            "proposal_error": "model_response_not_json",
+        }
+    if not isinstance(candidate, dict):
+        return {
+            "raw": text,
+            "value": None,
+            "proposal_error": "model_response_not_object",
+        }
+    value = candidate.get("option")
+    source_id = candidate.get("source_id")
+    excerpt = candidate.get("excerpt")
+    if value not in task["options"]:
+        return {
+            "raw": text,
+            "value": None,
+            "proposal_error": "option_not_offered",
+        }
+    source = source_catalog.get(source_id) if isinstance(source_id, str) else None
+    if source is None:
+        return {
+            "raw": text,
+            "value": None,
+            "proposal_error": "source_not_in_case",
+        }
+    if not isinstance(excerpt, str) or not excerpt.strip():
+        return {
+            "raw": text,
+            "value": None,
+            "proposal_error": "excerpt_missing",
+        }
+    excerpt_validation = "exact"
+    if excerpt not in source["content"]:
+        normalized_excerpt = " ".join(excerpt.split())
+        normalized_source = " ".join(source["content"].split())
+        if normalized_excerpt in normalized_source:
+            excerpt_validation = "normalized_whitespace"
+        else:
+            return {
+                "raw": text,
+                "value": None,
+                "candidate_value": value,
+                "source_id": source_id,
+                "source_title": source["title"],
+                "source_locator": source["relative_locator"],
+                "excerpt": excerpt,
+                "excerpt_verified": False,
+                "proposal_error": "excerpt_not_found_in_source",
+            }
+    return {
+        "raw": text,
+        "value": value,
+        "source_id": source_id,
+        "source_title": source["title"],
+        "source_locator": source["relative_locator"],
+        "excerpt": excerpt,
+        "excerpt_verified": True,
+        "excerpt_validation": excerpt_validation,
+    }
+
+
 def make_openai_proposal_provider(
     model_factory: Callable[[], Any] | None = None,
 ) -> ProposalProvider:
@@ -240,16 +514,48 @@ def make_openai_proposal_provider(
                     temperature=0,
                 )
         task = state["open_task"]
-        message = await model.ainvoke(
-            "Return exactly one offered option and no other text. "
-            "The operator will separately admit it and attach provenance.\n"
-            f"Question: {task['stem']}\n"
-            f"Options: {task['options']}\n---\n{state['matter_context']}"
-        )
-        raw = getattr(message, "content", message)
-        text = raw.strip() if isinstance(raw, str) else str(raw)
-        value = text if text in task["options"] else None
-        return {"question_id": task["question_id"], "raw": raw, "value": value}
+        source_catalog = state.get("source_catalog") or {}
+        if source_catalog:
+            prompt = (
+                "Using only the supplied fictional case sources, propose an answer to the "
+                "question. Return exactly one JSON object with keys option, source_id, and "
+                "excerpt. option must exactly match one offered option. source_id must exactly "
+                "match one supplied SOURCE identifier. excerpt must be a short verbatim "
+                "substring copied from that source. Do not use outside knowledge. If the sources "
+                "do not support an offered option, return "
+                '{"option":null,"source_id":null,"excerpt":null}.\n'
+                f"Question: {task['stem']}\n"
+                f"Options: {json.dumps(task['options'])}\n---\n{state['matter_context']}"
+            )
+        else:
+            prompt = (
+                "Return exactly one offered option and no other text. "
+                "The operator will separately admit it and attach provenance.\n"
+                f"Question: {task['stem']}\n"
+                f"Options: {task['options']}\n---\n{state['matter_context']}"
+            )
+        if source_catalog:
+            text = _message_text(await model.ainvoke(prompt))
+            proposal = _validated_source_proposal(text, task, source_catalog)
+            if proposal.get("value") is None:
+                correction_prompt = (
+                    f"{prompt}\n\n"
+                    "Your previous response failed local validation with "
+                    f"{proposal.get('proposal_error', 'unknown_error')}. "
+                    "Return a corrected JSON object only. The excerpt must be one contiguous "
+                    "verbatim substring copied character-for-character from the Content of the "
+                    "source identified by source_id; do not summarize, concatenate, or normalize "
+                    f"it.\nPrevious response: {text}"
+                )
+                text = _message_text(await model.ainvoke(correction_prompt))
+                proposal = _validated_source_proposal(text, task, source_catalog)
+        else:
+            text = _message_text(await model.ainvoke(prompt))
+            proposal = {
+                "raw": text,
+                "value": text if text in task["options"] else None,
+            }
+        return {"question_id": task["question_id"], **proposal}
 
     return propose
 
@@ -343,15 +649,26 @@ def make_nodes(
         value = proposed.get("value")
         if value not in task["options"]:
             value = None
-        return {
-            "proposed_answer": {
-                "question_id": task["question_id"],
-                "stem": task.get("stem"),
-                "raw": proposed.get("raw"),
-                "value": value,
-                "options": task["options"],
-            }
+        answer = {
+            "question_id": task["question_id"],
+            "stem": task.get("stem"),
+            "raw": proposed.get("raw"),
+            "value": value,
+            "options": task["options"],
         }
+        for key in (
+            "source_id",
+            "source_title",
+            "source_locator",
+            "excerpt",
+            "excerpt_verified",
+            "excerpt_validation",
+            "candidate_value",
+            "proposal_error",
+        ):
+            if key in proposed:
+                answer[key] = proposed[key]
+        return {"proposed_answer": answer}
 
     def admit(state: WithholdingState) -> WithholdingState:
         """THE GATE — host interrupt before evaluate_continue, always.
@@ -461,11 +778,13 @@ async def run(
     decision_tree_id: str,
     thread_id: str = "acme-123",
     *,
+    case_bundle: PublicCaseBundle | None = None,
     proposal_provider: ProposalProvider | None = None,
     mechanical_first_option: bool = False,
     input_fn: Callable[[str], str] = input,
     evidence_output: Path | None = None,
     stop_after_admitted_continuations: int | None = None,
+    reviewed_admission: tuple[str, str] | None = None,
 ) -> dict[str, Any]:
     """Run until terminal output, pausing for a real operator by default."""
     tree_id = decision_tree_id.strip()
@@ -487,6 +806,18 @@ async def run(
         },
         "events": [],
     }
+    if case_bundle is not None:
+        evidence["dataset"] = {
+            "case_id": case_bundle.case_id,
+            "sample_key": case_bundle.sample_key,
+            "sha256": case_bundle.sha256,
+            "source_count": len(case_bundle.sources),
+        }
+    if proposal_provider is not None:
+        evidence["proposal_model"] = {
+            "model_id": os.environ.get("MODEL_ID", "provider-injected"),
+            "openai_compatible_base_url_configured": bool(os.environ.get("OPENAI_BASE_URL")),
+        }
 
     def record(event: dict[str, Any]) -> None:
         evidence["events"].append(event)
@@ -498,10 +829,20 @@ async def run(
         app = build_graph(tools, proposal_provider, record)
         config = {"configurable": {"thread_id": thread_id}}
 
-        paused = await app.ainvoke(
-            {"matter_context": matter_context, "decision_tree_id": tree_id},
-            config,
-        )
+        initial_state: WithholdingState = {
+            "matter_context": matter_context,
+            "decision_tree_id": tree_id,
+        }
+        if case_bundle is not None:
+            initial_state.update(
+                {
+                    "source_catalog": case_bundle.source_catalog(),
+                    "case_id": case_bundle.case_id,
+                    "dataset_sha256": case_bundle.sha256,
+                    "sample_key": case_bundle.sample_key,
+                }
+            )
+        paused = await app.ainvoke(initial_state, config)
         admitted_continuations = 0
         while paused.get("__interrupt__"):
             proposal = paused["__interrupt__"][0].value["proposal"]
@@ -510,6 +851,16 @@ async def run(
                     "event": "interrupt",
                     "question_id": proposal.get("question_id"),
                     "option_count": len(proposal.get("options", [])),
+                    "dataset_source_id": (
+                        proposal.get("source_id") if case_bundle is not None else None
+                    ),
+                    "excerpt_verified": (
+                        proposal.get("excerpt_verified") if case_bundle is not None else None
+                    ),
+                    "excerpt_validation": (
+                        proposal.get("excerpt_validation") if case_bundle is not None else None
+                    ),
+                    "proposal_error": proposal.get("proposal_error"),
                 }
             )
             if (
@@ -517,7 +868,10 @@ async def run(
                 and admitted_continuations >= stop_after_admitted_continuations
             ):
                 break
-            if mechanical_first_option:
+            if reviewed_admission is not None:
+                decision = reviewed_admission_decision(proposal, *reviewed_admission)
+                print("OUT-OF-BAND HUMAN REVIEW: admitting the exact reviewed option/source pair.")
+            elif mechanical_first_option:
                 print("MECHANICAL DEMONSTRATION ONLY: admitting the first option.")
                 decision = {
                     "admit": True,
@@ -531,6 +885,9 @@ async def run(
                     "event": "admission",
                     "action": "admitted" if decision.get("admit") else "rejected",
                     "continuation_called": bool(decision.get("admit")),
+                    "review_mode": (
+                        "out_of_band_exact_match" if reviewed_admission is not None else "prompt"
+                    ),
                 }
             )
             paused = await app.ainvoke(
@@ -594,6 +951,16 @@ def prompt_admission(
         print(f"Proposed option: {proposed_value}")
     else:
         print("Selection mode: manual operator selection")
+        if proposal.get("proposal_error"):
+            print(f"Model proposal rejected locally: {proposal['proposal_error']}")
+        if proposal.get("candidate_value"):
+            print(f"Rejected model option: {proposal['candidate_value']}")
+    if proposal.get("source_id"):
+        print(
+            "Proposed source: "
+            f"{proposal['source_id']} — {proposal.get('source_title') or '[title unavailable]'}"
+        )
+        print(f"Source excerpt: {proposal.get('excerpt') or '[excerpt unavailable]'}")
     for index, option in enumerate(options, start=1):
         print(f"  {index}. {option}")
 
@@ -603,9 +970,13 @@ def prompt_admission(
             return {"admit": False}
         if action in {"a", "admit"}:
             selected = proposed_value
+            provenance_id = (proposal.get("source_id") or "").strip()
+            if not provenance_id:
+                provenance_id = input_fn("Non-empty provenance id: ").strip()
         elif action in {"e", "edit"}:
             raw_index = input_fn("Option number: ").strip()
             selected = _option_at(options, raw_index)
+            provenance_id = input_fn("Non-empty provenance id: ").strip()
         else:
             return {"admit": False}
     else:
@@ -613,16 +984,35 @@ def prompt_admission(
         if raw_index.lower() in {"r", "reject"}:
             return {"admit": False}
         selected = _option_at(options, raw_index)
+        provenance_id = input_fn("Non-empty provenance id: ").strip()
 
     if selected is None:
         return {"admit": False}
-    provenance_id = input_fn("Non-empty provenance id: ").strip()
     if not provenance_id:
         return {"admit": False}
     return {
         "admit": True,
         "value": selected,
         "provenance_id": provenance_id,
+    }
+
+
+def reviewed_admission_decision(
+    proposal: dict[str, Any],
+    expected_option: str,
+    expected_source_id: str,
+) -> dict[str, Any]:
+    """Admit only the exact grounded proposal a human reviewed out of band."""
+    if proposal.get("value") != expected_option:
+        raise IntegrationError("Live proposal option differs from the reviewed option")
+    if proposal.get("source_id") != expected_source_id:
+        raise IntegrationError("Live proposal source differs from the reviewed source")
+    if proposal.get("excerpt_verified") is not True:
+        raise IntegrationError("Live proposal excerpt did not pass local source validation")
+    return {
+        "admit": True,
+        "value": expected_option,
+        "provenance_id": expected_source_id,
     }
 
 
@@ -657,6 +1047,19 @@ async def _main() -> int:
         help="Use a lazy OpenAI-compatible model proposal; default is manual selection.",
     )
     parser.add_argument(
+        "--case-bundle",
+        type=Path,
+        help=(
+            "Frozen public smeme-acme-dataset-distributed.zip; verifies its canonical SHA-256 "
+            "and keeps all source content in host state"
+        ),
+    )
+    parser.add_argument(
+        "--case-id",
+        default="matter-123",
+        help="Fictional case_id from dataset_manifest.json (default: matter-123).",
+    )
+    parser.add_argument(
         "--mechanical-first-option",
         action="store_true",
         help="Mechanical demonstration only: admit each task's first option.",
@@ -671,24 +1074,53 @@ async def _main() -> int:
         action="store_true",
         help="Stop at the next interrupt or terminal result after one admitted continuation.",
     )
+    parser.add_argument(
+        "--reviewed-option",
+        help="Exact model option already reviewed by a human; requires --reviewed-source-id.",
+    )
+    parser.add_argument(
+        "--reviewed-source-id",
+        help="Exact public source ID already reviewed by a human; requires --reviewed-option.",
+    )
     args = parser.parse_args()
     if not args.decision_tree_id.strip():
         parser.error(
             "--decision-tree-id or SMEME_DECISION_TREE_ID is required; "
             "copy the Listed tree's id from the dashboard or smeme_reasoning_list"
         )
+    if bool(args.reviewed_option) != bool(args.reviewed_source_id):
+        parser.error("--reviewed-option and --reviewed-source-id must be supplied together")
+    if args.reviewed_option and (
+        not args.model or not args.case_bundle or not args.stop_after_first_admission
+    ):
+        parser.error(
+            "reviewed admission requires --model, --case-bundle, and --stop-after-first-admission"
+        )
     print(f"Connecting to {SMEME_MCP_URL}")
     print(f"OAuth redirect_uri=http://{OAUTH_CALLBACK_HOST}:{OAUTH_CALLBACK_PORT}/callback")
     print("Expect a browser window for Clerk OAuth (Bearer, not the cookie session).")
+    case_bundle = (
+        load_public_case_bundle(args.case_bundle, args.case_id) if args.case_bundle else None
+    )
+    matter_context = case_bundle.matter_context() if case_bundle else ACME_MATTER
+    if case_bundle is not None:
+        print(
+            f"Loaded {case_bundle.case_id}: {len(case_bundle.sources)} public synthetic sources "
+            f"(SHA-256 {case_bundle.sha256})"
+        )
     provider = make_openai_proposal_provider() if args.model else None
     result = await run(
-        ACME_MATTER,
+        matter_context,
         args.decision_tree_id,
         args.thread_id,
+        case_bundle=case_bundle,
         proposal_provider=provider,
         mechanical_first_option=args.mechanical_first_option,
         evidence_output=args.evidence_output,
         stop_after_admitted_continuations=(1 if args.stop_after_first_admission else None),
+        reviewed_admission=(
+            (args.reviewed_option, args.reviewed_source_id) if args.reviewed_option else None
+        ),
     )
     print(json.dumps(_terminal_summary(result), indent=2, default=str))
     return 0
