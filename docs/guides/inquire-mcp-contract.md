@@ -94,6 +94,47 @@ STOP responses include `inquire_operational_status` and bounded
 limits); ordinary ACTIVE and VERIFY chat responses do not expose that control
 telemetry.
 
+Terminal Apply preserves every admitted `provenance_id` as an evidence item and
+question-level evidence reference. Source content remains in the host; the
+server receives and persists only the admitted provenance identifier. Guided
+admission does not require a richer evidence object than that identifier. A
+guided answer with admitted provenance therefore must not produce
+`missing_evidence_ref`.
+
+**Client ranking.** `status: ok` means the tool call parsed and ran; it is not
+a claim that the case is complete. Clients rank `harness_next` and, on Inquire
+STOP, `stop_reason` / `inquire_stop_reason` over `report.headline`.
+
+Missing-evidence validation example:
+
+```json
+{
+  "status": "ok",
+  "warnings": [{"code": "missing_evidence_ref", "question_ids": ["q1"]}],
+  "harness_next": "user_input_needed"
+}
+```
+
+That combination is the intended bulk-Apply signal to gather evidence. It is
+not a hard ingest error and not a guided-chat STOP.
+
+Concluded operational-stop example:
+
+```json
+{
+  "status": "STOPPED",
+  "harness_next": "user_input_needed",
+  "stop_reason": "resolving_support_incomplete",
+  "inquire_stop_reason": "resolving_support_incomplete",
+  "report": {"result_kind": "concluded", "headline": "Withhold at Reduced Treaty Rate"},
+  "warnings": [{"code": "missing_evidence_ref"}, {"code": "inquire_operational_stop"}]
+}
+```
+
+The report is Apply over admitted facts. Clients must not treat the headline as
+a clean success while `harness_next` is `user_input_needed` or an operational
+stop is present.
+
 | `stop_reason` (selected) | Meaning |
 |--------------------------|---------|
 | `verified_resolved_consequence` | Resolved + \(S_R\) verified under \(P_v\) |
