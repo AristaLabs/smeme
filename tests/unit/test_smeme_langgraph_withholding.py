@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from zipfile import ZipFile
 
 import pytest
 from langgraph.types import Command
@@ -25,6 +28,32 @@ def _load_example() -> ModuleType:
 
 
 example = _load_example()
+
+
+def _public_case_zip(tmp_path: Path) -> tuple[Path, str]:
+    path = tmp_path / "smeme-acme-dataset-distributed.zip"
+    manifest = {
+        "sample_key": example.ACME_SAMPLE_KEY,
+        "cases": [
+            {
+                "case_id": "matter-123",
+                "sources": [
+                    {
+                        "source_id": "ACME-123-REG-001",
+                        "title": "Business register extract",
+                        "relative_locator": "distributed/matter-123/register.json",
+                    }
+                ],
+            }
+        ],
+    }
+    with ZipFile(path, "w") as zf:
+        zf.writestr("dataset_manifest.json", json.dumps(manifest))
+        zf.writestr(
+            "distributed/matter-123/register.json",
+            '{"jurisdiction":"Fictionland","entity_type":"corporation"}',
+        )
+    return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class FakeTool:
@@ -143,6 +172,174 @@ async def test_model_factory_is_lazy_and_injectable() -> None:
     assert created == 1
 
 
+def test_public_case_bundle_loads_verified_sources_without_extracting(tmp_path: Path) -> None:
+    path, digest = _public_case_zip(tmp_path)
+
+    bundle = example.load_public_case_bundle(path, "matter-123", expected_sha256=digest)
+
+    assert bundle.sha256 == digest
+    assert bundle.sources[0].source_id == "ACME-123-REG-001"
+    assert bundle.sources[0].title == "Business register extract"
+    assert '"entity_type":"corporation"' in bundle.matter_context()
+
+
+def test_public_case_bundle_rejects_unsafe_member(tmp_path: Path) -> None:
+    path = tmp_path / "unsafe.zip"
+    with ZipFile(path, "w") as zf:
+        zf.writestr("../escape.txt", "no")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    with pytest.raises(example.IntegrationError, match="unsafe path"):
+        example.load_public_case_bundle(path, "matter-123", expected_sha256=digest)
+
+
+@pytest.mark.asyncio
+async def test_model_proposal_is_grounded_in_public_case_source() -> None:
+    created = 0
+
+    class Model:
+        async def ainvoke(self, prompt: str) -> SimpleNamespace:
+            assert "SOURCE ACME-123-REG-001" in prompt
+            assert '"Yes"' in prompt
+            return SimpleNamespace(
+                content=json.dumps(
+                    {
+                        "option": "Yes",
+                        "source_id": "ACME-123-REG-001",
+                        "excerpt": '"entity_type":"corporation"',
+                    }
+                )
+            )
+
+    def factory() -> Model:
+        nonlocal created
+        created += 1
+        return Model()
+
+    provider = example.make_openai_proposal_provider(factory)
+    state = {
+        "matter_context": (
+            "SOURCE ACME-123-REG-001\n"
+            'Content:\n{"jurisdiction":"Fictionland","entity_type":"corporation"}'
+        ),
+        "source_catalog": {
+            "ACME-123-REG-001": {
+                "title": "Business register extract",
+                "relative_locator": "distributed/matter-123/register.json",
+                "content": '{"jurisdiction":"Fictionland","entity_type":"corporation"}',
+            }
+        },
+        "open_task": {
+            "question_id": "q1",
+            "stem": "Is the payee a corporation?",
+            "options": ["Yes", "No"],
+        },
+    }
+
+    proposal = await provider(state)
+
+    assert proposal["value"] == "Yes"
+    assert proposal["source_id"] == "ACME-123-REG-001"
+    assert proposal["excerpt_verified"] is True
+    assert proposal["excerpt_validation"] == "exact"
+    assert created == 1
+
+
+@pytest.mark.asyncio
+async def test_model_proposal_retries_once_after_nonverbatim_excerpt() -> None:
+    responses = iter(
+        [
+            {
+                "option": "Yes",
+                "source_id": "source-1",
+                "excerpt": "a paraphrase",
+            },
+            {
+                "option": "Yes",
+                "source_id": "source-1",
+                "excerpt": "exact source text",
+            },
+        ]
+    )
+    prompts: list[str] = []
+
+    class Model:
+        async def ainvoke(self, prompt: str) -> SimpleNamespace:
+            prompts.append(prompt)
+            return SimpleNamespace(content=json.dumps(next(responses)))
+
+    provider = example.make_openai_proposal_provider(lambda: Model())
+    proposal = await provider(
+        {
+            "matter_context": "SOURCE source-1\nContent:\nexact source text",
+            "source_catalog": {
+                "source-1": {
+                    "title": "Source",
+                    "relative_locator": "source.txt",
+                    "content": "exact source text",
+                }
+            },
+            "open_task": {
+                "question_id": "q1",
+                "stem": "Question?",
+                "options": ["Yes", "No"],
+            },
+        }
+    )
+
+    assert len(prompts) == 2
+    assert "excerpt_not_found_in_source" in prompts[1]
+    assert proposal["value"] == "Yes"
+    assert proposal["excerpt"] == "exact source text"
+    assert proposal["excerpt_verified"] is True
+    assert proposal["excerpt_validation"] == "exact"
+
+
+def test_model_proposal_accepts_only_deterministic_whitespace_normalization() -> None:
+    task = {"question_id": "q1", "options": ["Yes", "No"]}
+    catalog = {
+        "source-1": {
+            "title": "Wrapped email",
+            "relative_locator": "message.eml",
+            "content": "first line\ncontinues here",
+        }
+    }
+
+    proposal = example._validated_source_proposal(
+        '{"option":"Yes","source_id":"source-1","excerpt":"first line continues here"}',
+        task,
+        catalog,
+    )
+
+    assert proposal["value"] == "Yes"
+    assert proposal["excerpt_verified"] is True
+    assert proposal["excerpt_validation"] == "normalized_whitespace"
+
+
+def test_model_proposal_rejects_excerpt_not_found_in_source() -> None:
+    task = {"question_id": "q1", "options": ["Yes", "No"]}
+    catalog = {
+        "source-1": {
+            "title": "Source",
+            "relative_locator": "source.txt",
+            "content": "The source says something else.",
+        }
+    }
+
+    proposal = example._validated_source_proposal(
+        '{"option":"Yes","source_id":"source-1","excerpt":"invented"}',
+        task,
+        catalog,
+    )
+
+    assert proposal["value"] is None
+    assert proposal["candidate_value"] == "Yes"
+    assert proposal["source_id"] == "source-1"
+    assert proposal["excerpt"] == "invented"
+    assert proposal["excerpt_verified"] is False
+    assert proposal["proposal_error"] == "excerpt_not_found_in_source"
+
+
 def test_prompt_shows_stem_and_supports_admit_edit_and_reject(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -167,6 +364,59 @@ def test_prompt_shows_stem_and_supports_admit_edit_and_reject(
         "provenance_id": "source-2",
     }
     assert example.prompt_admission(proposal, lambda _: "r") == {"admit": False}
+
+
+def test_prompt_can_confirm_dataset_option_and_source_together(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    proposal = {
+        "stem": "Is the payee a corporation?",
+        "raw": "{}",
+        "value": "Yes",
+        "options": ["Yes", "No"],
+        "source_id": "ACME-123-REG-001",
+        "source_title": "Business register extract",
+        "excerpt": '"entity_type":"corporation"',
+    }
+
+    assert example.prompt_admission(proposal, lambda _: "a") == {
+        "admit": True,
+        "value": "Yes",
+        "provenance_id": "ACME-123-REG-001",
+    }
+    output = capsys.readouterr().out
+    assert "Business register extract" in output
+    assert '"entity_type":"corporation"' in output
+
+
+def test_reviewed_admission_requires_exact_validated_option_and_source() -> None:
+    proposal = {
+        "value": "Foreign person",
+        "source_id": "ACME-123-EML-001",
+        "excerpt_verified": True,
+    }
+
+    assert example.reviewed_admission_decision(
+        proposal,
+        "Foreign person",
+        "ACME-123-EML-001",
+    ) == {
+        "admit": True,
+        "value": "Foreign person",
+        "provenance_id": "ACME-123-EML-001",
+    }
+    with pytest.raises(example.IntegrationError, match="option differs"):
+        example.reviewed_admission_decision(
+            proposal,
+            "U.S. person (valid Form W-9 on file)",
+            "ACME-123-EML-001",
+        )
+    with pytest.raises(example.IntegrationError, match="source differs"):
+        example.reviewed_admission_decision(
+            proposal,
+            "Foreign person",
+            "ACME-123-TAX-001",
+        )
 
 
 def test_manual_prompt_accepts_option_number_directly(
@@ -223,5 +473,79 @@ async def test_rejection_loops_without_continuation_then_admission_calls_once() 
             "question_id": "q1",
             "selected_option": "Yes",
             "provenance_id": "source-1",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_grounded_proposal_human_admission_advances_to_solver_task() -> None:
+    tools = _tools()
+    tools["smeme_reasoning_evaluate_continue"] = FakeTool(
+        [
+            {
+                "harness_next": "continue_evaluate",
+                "inquiry_session_id": "session-1",
+                "task": {
+                    "question_id": "q2",
+                    "stem": "Next solver question?",
+                    "options": ["Present", "Absent"],
+                },
+            }
+        ]
+    )
+
+    async def grounded_provider(state: dict[str, object]) -> dict[str, object]:
+        task = state["open_task"]
+        assert isinstance(task, dict)
+        return {
+            "question_id": task["question_id"],
+            "raw": "{}",
+            "value": task["options"][0],
+            "source_id": "ACME-123-REG-001",
+            "source_title": "Business register extract",
+            "source_locator": "distributed/matter-123/register.json",
+            "excerpt": '"entity_type":"corporation"',
+            "excerpt_verified": True,
+        }
+
+    app = example.build_graph(tools, proposal_provider=grounded_provider)
+    config = {"configurable": {"thread_id": "grounded-advance-test"}}
+    paused = await app.ainvoke(
+        {
+            "matter_context": "SOURCE ACME-123-REG-001",
+            "source_catalog": {
+                "ACME-123-REG-001": {
+                    "title": "Business register extract",
+                    "relative_locator": "distributed/matter-123/register.json",
+                    "content": '{"entity_type":"corporation"}',
+                }
+            },
+            "decision_tree_id": "tree-1",
+        },
+        config,
+    )
+    proposal = paused["__interrupt__"][0].value["proposal"]
+    assert proposal["question_id"] == "q1"
+    assert proposal["source_id"] == "ACME-123-REG-001"
+    assert proposal["excerpt_verified"] is True
+
+    advanced = await app.ainvoke(
+        Command(
+            resume={
+                "admit": True,
+                "value": proposal["value"],
+                "provenance_id": proposal["source_id"],
+            }
+        ),
+        config,
+    )
+
+    assert advanced["__interrupt__"][0].value["proposal"]["question_id"] == "q2"
+    assert tools["smeme_reasoning_evaluate_continue"].calls == [
+        {
+            "inquiry_session_id": "session-1",
+            "question_id": "q1",
+            "selected_option": "Yes",
+            "provenance_id": "ACME-123-REG-001",
         }
     ]

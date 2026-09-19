@@ -156,6 +156,26 @@ uv run examples/smeme_langgraph_withholding.py --model
 The model only proposes. The same operator admission prompt still runs before
 `evaluate_continue`.
 
+To ground that proposal in the frozen public ACME dataset, provide the
+public-distribution artifact `smeme-acme-dataset-distributed.zip` and run:
+
+```bash
+uv run examples/smeme_langgraph_withholding.py \
+  --model \
+  --case-bundle /path/to/smeme-acme-dataset-distributed.zip \
+  --case-id matter-123
+```
+
+The host verifies the canonical bundle checksum, safely reads the selected
+matter without extracting files, and gives those public synthetic sources to
+the configured model. The model must return an exact offered option, a source
+ID from that matter, and an excerpt found in that source by exact matching or
+deterministic whitespace normalization for hard-wrapped text. There is no fuzzy
+or semantic matching. The operator sees the option, source title, and excerpt
+before admission. Full source content stays in LangGraph state; only the
+admitted option and source ID reach SMEme. The source is an attribution, not a
+claim that SMEme verified its truth or support.
+
 For non-interactive smoke testing only:
 
 ```bash
@@ -170,12 +190,23 @@ For a bounded hosted verification, reject once, admit once, and use:
 
 ```bash
 uv run examples/smeme_langgraph_withholding.py \
+  --model \
+  --case-bundle /path/to/smeme-acme-dataset-distributed.zip \
+  --case-id matter-123 \
   --stop-after-first-admission \
   --evidence-output /tmp/smeme-langgraph-hosted-evidence.json
 ```
 
 The evidence file contains package versions, tool names, response kinds, and
-sanitized interrupt metadata. It never serializes OAuth objects, tokens,
-headers, task stems, option text, matter context, or provenance values.
+sanitized interrupt metadata. Dataset runs also record the public bundle hash,
+case ID, source count, selected public source ID, and local excerpt-validation
+result. It never serializes OAuth objects, tokens, headers, task stems, option
+text, excerpts, or matter context.
+
+For a capture resumed after a human has reviewed a proposal out of band, add
+both `--reviewed-option '<exact option>'` and
+`--reviewed-source-id '<exact public source ID>'`. This mode requires
+`--model`, `--case-bundle`, and `--stop-after-first-admission`; it fails closed
+if the fresh proposal differs or its excerpt does not pass local validation.
 
 Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/discussions/30).
