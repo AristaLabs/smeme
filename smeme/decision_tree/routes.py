@@ -1,6 +1,7 @@
 """DecisionTree routes for decision-tree interaction."""
 
 import logging
+import shlex
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -30,6 +31,32 @@ from smeme.mcp.urls import mcp_connect_template_context
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/decision-trees", tags=["decision_tree"])
+
+
+def _acme_langgraph_command(
+    *,
+    request: Request,
+    decision_tree_id: UUID,
+    oauth_client_id: str,
+) -> str:
+    """Build a deployment-scoped command for the loaded ACME fixture."""
+    mcp_path = settings.mcp_http_path
+    if not mcp_path.startswith("/"):
+        mcp_path = f"/{mcp_path}"
+    origin = str(request.base_url).rstrip("/")
+    values = {
+        "mcp_url": f"{origin}{mcp_path}",
+        "client_id": oauth_client_id,
+        "decision_tree_id": str(decision_tree_id),
+    }
+    return (
+        f"SMEME_MCP_URL={shlex.quote(values['mcp_url'])} \\\n"
+        f"SMEME_OAUTH_CLIENT_ID={shlex.quote(values['client_id'])} \\\n"
+        "uv run examples/smeme_langgraph_withholding.py \\\n"
+        f"  --decision-tree-id {shlex.quote(values['decision_tree_id'])} \\\n"
+        "  --case-bundle ~/Downloads/smeme-acme-dataset-distributed.zip \\\n"
+        "  --case-id matter-123"
+    )
 
 
 async def _assistant_tools_row_map(
@@ -157,6 +184,20 @@ async def _dashboard_page_context(
         "mcp_enabled": settings.mcp_enabled,
         **mcp_connect_template_context(settings),
     }
+    from smeme.decision_tree.acme_example import (
+        ACME_EXAMPLE_DISCLAIMER,
+        find_acme_example_tree,
+    )
+
+    acme_example_tree = await find_acme_example_tree(db, current_user.id)
+    oauth_client_id = str(mcp_connect_ctx.get("mcp_oauth_client_id") or "").strip()
+    acme_run_command = None
+    if acme_example_tree is not None and oauth_client_id:
+        acme_run_command = _acme_langgraph_command(
+            request=request,
+            decision_tree_id=acme_example_tree.id,
+            oauth_client_id=oauth_client_id,
+        )
     usage_summary = await build_usage_summary(db, current_user)
     wizard_start_block = await check_wizard_start_block(
         db,
@@ -186,6 +227,10 @@ async def _dashboard_page_context(
         "show_deploy_success": show_deploy_success,
         "show_generation_deleted": show_generation_deleted,
         "decision_tree_grayed": decision_tree_grayed,
+        "acme_example_tree": acme_example_tree,
+        "acme_example_disclaimer": ACME_EXAMPLE_DISCLAIMER,
+        "acme_dataset_url": (settings.acme_dataset_url or "").strip() or None,
+        "acme_run_command": acme_run_command,
         **billing_ctx,
         **mcp_connect_ctx,
     }
@@ -273,6 +318,42 @@ async def load_sample_decision_tree(
             f'"{tree.title}" is Deployed and Listed. '
             "Your agent can call evaluate_answers on it over MCP."
         ),
+    )
+    response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+    return _dashboard_no_store_headers(response)
+
+
+@router.post("/acme-langgraph-example", response_class=HTMLResponse)
+async def load_acme_langgraph_example(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(current_active_user)],
+):
+    """Opt in to the account-scoped ACME LangGraph technical-preview fixture."""
+    from smeme.decision_tree.acme_example import AcmeExampleError, ensure_acme_example_tree
+
+    try:
+        tree = await ensure_acme_example_tree(current_user, db)
+    except AcmeExampleError as exc:
+        ctx = await _dashboard_page_context(db, current_user, request, error_message=exc.message)
+        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+        return _dashboard_no_store_headers(response)
+
+    if tree is None:
+        ctx = await _dashboard_page_context(
+            db,
+            current_user,
+            request,
+            error_message="Sign in to load the ACME LangGraph example.",
+        )
+        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+        return _dashboard_no_store_headers(response)
+
+    ctx = await _dashboard_page_context(
+        db,
+        current_user,
+        request,
+        success_message=f'"{tree.title}" is Deployed and Listed for this account.',
     )
     response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
     return _dashboard_no_store_headers(response)

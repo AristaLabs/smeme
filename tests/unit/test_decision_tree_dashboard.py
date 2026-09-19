@@ -166,6 +166,77 @@ async def test_dashboard_shows_authored_decision_tree_title(client, app_with_db,
     assert title.encode() in r.content
 
 
+async def test_dashboard_offers_opt_in_acme_example_with_exact_disclaimer(
+    client, app_with_db, dashboard_user
+):
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
+
+    with auth_as(app_with_db, dashboard_user["user"]):
+        r = await client.get("/decision-trees/dashboard")
+
+    assert r.status_code == 200
+    assert b"Load ACME LangGraph example" in r.content
+    assert b"consumes one decision-tree slot" in r.content
+    assert ACME_EXAMPLE_DISCLAIMER in r.text
+    assert b"Download synthetic case files" not in r.content
+
+
+async def test_dashboard_generates_deployment_scoped_acme_command(
+    client,
+    app_with_db,
+    dashboard_user,
+    monkeypatch,
+    test_session_factory,
+):
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_SAMPLE_KEY
+
+    tree = dashboard_user["my_decision_tree"]
+    async with test_session_factory() as session:
+        persisted = await session.get(DecisionTree, tree.id)
+        assert persisted is not None
+        persisted.sample_key = ACME_EXAMPLE_SAMPLE_KEY
+        session.add(persisted)
+        await session.commit()
+
+    monkeypatch.setattr(process_settings, "mcp_enabled", True)
+    monkeypatch.setattr(process_settings, "mcp_http_path", "/preview/mcp")
+    monkeypatch.setattr(process_settings, "mcp_allowed_oauth_client_ids", ["staging-client"])
+    monkeypatch.setattr(
+        process_settings,
+        "acme_dataset_url",
+        "https://test/downloads/smeme-acme-dataset-distributed.zip",
+    )
+
+    with auth_as(app_with_db, dashboard_user["user"]):
+        r = await client.get("/decision-trees/dashboard")
+
+    assert r.status_code == 200
+    assert b"Open example tree" in r.content
+    assert b"Download synthetic case files" in r.content
+    assert b"https://test/downloads/smeme-acme-dataset-distributed.zip" in r.content
+    assert b"SMEME_MCP_URL=http://test/preview/mcp" in r.content
+    assert b"SMEME_OAUTH_CLIENT_ID=staging-client" in r.content
+    assert f"--decision-tree-id {tree.id}".encode() in r.content
+
+
+async def test_acme_load_route_renders_fixture_error(
+    client, app_with_db, dashboard_user, monkeypatch
+):
+    from smeme.decision_tree import acme_example
+
+    async def fail_load(user, db):
+        raise acme_example.AcmeExampleError("quota_exceeded", "No decision-tree slot remains.")
+
+    monkeypatch.setattr(acme_example, "ensure_acme_example_tree", fail_load)
+
+    with auth_as(app_with_db, dashboard_user["user"]):
+        r = await client.post("/decision-trees/acme-langgraph-example")
+
+    assert r.status_code == 200
+    assert b"No decision-tree slot remains." in r.content
+    assert "no-store" in r.headers["cache-control"]
+
+
 async def test_dashboard_generation_disabled_offers_mcp_authoring(
     client,
     app_with_db,

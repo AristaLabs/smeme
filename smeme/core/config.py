@@ -245,6 +245,13 @@ class Settings(BaseSettings):
     mcp_http_path: str = Field(default="/api/v1/mcp", alias="MCP_HTTP_PATH")
     """URL path of the MCP endpoint (no trailing slash). Used as RFC 9728 ``resource`` identifier suffix."""
 
+    acme_dataset_url: str | None = Field(default=None, alias="SMEME_ACME_DATASET_URL")
+    """Optional public URL for the hosted ACME synthetic case-file ZIP.
+
+    Core leaves this unset. Hosted overlays can supply their packaged-artifact
+    route without copying or overriding the canonical dashboard.
+    """
+
     mcp_transport_rate_limit_per_ip_per_minute: int = Field(
         default=120,
         alias="SMEME_MCP_TRANSPORT_RATE_LIMIT_PER_IP_PER_MINUTE",
