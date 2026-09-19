@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Version** | 1.2 |
-| **Status** | **Public specification** (target Inquire added; Part I unchanged from v1.1) |
+| **Status** | **Public specification** (target Inquire added; exact public answer admission) |
 | **Conformance baseline** | SMEme Core commits identified in Appendix B |
 | **Path** | `docs/spec/decision-dag-calculus.md` |
 
@@ -296,7 +296,7 @@ Consequence queries operate over `B_φ`.
 
 On the public radio-answer path, an admitted answer contributes a positive literal for the selected option and negative literals for the non-selected options. An unanswered question contributes no option literals.
 
-**IR option string is canonical.** When option labels on a question are unique under case-insensitive comparison, admission matches answers case-insensitively (`strip` + `.lower()`), then binds each admitted answer to the matching **IR option label**. Projection and Z3 atoms use that IR casing. Guard membership remains exact against the same IR labels. The remapping direction — admitted input normalized to the IR string — is what makes case-insensitive admission consistent with exact guard membership rather than contradictory. See Appendix A for the case-colliding-options non-obligation.
+**IR option string is canonical.** A non-empty admitted answer must exactly equal one offered **IR option label**, including case and surrounding whitespace. Admission does not trim, case-fold, or otherwise normalize option values. Projection and Z3 atoms use that exact IR label, and guard membership remains exact against the same labels. Option labels that differ only by case therefore remain distinct: admitting `Yes` asserts only `Yes`, not `yes`.
 
 ### 7.1 Staging
 
@@ -603,7 +603,7 @@ The capabilities in this part are not implemented and have no conformance rows. 
 
 **13.7 Runtime identity-triple enforcement.** Query-time match of `(artifact_hash, ir_format_version, compiler_version)` against a persistent Deploy validation record, with mismatch refusal. Helpers exist; public query paths do not invoke them (§11.1).
 
-**13.8 Case-unique option validation.** Reject or normalize question option sets that collide under case-insensitive admission matching. Closes the Appendix A non-obligation on colliding options.
+**13.8 Explicit option aliases.** The shipped contract requires exact IR option labels (§7). Any future convenience matching must use explicit, unambiguous aliases that resolve to one canonical IR label; implicit trimming or case-folding is outside the shipped contract.
 
 **13.9 Inquire (evidence-demand).** A query that allocates the next isolated, outcome-blind extraction over the deployed artifact's frozen worksheet vocabulary, given the formal consequences of the current admitted base. It does not retrieve evidence, assess truth, or perform probabilistic inference. Extraction and verification remain outside the trusted base (§12). No public endpoint, MCP contract, or conformance row ships (yet).
 
@@ -764,12 +764,9 @@ This document does not claim:
 - that the deployed artifact is the correct one for a given case (§12);
 - that a decidable propositional fragment is expressively adequate for any particular domain;
 - that consistency checking substitutes for human review;
-- that option labels on a single question are unique under case-insensitive matching (see below);
 - that compilation is a homomorphism of DAG or guard operations (§0.1, §5);
 - that `γ_Core` is an embedding (injective or structure-preserving) into propositional formulas (§5);
 - that IR is a proved isomorphism of the source graph (§2).
-
-**Case-colliding options (defect in `E`, not in `T(IR)`).** When two options on one question differ only by case (for example `Yes` and `yes`), `T(IR)` still carries two distinct option atoms and remains faithful to those labels. Case-insensitive admission can nonetheless assert **both** atoms true in `E`, so `B_E` misrepresents the intended single answer. If the question is reachable, reachability-scoped `ExactlyOne` (§5.1) then makes the case inconsistent; if unreachable, the cardinality constraint is inactive. Closing this requires case-unique option validation (§13.8). This document does not certify single-answer projection under colliding options.
 
 The expressiveness limit is deliberate. For a finite propositional theory, satisfiability and entailment are decidable. Given a valuation, checking whether it satisfies a finite encoded formula is linear in the size of that formula's representation. A satisfying valuation is therefore an independently checkable witness. Core does not currently retain an independently checkable UNSAT certificate and instead trusts Z3 for that result (§13.2).
 
@@ -779,7 +776,7 @@ Operational `timeout`, `unknown`, and budget outcomes remain possible and are go
 
 ## Appendix B — Conformance
 
-The conformance baseline consists of ancestor-ordered commits on Core `main`. `C1` contains the production correction; `C2` and `C3` add permanent coverage without changing production behavior; `C4` is the squash-merged coverage commit for §4.1 source validation, structural Compare always-delta, and Deploy `THEORY_UNSAT` / `DEAD_CONCLUSION` entry-point codes ([PR #73](https://github.com/AristaLabs/smeme/pull/73)).
+The conformance baseline consists of ancestor-ordered commits on Core `main`. `C1` contains the production correction; `C2` and `C3` add permanent coverage without changing production behavior; `C4` is the squash-merged coverage commit for §4.1 source validation, structural Compare always-delta, and Deploy `THEORY_UNSAT` / `DEAD_CONCLUSION` entry-point codes ([PR #73](https://github.com/AristaLabs/smeme/pull/73)); `C5` is the exact offered-option admission and IR-label projection commit.
 
 | ID | Role | Full commit |
 |---|---|---|
@@ -787,6 +784,7 @@ The conformance baseline consists of ancestor-ordered commits on Core `main`. `C
 | `C2` | Post-merge coverage: unpublished-theory handling, repair asymmetry, silent rejection, and UNSAT-then-operational outcomes | `92d3132b4861b6dcfb48c8d5d4968eb1fa0c51f5` |
 | `C3` | Probe 4: no consistency or witness reuse across a working-base change within one request | `bdc0fc8d767569d2f41f0ab871644edf121cfae2` |
 | `C4` | §4.1 `validate_graph` exact-message tests; Compare always-delta with one inconsistent side; Deploy `THEORY_UNSAT` / `DEAD_CONCLUSION` codes | `6ff0d455ec824ab553a649351467d8fb369f4bf5` |
+| `C5` | Exact offered-option admission (no trim or case-fold) and exact IR-label projection | `695ba493925d76c828d58fd2b2db2c91d519ef00` |
 
 ### B.1 Normative traceability
 
@@ -799,7 +797,7 @@ Repository paths below are relative to SMEme Core. A commit reference identifies
 | §§1–3, §4.2 | Deterministic DAG-to-IR mapping; typed guard closure; guards within `dom(γ_Core)`; exactly one zero-indegree node; acyclicity; reject invalid IR before solving | `smeme/reasoning/ir/dt_graph_to_ir.py`; `smeme/reasoning/ir/validate.py`; `smeme/reasoning/ir/types.py` | `tests/unit/reasoning/test_dt_graph_to_ir.py`; `tests/unit/reasoning/test_validate_ir.py` | `C1` |
 | §4.1 | Exactly one entry node; entry is a `QUESTION`; conclusions terminal; arcs into conclusions non-default (`validate_graph` only) | `smeme/decision_tree/helpers/validation.py` (`validate_graph`) | `test_validate_graph_rejects_conclusion_as_entry_node`; `test_validate_graph_rejects_arc_leaving_conclusion`; `test_validate_graph_rejects_default_guard_into_conclusion` | `C4` |
 | §§5–6 | Classical truth-functional interpretation; distinct edge-guard atoms with defining equivalences; reachability-scoped `ExactlyOne`; true unique entry; incoming-edge reachability recurrence | `smeme/reasoning/theory/guards_radio.py`; `smeme/reasoning/theory/compile_to_z3.py` | `tests/unit/reasoning/test_compile_to_z3.py`; `test_i_guarded_exactly_one_only_applies_when_question_reachable` | `C1` |
-| §7 | Evidence projection with IR-canonical remapping (when options are case-unique); unanswered-option behavior; assumption admission; `conflicting_assumptions` pre-admission (not `sources_conflict`) | `smeme/reasoning/cevi/fact_projection.py`; `smeme/reasoning/runtime/canonical_facts.py`; `smeme/reasoning/runtime/input_validation.py`; `smeme/reasoning/runtime/assumptions.py` | `tests/unit/reasoning/runtime/test_evaluate_raw_answers_goldens.py`; `tests/unit/reasoning/runtime/test_assumptions.py` | `C1` |
+| §7 | Exact offered-option admission and exact IR-label projection; unanswered-option behavior; assumption admission; `conflicting_assumptions` pre-admission (not `sources_conflict`) | `smeme/reasoning/cevi/fact_projection.py`; `smeme/reasoning/runtime/canonical_facts.py`; `smeme/reasoning/runtime/input_validation.py`; `smeme/reasoning/runtime/assumptions.py` | `test_answer_option_requires_exact_offered_string` in `tests/unit/reasoning/runtime/test_ingest_envelope.py`; `test_case_distinct_options_project_only_exact_admitted_label` and other goldens in `test_evaluate_raw_answers_goldens.py`; `tests/unit/reasoning/runtime/test_assumptions.py` | `C1`, `C5` |
 | §8 | Four-case logical status; witness-first entailment and possibility; E-then-φ cause ladder; operational precedence; target domain validation | `smeme/reasoning/runtime/consistency_gate.py`; `smeme/reasoning/runtime/counterfactual.py`; `smeme/reasoning/runtime/evaluate.py` | `tests/unit/reasoning/runtime/test_vacuous_premise_gate.py`, including A-φ, A-E, A-attrib, E, F, J, collapse, one-call, and operational tests | `C1`, `C2` |
 | §9 | Consistency inheritance only for literal-subset weakening; loud invariant failure; independent replacement candidates | `smeme/reasoning/runtime/decisive_support.py`; `smeme/reasoning/runtime/counterfactual.py` | `test_decisive_support_lit_invariant_fails_loudly`; repair force-kill and repair-mode tests; `test_probe4_no_stale_cons_across_base_change_within_request` | `C1`, `C2`, `C3` |
 | §10 | Apply (incl. alternate-model uniqueness), Compare structural always-delta, entailment, possibility, path-under-edit, repair, decisive-support, reach-assumption surfaces | `smeme/reasoning/runtime/evaluate.py`; `smeme/reasoning/runtime/counterfactual.py`; `smeme/reasoning/runtime/path_under_edit.py`; `smeme/reasoning/runtime/decisive_support.py`; `smeme/mcp/reasoning_fastmcp.py` | `tests/unit/reasoning/runtime/test_counterfactual.py` (incl. `test_run_what_if_emits_delta_when_one_side_inconsistent`); `test_path_under_edit.py`; `test_decisive_support.py`; repair tests in `test_vacuous_premise_gate.py` | `C1`, `C2`, `C4` |

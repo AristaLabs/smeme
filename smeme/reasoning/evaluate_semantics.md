@@ -71,7 +71,7 @@ For each radio question `q`:
 raw_answers_json  →  prepare_evaluate_ingest  →  flat answers map  →  evaluate_reasoning
 ```
 
-The `answers` map has **at most one value per `question_id`** (JSON object keys). Values are **string or null** per radio question (`validate_raw_answers_for_ir`). A question is **answered** only when the value is a **non-empty** string after strip; missing keys, `null`, and whitespace-only strings are **unanswered** (see §7). Stage A turns each answered string into **exactly one** `value=true` option row (case-insensitive match) with `confidence=EXPLICIT`; non-chosen options for that question are explicit `false`.
+The `answers` map has **at most one value per `question_id`** (JSON object keys). Values are **string or null** per radio question (`validate_raw_answers_for_ir`). A question is **answered** only when the value is a **non-empty** string after strip; missing keys, `null`, and whitespace-only strings are **unanswered** (see §7). Stage A requires each answered string to exactly equal one offered IR option label, then emits **exactly one** `value=true` option row with `confidence=EXPLICIT`; non-chosen options for that question are explicit `false`.
 
 **Why force structured ingest:**
 
@@ -170,7 +170,7 @@ When evidence alone is unsatisfiable, the cause is `answers_inconsistent` even i
 
 `raw_answers_to_canonical_facts` still walks every question node for audit rows, but **unanswered** questions (`key` missing, `null`, or whitespace-only string) emit `confidence=ABSENT` rows only. **`apply_canonical_facts_to_solver` does not assert ABSENT rows** — option atoms stay unconstrained until the caller supplies an explicit answer. Audit `evidence_items` may still list ABSENT rows; `final_facts` contains only literals actually asserted on the solver.
 
-**Ingest:** non-empty answer strings must match an IR option label (case-insensitive) or ingest hard-rejects with **`ingest_invalid_answer_option`** (`prepare_evaluate_ingest` → MCP/REST `error.code`). Invalid labels are not silently turned into all-false literals. Other answer-shape failures may still surface as `ingest_malformed` or `ingest_unknown_question_id`; post-ingest paths that call `validate_raw_answers_for_ir` directly without the ingest wrapper return **`invalid_answers`** (e.g. legacy evaluate-only callers).
+**Ingest:** non-empty answer strings must exactly match an offered IR option label, including case and surrounding whitespace, or ingest hard-rejects with **`ingest_invalid_answer_option`** (`prepare_evaluate_ingest` → MCP/REST `error.code`). Invalid labels are not normalized or silently turned into all-false literals. Other answer-shape failures may still surface as `ingest_malformed` or `ingest_unknown_question_id`; post-ingest paths that call `validate_raw_answers_for_ir` directly without the ingest wrapper return **`invalid_answers`** (e.g. legacy evaluate-only callers).
 
 Partial MCP evaluate (subset of questions answered) is therefore supported: unanswered nodes on the live path do not force `PbEq` into UNSAT via all-false pins.
 

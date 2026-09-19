@@ -83,12 +83,16 @@ def validate_raw_answers_for_ir(ir: IR, raw_answers: dict[str, Any]) -> None:
                 raise ReasoningInputValidationError(msg)
             stripped = val.strip()
             if stripped:
-                options_lower = {opt.strip().lower() for opt in q.options}
-                if stripped.lower() not in options_lower:
-                    msg = f"Answer for {qid!r} does not match any option label (got {stripped!r})"
+                if val not in q.options:
+                    msg = f"Answer for {qid!r} must exactly match an offered option (got {val!r})"
                     raise ReasoningInputValidationError(
                         msg,
                         ingest_error_code=IngestErrorCode.ingest_invalid_answer_option.value,
+                        details={
+                            "question_id": qid,
+                            "received": val,
+                            "allowed_options": list(q.options),
+                        },
                     )
 
 

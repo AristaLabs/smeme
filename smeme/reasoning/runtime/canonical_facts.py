@@ -114,12 +114,13 @@ def raw_answers_to_canonical_facts(
             continue
         val = raw_answers.get(qid)
         answered = val is not None and bool(str(val).strip())
-        opt_str = str(val).strip().lower() if answered else ""
+        opt_str = str(val) if answered else ""
+        source_span = opt_str.strip().lower()
         conf = EvidenceConfidence.EXPLICIT if answered else EvidenceConfidence.ABSENT
         for opt in n.question.options:
-            value = opt.strip().lower() == opt_str
+            value = opt == opt_str
             # Truncate audit projection; full label stays on option_label.
-            span = opt_str[:SOURCE_SPAN_MAX_LEN] if value else ""
+            span = source_span[:SOURCE_SPAN_MAX_LEN] if value else ""
             try:
                 out.append(
                     CanonicalFactRecord(
