@@ -223,6 +223,12 @@ def extract_graph_dict(payload: Any) -> dict[str, Any] | str:
                 "invalid_graph",
                 f"dt_graph_json is not valid JSON: {exc.msg}",
             )
+        except RecursionError:
+            return tool_error_json(
+                "invalid_graph",
+                "dt_graph_json is nested too deeply. A decision-tree graph is a flat "
+                "object with nodes, edges, and metadata.",
+            )
 
     if not isinstance(payload, dict):
         return tool_error_json(
@@ -500,7 +506,7 @@ async def create_draft_from_graph(
         is_workflow_pick_required,
         mcp_account_downgrade_pending_response,
     )
-    from smeme.billing.quota import QuotaDimension, check_quota
+    from smeme.billing.quota import reserve_decision_tree_slot
 
     if is_workflow_pick_required(user):
         return mcp_account_downgrade_pending_response(user=user)
@@ -516,7 +522,13 @@ async def create_draft_from_graph(
             suggestions=result.get("suggestions") or {},
         )
 
-    quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
+    title = _resolve_title(graph, title_override=title_override)
+    if _is_tool_error_json(title):
+        return title
+    graph = _sync_metadata_title(graph, title)
+    graph_hash = canonical_graph_hash(graph)
+
+    quota = await reserve_decision_tree_slot(db, user)
     if not quota.allowed:
         return tool_error_json(
             "quota_exceeded",
@@ -526,12 +538,6 @@ async def create_draft_from_graph(
             dimension="decision_trees",
             resets_at=quota.resets_at_iso,
         )
-
-    title = _resolve_title(graph, title_override=title_override)
-    if _is_tool_error_json(title):
-        return title
-    graph = _sync_metadata_title(graph, title)
-    graph_hash = canonical_graph_hash(graph)
 
     decision_tree = DecisionTree(
         title=title,

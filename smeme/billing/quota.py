@@ -29,6 +29,8 @@ from .usage import (
     sum_mcp_weighted_month,
 )
 
+_DECISION_TREE_SLOT_LOCK_PREFIX = "decision_tree_slot:"
+
 
 class QuotaDimension(str, Enum):
     DECISION_TREES = "decision_trees"
@@ -85,10 +87,13 @@ async def check_quota(
     dimension: QuotaDimension,
     *,
     projected_add: float = 0.0,
+    refresh_billing: bool = True,
 ) -> QuotaCheckResult:
     """Return whether ``used + projected_add`` is within the tier cap.
 
     When hosted Free/Pro enforcement is off (Core default), always allow.
+    Pass ``refresh_billing=False`` while holding a transaction-scoped lock: the
+    hosted billing refresh may commit, which would release the lock early.
     """
     from smeme.billing.providers import (
         ensure_pro_billing_period,
@@ -99,7 +104,7 @@ async def check_quota(
     tier = tier_for_user(user)
     resets = resets_at_iso(user=user)
 
-    if enforced:
+    if enforced and refresh_billing:
         await ensure_pro_billing_period(db, user)
     limits = limits_for_user(user) if enforced else None
 
@@ -150,6 +155,34 @@ async def check_quota(
     )
 
 
+async def reserve_decision_tree_slot(db: AsyncSession, user: User) -> QuotaCheckResult:
+    """Lock this user's decision-tree creation, then check room for one more tree.
+
+    The lock is transaction-scoped: the caller must insert the tree and commit in
+    the same transaction, or roll back. It blocks rather than failing fast so a
+    concurrent request waits, then sees the committed winner (idempotent fixtures
+    re-read their row after this returns).
+    """
+    from smeme.billing.providers import (
+        ensure_pro_billing_period,
+        hosted_quota_enforcement_enabled,
+    )
+
+    if hosted_quota_enforcement_enabled():
+        await ensure_pro_billing_period(db, user)
+    await db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"{_DECISION_TREE_SLOT_LOCK_PREFIX}{user.id}"},
+    )
+    return await check_quota(
+        db,
+        user,
+        QuotaDimension.DECISION_TREES,
+        projected_add=1.0,
+        refresh_billing=False,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class WizardStartBlock:
     """Why a new agentic wizard cannot be started."""
@@ -166,8 +199,13 @@ async def check_wizard_start_block(
     user: User,
     *,
     in_progress_count: int,
+    refresh_billing: bool = True,
 ) -> WizardStartBlock | None:
-    """Return structured block info when a new wizard may not start, else ``None``."""
+    """Return structured block info when a new wizard may not start, else ``None``.
+
+    Pass ``refresh_billing=False`` when the caller already refreshed billing and
+    holds a transaction-scoped lock. The hosted refresh may commit.
+    """
     from smeme.billing.access_policy import is_workflow_pick_required
     from smeme.billing.providers import hosted_quota_enforcement_enabled
 
@@ -205,7 +243,13 @@ async def check_wizard_start_block(
             show_upgrade=show_upgrade,
         )
 
-    workflow_quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
+    workflow_quota = await check_quota(
+        db,
+        user,
+        QuotaDimension.DECISION_TREES,
+        projected_add=1.0,
+        refresh_billing=refresh_billing,
+    )
     if not workflow_quota.allowed:
         return WizardStartBlock(
             reason="workflow_cap",
@@ -215,7 +259,13 @@ async def check_wizard_start_block(
             show_upgrade=show_upgrade,
         )
 
-    wizard_quota = await check_quota(db, user, QuotaDimension.WIZARD_COMPLETIONS, projected_add=1.0)
+    wizard_quota = await check_quota(
+        db,
+        user,
+        QuotaDimension.WIZARD_COMPLETIONS,
+        projected_add=1.0,
+        refresh_billing=refresh_billing,
+    )
     if not wizard_quota.allowed:
         from smeme.billing.usage import resets_at_label
 
@@ -282,7 +332,10 @@ async def reserve_mcp_quota(
     *,
     oauth_client_id: str | None = None,
 ) -> UUID | str:
-    """Reserve one quota slot atomically: lock → re-check → INSERT outcome='reserved' → commit.
+    """Reserve one quota slot atomically: refresh → lock → re-check → INSERT → commit.
+
+    Billing refresh runs before the lock. On Cloud it can commit, and a commit
+    would release a transaction-scoped lock before the re-check.
 
     Returns the new invocation UUID on success, or tool_error_json on failure.
     Store the UUID on McpInvocationRecorder via ``bind_invocation_id`` so flush()
@@ -298,13 +351,19 @@ async def reserve_mcp_quota(
         is_workflow_pick_required,
         mcp_account_downgrade_pending_response,
     )
-    from smeme.billing.providers import hosted_quota_enforcement_enabled
+    from smeme.billing.providers import (
+        ensure_pro_billing_period,
+        hosted_quota_enforcement_enabled,
+    )
     from smeme.mcp.models import McpToolInvocation
 
     if is_workflow_pick_required(user):
         return mcp_account_downgrade_pending_response(user=user)
 
     weight = quota_weight_for_tool(tool_name)
+
+    if hosted_quota_enforcement_enabled():
+        await ensure_pro_billing_period(db, user)
 
     # 1. Try per-user advisory lock (transaction-scoped, non-blocking).
     #    Released automatically at db.commit() / rollback() — no leaked locks.
@@ -324,7 +383,13 @@ async def reserve_mcp_quota(
     # 2. Re-check quota while holding the lock — skipped when Core enforcement
     #    is off (metering still continues below).
     if hosted_quota_enforcement_enabled():
-        check = await check_quota(db, user, QuotaDimension.MCP_WEIGHTED, projected_add=weight)
+        check = await check_quota(
+            db,
+            user,
+            QuotaDimension.MCP_WEIGHTED,
+            projected_add=weight,
+            refresh_billing=False,
+        )
         if not check.allowed:
             return tool_error_json(
                 "quota_exceeded",
@@ -360,6 +425,7 @@ __all__ = [
     "check_quota",
     "check_wizard_start_block",
     "mcp_quota_denied_response",
+    "reserve_decision_tree_slot",
     "reserve_mcp_quota",
     "wizard_start_blocked_message",
 ]

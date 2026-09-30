@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterator
 
 from smeme.reasoning.ir.types import (
     DEFAULT_GUARD_EXPR,
@@ -62,21 +63,25 @@ def _dag_structure_errors(edges: tuple[IREdge, ...], node_ids: set[str]) -> list
     state: dict[str, int] = {}
     cycle_found = False
 
-    def dfs(u: str) -> None:
+    def dfs(start: str) -> None:
+        # Iterative: graph depth is bounded only by payload size, not the interpreter stack.
         nonlocal cycle_found
-        if cycle_found:
-            return
-        state[u] = _VISITING
-        for v in adj[u]:
+        state[start] = _VISITING
+        stack: list[tuple[str, Iterator[str]]] = [(start, iter(adj[start]))]
+        while stack:
+            u, successors = stack[-1]
+            v = next(successors, None)
+            if v is None:
+                state[u] = _DONE
+                stack.pop()
+                continue
             sv = state.get(v, _UNSEEN)
             if sv == _UNSEEN:
-                dfs(v)
+                state[v] = _VISITING
+                stack.append((v, iter(adj[v])))
             elif sv == _VISITING:
                 cycle_found = True
                 return
-            if cycle_found:
-                return
-        state[u] = _DONE
 
     for nid in sorted(node_ids):
         if state.get(nid, _UNSEEN) == _UNSEEN:

@@ -12,7 +12,7 @@ Conclusions are always terminal. Questions with no outgoing edges are invalid
 import logging
 import re
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import NotRequired, TypedDict
 
 from smeme.decision_tree.models import DTGraph, GraphEdge, GraphNode
@@ -1012,21 +1012,26 @@ def has_cycle(graph: DTGraph) -> tuple[bool, str | None]:
     rec_stack: set[str] = set()
     parent: dict[str, str] = {}
 
-    def dfs(node_id: str) -> str | None:
-        visited.add(node_id)
-        rec_stack.add(node_id)
-
-        for neighbor in adjacency.get(node_id, []):
+    def dfs(start: str) -> str | None:
+        # Iterative: graph depth is bounded only by payload size, not the interpreter stack.
+        visited.add(start)
+        rec_stack.add(start)
+        stack: list[tuple[str, Iterator[str]]] = [(start, iter(adjacency.get(start, [])))]
+        while stack:
+            node_id, neighbors = stack[-1]
+            neighbor = next(neighbors, None)
+            if neighbor is None:
+                rec_stack.remove(node_id)
+                stack.pop()
+                continue
             if neighbor not in visited:
                 parent[neighbor] = node_id
-                cycle_node = dfs(neighbor)
-                if cycle_node:
-                    return cycle_node
+                visited.add(neighbor)
+                rec_stack.add(neighbor)
+                stack.append((neighbor, iter(adjacency.get(neighbor, []))))
             elif neighbor in rec_stack:
                 parent[neighbor] = node_id
                 return neighbor
-
-        rec_stack.remove(node_id)
         return None
 
     for node in graph.nodes:
