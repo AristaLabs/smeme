@@ -29,9 +29,11 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializerFunctionWrapHandler,
     StringConstraints,
     ValidationInfo,
     field_validator,
+    model_serializer,
     model_validator,
 )
 from sqlalchemy import Column, DateTime, ForeignKey, Index, String
@@ -85,6 +87,33 @@ class AuthorityReference(BaseModel):
     url: str | None = Field(default=None, description="Optional source URL")
 
 
+EvidenceSourceKind = Literal[
+    "mcp_tool", "database", "file", "url", "system", "person", "instruction"
+]
+
+
+class EvidenceSource(BaseModel):
+    """Where the answering agent should (or should not) look for one question's evidence.
+
+    Deployment-specific: tool names, paths, and tables may not exist after export.
+    Must describe how to find and read the answer, never routing or outcomes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: EvidenceSourceKind = Field(description="What sort of source this is")
+    ref: str = Field(
+        min_length=1,
+        description="Tool name, table, path, URL, system name, role, or instruction label",
+    )
+    note: str | None = Field(
+        default=None, description="How to use it: filters, a calculation, or a fallback"
+    )
+    avoid: bool = Field(
+        default=False, description="True when this source must not be used for the answer"
+    )
+
+
 class QuestionData(BaseModel):
     """Question-specific data for question nodes (radio-only).
 
@@ -95,6 +124,7 @@ class QuestionData(BaseModel):
         required: If False, user can skip; affects edge validation rules
         help_text: Optional explanatory text for the question
         authorities: Structured authorities implemented by this question
+        evidence_sources: Where the answering agent should look (or not look)
 
     Validation Rules (enforced at graph level):
     - options: at least one label, no duplicates (see validate_graph)
@@ -118,6 +148,19 @@ class QuestionData(BaseModel):
         default_factory=list,
         description="Structured authorities implemented by this question",
     )
+    evidence_sources: list[EvidenceSource] = Field(
+        default_factory=list,
+        description="Answering hints: where to look, or not look, for this question's evidence",
+    )
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_evidence_sources(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Empty lists stay out of graph_data so graphs saved before this field keep their
+        # canonical_graph_hash (otherwise every Deployed tree would read as Stale).
+        data = handler(self)
+        if isinstance(data, dict) and not data.get("evidence_sources"):
+            data.pop("evidence_sources", None)
+        return data
 
     @field_validator("options")
     @classmethod

@@ -1,0 +1,37 @@
+{# MCP endpoint + optional OAuth Client ID. Expects mcp_connector_url, mcp_oauth_client_id, mcp_enabled. #}
+{% if mcp_enabled %}
+<div class="overflow-hidden rounded-xl border border-brand-200/90 bg-ui-surface shadow-sm ring-1 ring-brand-500/10">
+  <div class="flex items-center gap-2.5 border-b border-brand-100/80 bg-gradient-to-b from-brand-50/60 to-ui-surface px-4 py-3 dark:from-brand-950/30">
+    <img src="/static/mcp-logo.svg"
+         alt=""
+         width="20"
+         height="20"
+         class="h-5 w-5 shrink-0 rounded-[4px]"
+         aria-hidden="true"
+         decoding="async" />
+    <div class="min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-800 dark:text-brand-300">MCP connector values</p>
+      <p class="mt-0.5 text-xs text-ui-ink-muted leading-snug">The connect prompt includes these. Your app&rsquo;s connector settings ask for them.</p>
+    </div>
+  </div>
+  <div class="space-y-4 px-4 py-4">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">MCP endpoint URL</p>
+      <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
+         title="Select all to copy">{{ mcp_connector_url }}</p>
+    </div>
+    {% if mcp_oauth_client_id %}
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
+      <p class="mt-1 text-xs text-ui-ink-muted leading-snug">When your client asks for a Client ID, leave the secret blank (PKCE public client).</p>
+      <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
+         title="Select all to copy">{{ mcp_oauth_client_id }}</p>
+    </div>
+    {% else %}
+    <p class="text-sm text-ui-ink-muted leading-relaxed">This deployment has not configured an OAuth Client ID. Chat, Claude, and Copilot usually need one. Ask your operator.</p>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<p class="text-sm text-ui-ink-muted leading-relaxed">MCP is not enabled on this server. Connection values appear here once the operator turns MCP on.</p>
+{% endif %}

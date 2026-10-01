@@ -34,6 +34,9 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Connect your agent</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Start with
+          <a href="/docs/quick-start" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Quick start</a>
+          if you want copy-paste prompts.
           This page is the creator how-to for MCP: connect Claude, Cursor, Copilot, or another client,
           then either <strong class="font-medium text-ui-ink">build or revise a draft in chat</strong>
           or <strong class="font-medium text-ui-ink">run Deployed Listed decision trees against evidence</strong>.
@@ -181,12 +184,16 @@
                     <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
                        title="Select all to copy">{{ mcp_connector_url }}</p>
                   </div>
+                  {% if mcp_oauth_client_id %}
                   <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">OAuth Client ID</p>
                     <p class="mt-1 text-xs text-ui-ink-muted leading-snug">When your client asks for a Client ID (leave secret blank — PKCE public client):</p>
                     <p class="mt-1.5 break-all rounded-lg border border-brand-100/70 bg-brand-50/40 px-3 py-2.5 font-mono text-xs sm:text-sm leading-relaxed text-ui-ink select-all dark:border-brand-800/50 dark:bg-brand-950/20"
                        title="Select all to copy">{{ mcp_oauth_client_id }}</p>
                   </div>
+                  {% else %}
+                  <p class="text-sm text-ui-ink-muted leading-relaxed">This deployment has not configured an OAuth Client ID. Chat, Claude, and Copilot usually need one. Ask your operator.</p>
+                  {% endif %}
                 </div>
               </div>
               <div class="mt-5 space-y-3">

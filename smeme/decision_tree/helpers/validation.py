@@ -645,6 +645,45 @@ def _validate_question_nodes(nodes: list[GraphNode], ctx: _ValidationContext) ->
                 )
 
 
+def _validate_answering_hints(nodes: list[GraphNode], ctx: _ValidationContext) -> None:
+    """Warn when help_text or evidence_sources name an outcome.
+
+    Both fields reach the answering agent; naming a conclusion would let it steer
+    answers toward an outcome it can see coming.
+    """
+    titles = [
+        cdata.title.strip()
+        for node in nodes
+        if (cdata := node.conclusion_data) is not None
+        and cdata.title
+        and len(cdata.title.strip()) >= 4
+    ]
+    if not titles:
+        return
+    # Whole words only, so "Approve" does not match "approval packet".
+    patterns = [(t, re.compile(rf"(?<!\w){re.escape(t)}(?!\w)", re.IGNORECASE)) for t in titles]
+    for node in nodes:
+        qdata = node.question_data
+        if qdata is None:
+            continue
+        fields: list[tuple[str, str]] = []
+        if qdata.help_text:
+            fields.append(("help_text", qdata.help_text))
+        for i, source in enumerate(qdata.evidence_sources):
+            fields.append((f"evidence_sources[{i}].ref", source.ref))
+            if source.note:
+                fields.append((f"evidence_sources[{i}].note", source.note))
+        for field_name, value in fields:
+            named = [t for t, pattern in patterns if pattern.search(value)]
+            if named:
+                ctx.warning(
+                    f"Question '{node.id}' {field_name} names the outcome "
+                    f"'{named[0]}'. The answering agent reads this field.",
+                    "Describe how to find and read the answer only. Do not mention "
+                    "outcomes or where an option leads.",
+                )
+
+
 def _validate_question_options(nodes: list[GraphNode], ctx: _ValidationContext) -> None:
     """Validate question options and type-specific requirements.
 
@@ -1265,6 +1304,7 @@ def validate_graph_for_editing(graph: DTGraph) -> ValidationResult:
     _validate_node_integrity(graph, ctx)
     _validate_edge_integrity(graph, ctx)
     _validate_question_nodes(nodes, ctx)
+    _validate_answering_hints(nodes, ctx)
     _validate_question_options(nodes, ctx)
     _validate_edge_conditions(nodes, graph, ctx)
 

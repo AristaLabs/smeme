@@ -133,14 +133,52 @@ def decode_worksheet_catalog(catalog_json: str) -> dict[str, WorksheetItem]:
                 "inquire_invalid_payload",
                 f"worksheet_catalog[{qid!r}].options must be a non-empty string array",
             )
-        out[qid] = WorksheetItem(stem=stem, options=tuple(options))
+        help_text = row.get("help_text")
+        if help_text is not None and not isinstance(help_text, str):
+            raise InquireCodecError(
+                "inquire_invalid_payload",
+                f"worksheet_catalog[{qid!r}].help_text must be a string",
+            )
+        sources = row.get("evidence_sources") or []
+        if not isinstance(sources, list) or not all(
+            isinstance(s, dict) and isinstance(s.get("ref"), str) for s in sources
+        ):
+            raise InquireCodecError(
+                "inquire_invalid_payload",
+                f"worksheet_catalog[{qid!r}].evidence_sources must be an array of objects",
+            )
+        out[qid] = WorksheetItem(
+            stem=stem,
+            options=tuple(options),
+            help_text=help_text or None,
+            evidence_sources=tuple(dict(s) for s in sources),
+        )
     return out
 
 
 def encode_worksheet_catalog(catalog: WorksheetCatalog) -> dict[str, Any]:
-    return {
-        qid: {"stem": item.stem, "options": list(item.options)} for qid, item in catalog.items()
-    }
+    out: dict[str, Any] = {}
+    for qid, item in catalog.items():
+        row: dict[str, Any] = {"stem": item.stem, "options": list(item.options)}
+        if item.help_text:
+            row["help_text"] = item.help_text
+        if item.evidence_sources:
+            row["evidence_sources"] = [dict(s) for s in item.evidence_sources]
+        out[qid] = row
+    return out
+
+
+def encode_answer_guidance(item: WorksheetItem) -> dict[str, Any] | None:
+    """Chat-only answering hints for one question; ``None`` when the author left none.
+
+    Kept outside the blind task object so ``BLIND_TASK_KEYS`` stays exact.
+    """
+    guidance: dict[str, Any] = {}
+    if item.help_text:
+        guidance["help_text"] = item.help_text
+    if item.evidence_sources:
+        guidance["evidence_sources"] = [dict(s) for s in item.evidence_sources]
+    return guidance or None
 
 
 def decode_admitted(admitted_json: str) -> tuple[AdmittedAssertion, ...]:
@@ -474,6 +512,7 @@ __all__ = [
     "decode_wire_observations",
     "decode_worksheet_catalog",
     "encode_admitted",
+    "encode_answer_guidance",
     "encode_blind_task",
     "encode_decision",
     "encode_directive",

@@ -91,9 +91,25 @@ files, pasted policy text, fetchable URLs, other MCP connectors, prior
 prompts/skills the user points at). SMEme never receives source blobs on this
 path—only the graph JSON the user asks to push.
 
+### Choose the decision
+
+Content version **2.6.0+** starts with **Choose the decision**: the user has a
+known procedure (policy, runbook, or standard), the agent observes the user work
+real cases, or the agent brainstorms from what it knows and interviews the user.
+
+### Evidence hints
+
+Questions may carry `evidence_sources` (`{kind, ref, note?, avoid?}`) next to
+`help_text`: where the answering agent should look for that answer, how to
+compute it, and what not to use. Guided chat evaluate returns both as
+`answer_guidance` beside the blind task, and the worksheet prints them per
+question. Isolated verification trials never see them. Validation warns when
+either field names a conclusion. Sources are deployment-specific; empty lists
+are omitted from the stored graph, so existing graph hashes are unchanged.
+
 ### Session fork
 
-After `smeme_authoring_design_guidance`, the agent offers once:
+After **Choose the decision**, the agent offers once:
 
 - **Quick encode** — skip research; conclusions → outline → validate.
 - **Research & critique** — host context intake → factors (≤12) → pause →

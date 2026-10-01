@@ -27,6 +27,9 @@ from tests.conftest import auth_as
 
 _PUBLIC_DOCS_PATHS = (
     "/docs",
+    "/docs/quick-start",
+    "/docs/run-a-tree",
+    "/docs/ask-more",
     "/docs/introduction",
     "/docs/plans",
     "/docs/creator-dashboard",
@@ -317,6 +320,10 @@ async def test_docs_index_public_anonymous(client):
     r = await client.get("/docs")
     assert r.status_code == 200
     assert b"Documentation" in r.content
+    assert b'id="why-smeme"' in r.content
+    assert b"Business rules don&rsquo;t belong in prompts." in r.content
+    assert b"SMEme is rational AI." in r.content
+    assert b"It asks only what still matters." in r.content
     assert b"/docs/mcp" in r.content
     assert b"/docs/delete-account" not in r.content
     assert "public, max-age=300" in r.headers.get("cache-control", "")
@@ -336,9 +343,11 @@ async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
     assert b"/docs/creator-dashboard" in r.content
     assert b"/docs/download-workflow" in r.content
     assert b"/docs/mcp" in r.content
+    assert b"/docs/quick-start" in r.content
+    assert b"/docs/run-a-tree" in r.content
+    assert b"/docs/ask-more" in r.content
     assert b"/docs/delete-account" in r.content
-    assert b"build and revise through MCP" in r.content
-    assert b"/docs/mcp#mcp-authoring-quickstart" in r.content
+    assert b"copy-paste" in r.content.lower() or b"Copy prompts" in r.content
     assert b"marketplace" not in r.content.lower()
     assert b"revenue" not in r.content.lower()
     cache = r.headers.get("cache-control", "")
@@ -409,7 +418,7 @@ async def test_docs_public_seo_metadata_and_json_ld(client):
             data = json.loads(raw)
             assert data.get("@context") == "https://schema.org", path
             schema_type = data.get("@type")
-            assert schema_type in {"TechArticle", "WebPage", "BreadcrumbList"}, path
+            assert schema_type in {"TechArticle", "WebPage", "BreadcrumbList", "HowTo"}, path
             types_seen.add(schema_type)
             if schema_type == "BreadcrumbList":
                 for item in data["itemListElement"]:
@@ -425,6 +434,63 @@ async def test_docs_public_seo_metadata_and_json_ld(client):
     assert b"creator how-to" in mcp.content or b"Creator setup" in mcp.content
     assert b'href="/mcp"' in mcp.content
     assert b"wire" in mcp.content.lower() or b"tool reference" in mcp.content.lower()
+    assert b'href="/docs/quick-start"' in mcp.content
+
+
+async def test_docs_quick_start_path(client):
+    r = await client.get("/docs/quick-start")
+    assert r.status_code == 200
+    html = r.text
+    assert "1. Connect SMEme" in html
+    assert "2. Choose and build a decision tree" in html
+    assert "3. Deploy, List, and try it" in html
+    assert "opens a browser tab where you sign in to SMEme" in html
+    assert "Help me add SMEme as a remote MCP connector." in html
+    assert "to this app" not in html
+    assert "Check that SMEme is working." in html
+    assert "You have a specific decision procedure in mind." in html
+    assert "Have your agent observe your work." in html
+    assert "not sure which decision procedure to encode." in html
+    assert "Record where each answer should come from and where not to look" in html
+    assert "docs-dash" in html
+    assert 'href="/docs#why-smeme"' in html
+    assert "asks only the questions that can still change the outcome" in html
+    assert "which open questions can" not in html
+    assert 'href="/docs/run-a-tree"' in html
+    assert 'href="/docs/ask-more"' in html
+    assert '"@type": "HowTo"' in html
+    nav = html.split('aria-label="Docs sections"', 1)[1].split("</nav>", 1)[0]
+    assert nav.index("/docs/quick-start") < nav.index("/docs/introduction")
+    assert nav.index("/docs/run-a-tree") < nav.index("/docs/introduction")
+    assert nav.index("/docs/ask-more") < nav.index("/docs/introduction")
+
+
+async def test_docs_run_and_ask_more_prompts(client):
+    run = await client.get("/docs/run-a-tree")
+    assert run.status_code == 200
+    assert "Run it in a <strong" in run.text
+    assert "follow the hints on that question about where to look and what to avoid" in run.text
+    assert "docs-chat" in run.text
+    assert 'data-testid="docs-result-kinds"' in run.text
+    for result in (
+        "Concluded",
+        "Several outcomes possible",
+        "Needs more information",
+        "Sources conflict",
+    ):
+        assert result in run.text
+    assert "Send a batch of answers in one shot" in run.text
+    assert "instead of guessing" in run.text
+    assert "needs isolated verification" in run.text
+    assert "answer the questions you can from the evidence" in run.text
+    ask = await client.get("/docs/ask-more")
+    assert ask.status_code == 200
+    assert "Which answers decided this outcome?" in ask.text
+    assert "Keep [answers that can" in ask.text
+    assert "Which open questions would settle it" in ask.text
+    assert "What outcomes can my [decision tree name] reach?" in ask.text
+    for removed in ("admitted", "What cannot change the result", 'href="/mcp"'):
+        assert removed not in ask.text
 
 
 async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard_user):

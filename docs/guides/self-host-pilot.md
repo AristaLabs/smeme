@@ -18,7 +18,7 @@ reference: [dr3-mcp-oauth-authoritative-sources.md](dr3-mcp-oauth-authoritative-
   OpenAI/Tavily). Wizard needs `OPENAI_API_KEY` (+ `TAVILY_API_KEY` for full
   research). **Deploy** remains human-in-editor.
 
-Design guidance content version **2.5.0** (Quick encode + Research & critique)
+Design guidance content version **2.6.0** (Quick encode + Research & critique)
 already ships in Core `v0.9.8+` via `smeme_authoring_design_guidance`.
 
 ---
@@ -104,14 +104,14 @@ Agents: capabilities → guidance → list Listed trees → evaluate → **repor
 MCP_AUTHORING_GRAPH_TOOLS_ENABLED=true
 ```
 
-Uses guidance **2.5.0**:
+Uses guidance **2.6.0**:
 
 - **Quick encode** — conclusions → outline → validate (skip research).
 - **Research & critique** — host context → factors → pause → critique → outline.
 
 No server OpenAI. Create/update draft tools never Deploy or List — humans Deploy
 in the editor. Details: [authoring-decision-trees.md](authoring-decision-trees.md)
-(guidance 2.5.0 section).
+(guidance 2.6.0 section).
 
 ### Web wizard
 
@@ -140,7 +140,7 @@ Run in order; stop at the first failure.
    **Load sample**, or Deploy + Listed. At tree quota, list returns
    `quota_exceeded` instead of seeding.
 6. **First report without an LLM** — see [§7](#7-first-report-without-an-llm).
-7. **Draft authoring (optional)** — `smeme_authoring_design_guidance` returns 2.5.0
+7. **Draft authoring (optional)** — `smeme_authoring_design_guidance` returns 2.6.0
    content; validate + create draft; confirm dashboard draft (no auto-Deploy).
 8. **Wizard (optional)** — open generation UI; complete a brief with keys set.
 

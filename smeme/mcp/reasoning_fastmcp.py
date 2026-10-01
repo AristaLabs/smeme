@@ -197,7 +197,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.9.0"
+REASONING_CAPABILITIES_VERSION = "3.10.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -823,10 +823,10 @@ def _build_mcp_instructions(cfg: Settings) -> str:
     )
     if cfg.mcp_authoring_graph_tools_enabled:
         base += (
-            "\n\nChat authoring: when the user wants to build a decision tree in chat "
-            "(not the web wizard), call smeme_authoring_design_guidance once (it includes "
-            "optional Research & critique phases), then offer Quick encode vs Research & "
-            "critique. On research, use available host data sources (local files, pasted "
+            "\n\nChat authoring: when the user wants to find or build a decision tree in "
+            "chat, call smeme_authoring_design_guidance once and follow its Choose the "
+            "decision section (known procedure, observe your work, or not sure yet) before "
+            "offering Quick encode vs Research & critique. On research, use available host data sources (local files, pasted "
             "policy text, fetchable URLs, other MCP connectors, prior prompts/skills the "
             "user points at)—client-side only; do not upload private files to SMEme except "
             "the graph JSON they ask to push. Pause for user feedback on factors, "
@@ -1546,7 +1546,9 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             """Start guided Inquire gather on a deployed decision tree (chat default).
 
             Starts from empty admitted evidence. Returns a blind task
-            ``{question_id, stem, options}`` plus ``inquiry_session_id``, or a
+            ``{question_id, stem, options}`` plus ``inquiry_session_id`` and, when the
+            author left hints, ``answer_guidance`` (``help_text``, ``evidence_sources``:
+            where to look; entries with ``avoid: true`` must not be used), or a
             terminal ``report`` if Inquire already STOPs, or
             ``isolated_evaluations_required`` if VERIFY is needed (session stays
             ACTIVE — do not fake VERIFY in chat).
@@ -1686,6 +1688,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
             Pass ``inquiry_session_id`` from ``smeme_reasoning_evaluate``. Provide
             ``selected_option`` + ``provenance_id`` to admit, or omit option to abstain.
+            The next task may carry ``answer_guidance`` like ``smeme_reasoning_evaluate``.
             Never runs VERIFY — if the server needs isolated verification, returns
             ``isolated_evaluations_required`` and leaves the session ACTIVE.
 

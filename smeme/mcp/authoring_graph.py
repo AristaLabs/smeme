@@ -70,6 +70,30 @@ _QUESTION_DATA_SCHEMA: dict[str, Any] = {
                 },
             },
         },
+        "evidence_sources": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["kind", "ref"],
+                "additionalProperties": False,
+                "properties": {
+                    "kind": {
+                        "enum": [
+                            "mcp_tool",
+                            "database",
+                            "file",
+                            "url",
+                            "system",
+                            "person",
+                            "instruction",
+                        ]
+                    },
+                    "ref": {"type": "string", "minLength": 1},
+                    "note": {"type": ["string", "null"]},
+                    "avoid": {"type": "boolean"},
+                },
+            },
+        },
     },
 }
 

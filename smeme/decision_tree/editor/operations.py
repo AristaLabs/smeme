@@ -188,7 +188,8 @@ def update_node(
 
     logger.info(f"Updating question node: {node_id}")
 
-    # Create updated question node
+    # The editor form does not edit these; carry them over so a save does not erase them.
+    existing_data = existing_node.question_data
     updated_node = GraphNode(
         id=node_id,
         type="question",
@@ -198,6 +199,8 @@ def update_node(
             options=opts,
             help_text=help_text,
             required=required,
+            authorities=list(existing_data.authorities) if existing_data else [],
+            evidence_sources=list(existing_data.evidence_sources) if existing_data else [],
         ),
     )
 

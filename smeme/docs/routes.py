@@ -67,6 +67,44 @@ async def docs_index(request: Request, user: OptionalUser):
     )
 
 
+@router.get("/quick-start", response_class=HTMLResponse)
+async def docs_quick_start(request: Request, user: OptionalUser):
+    """Copy-paste prompts: connect, find a procedure, and build a first tree."""
+    return _docs_response(
+        request,
+        "docs/quick_start.html",
+        user=user,
+        active_page="docs_quick_start",
+        docs_section="quick_start",
+        mcp_enabled=settings.mcp_enabled,
+        **mcp_connect_template_context(settings),
+    )
+
+
+@router.get("/run-a-tree", response_class=HTMLResponse)
+async def docs_run_a_tree(request: Request, user: OptionalUser):
+    """Copy-paste prompts for running a deployed tree on a matter."""
+    return _docs_response(
+        request,
+        "docs/run_a_tree.html",
+        user=user,
+        active_page="docs_run_a_tree",
+        docs_section="run_a_tree",
+    )
+
+
+@router.get("/ask-more", response_class=HTMLResponse)
+async def docs_ask_more(request: Request, user: OptionalUser):
+    """Copy-paste prompts for what follows, facts that decided it, and what-if."""
+    return _docs_response(
+        request,
+        "docs/ask_more.html",
+        user=user,
+        active_page="docs_ask_more",
+        docs_section="ask_more",
+    )
+
+
 @router.get("/introduction", response_class=HTMLResponse)
 async def docs_introduction(request: Request, user: OptionalUser):
     """Building decision trees — create, edit, save, and version."""

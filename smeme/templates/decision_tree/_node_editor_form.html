@@ -50,7 +50,23 @@
              name="help_text"
              class="w-full px-3 py-2 border border-ui-line-strong rounded-md bg-ui-surface-muted text-ui-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
              value="{{ node.data.help_text or '' }}">
+      <p class="text-xs text-ui-ink-muted mt-1">Your agent reads this while it gathers evidence. Say how to find and read the answer, never where an option leads.</p>
     </div>
+
+    {% if node.data.evidence_sources %}
+    <div class="form-group" data-testid="evidence-sources">
+      <p class="block text-sm font-medium text-ui-ink-secondary mb-1">Where to look for evidence</p>
+      <ul class="space-y-1 text-sm text-ui-ink">
+        {% for source in node.data.evidence_sources %}
+        <li>
+          <span class="text-xs font-semibold uppercase tracking-wide text-ui-ink-muted">{{ 'Avoid' if source.avoid else source.kind|replace('_', ' ') }}</span>
+          <code class="text-xs">{{ source.ref }}</code>{% if source.note %} <span class="text-ui-ink-muted">— {{ source.note }}</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="text-xs text-ui-ink-muted mt-1">Saved by your agent. Ask it to change these; saving this form keeps them.</p>
+    </div>
+    {% endif %}
 
     <!-- Required Field -->
     <div class="form-group">

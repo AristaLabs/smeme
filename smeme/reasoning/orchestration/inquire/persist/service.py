@@ -30,6 +30,7 @@ from smeme.mcp.inquire import handlers as inquire_handlers
 from smeme.mcp.inquire.codec import (
     decode_worksheet_catalog,
     encode_admitted,
+    encode_answer_guidance,
     encode_verified,
 )
 from smeme.mcp.inquire.handlers import InquireHandlerError, server_pv_version
@@ -453,6 +454,30 @@ async def get_task_for_session(
     )
 
 
+async def get_chat_task_for_session(
+    db: AsyncSession,
+    *,
+    user: User,
+    inquiry_session_id: UUID,
+    question_id: str,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Blind task plus chat gather hints from one load of the frozen catalog.
+
+    Chat gather only; the orchestrator and VERIFY use :func:`get_task_for_session`.
+    """
+    session = await load_owned_session(
+        db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
+    )
+    catalog_json = json.dumps(session.worksheet_catalog)
+    catalog = decode_worksheet_catalog(catalog_json)
+    task = inquire_handlers.get_task(
+        worksheet_catalog_json=catalog_json,
+        question_id=question_id,
+    )
+    item = catalog.get(question_id)
+    return task, encode_answer_guidance(item) if item is not None else None
+
+
 def _should_reject_stale_admit_replay(
     *,
     session_revision: int,
@@ -775,6 +800,7 @@ __all__ = [
     "abandon_session",
     "admit_to_session",
     "canonical_request_hash",
+    "get_chat_task_for_session",
     "get_task_for_session",
     "next_directive",
     "start_inquiry",
