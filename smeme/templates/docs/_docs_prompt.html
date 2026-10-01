@@ -1,0 +1,8 @@
+{# Copyable prompt. Expects prompt_id, prompt_label, prompt_text. #}
+<figure class="docs-prompt">
+  <header>
+    <p>{{ prompt_label }}</p>
+    <button type="button" class="docs-copy" data-docs-copy="{{ prompt_id }}">Copy</button>
+  </header>
+  <pre><code id="{{ prompt_id }}">{{ prompt_text }}</code></pre>
+</figure>

@@ -1,0 +1,134 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import callout %}
+{% block title %}Quick start — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/quick-start" %}
+{% set docs_og_title = "Quick start — Docs" %}
+{% set docs_meta_description = "Copy prompts to connect your chatbot to SMEme, find candidate decision procedures, and build your first decision tree. Then Deploy and List it from the dashboard." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Quick start", "path": "/docs/quick-start"}] %}
+{% include "docs/_docs_seo.html" %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Get started with SMEme in the chatbot you already use",
+  "description": {{ docs_meta_description|tojson }},
+  "url": {{ (site_base ~ "/docs/quick-start")|tojson }},
+  "step": [
+    {
+      "@type": "HowToStep",
+      "name": "Connect your chatbot",
+      "text": "Paste the connect prompt into your chatbot and add the SMEme MCP endpoint and OAuth Client ID in that app's settings."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Find a procedure to encode",
+      "text": "Ask your agent to propose candidate decision procedures from your policies, saved prompts, and runbooks."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Build the first tree",
+      "text": "Fill in the build template, attach your source, and review the draft before saving."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Deploy and List",
+      "text": "Open the dashboard, Deploy the tree, and set it Listed so your agent can call it."
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Quick start" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ui-ink-muted mb-1.5">Start here</p>
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Quick start</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Copy these prompts into the chatbot you already use. They walk you through connecting SMEme,
+          finding a judgment worth encoding, and building your first decision tree.
+          For connector settings by product, see
+          <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a>.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+        <section aria-labelledby="connect-heading">
+          <h2 id="connect-heading" class="text-base font-semibold text-ui-ink mb-3">Connect your chatbot</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Chat, Claude, and Copilot cannot add the connector themselves. Paste the prompt, then add SMEme in that app&rsquo;s settings with the values below.
+            A coding agent such as Cursor or Claude Code may add the connector in its own config.
+          </p>
+          {% set prompt_id = "prompt-connect" %}
+          {% set prompt_label = "Connect prompt" %}
+          {% set prompt_text = "Help me add SMEme as a remote MCP connector in this app. SMEme is a reasoning layer that runs my decision trees. Walk me through the settings in this product. I will paste the MCP endpoint URL and, if this app asks for one, the OAuth Client ID. After I add it, tell me when to sign in, and use the same email I use on SMEme." %}
+          {% include "docs/_docs_prompt.html" %}
+          <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">
+            If you can edit this client&rsquo;s MCP config yourself, add a remote Streamable HTTP connector named SMEme with that endpoint, and the Client ID when the client requires it. Leave the client secret blank.
+          </p>
+          <div class="mt-4">
+            {% include "docs/_docs_connector_values.html" %}
+          </div>
+        </section>
+
+        <section aria-labelledby="candidates-heading">
+          <h2 id="candidates-heading" class="text-base font-semibold text-ui-ink mb-3">Find a procedure to encode</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Ask your agent to look through the policies, saved prompts, and runbooks you already have.
+            A good candidate is a judgment you repeat, with a few questions that change the outcome, and evidence you can point at.
+          </p>
+          {% set prompt_id = "prompt-candidates" %}
+          {% set prompt_label = "Candidate procedures prompt" %}
+          {% set prompt_text = "Look through my policies, saved prompts, runbooks, and operating procedures in this conversation and in the files I have attached. Propose candidate decision procedures worth encoding in SMEme. For each candidate, say: the judgment I repeat, the few questions that change the outcome, and the evidence I can point at. Skip checklists that are only data lookup or one-off research." %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="build-heading">
+          <h2 id="build-heading" class="text-base font-semibold text-ui-ink mb-3">Build the first tree</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Fill in the brackets. Attach the policy as a file, a folder, or pasted text.
+            Ask the agent to show the draft before it saves.
+          </p>
+          {% set prompt_id = "prompt-build" %}
+          {% set prompt_label = "Build template" %}
+          {% set prompt_text = "Build a [name the decision] decision tree in SMEme from [name the policy, prompt, or file]. Follow SMEme's guidance on how to structure it. Where the source is silent, ask me instead of guessing. I will attach the source as [a file, a folder, or pasted text]. Show me the draft before you save it." %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="deploy-heading">
+          <h2 id="deploy-heading" class="text-base font-semibold text-ui-ink mb-3">Deploy and List</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Open the dashboard, choose <strong class="font-medium text-ui-ink">Deploy</strong>, then set the tree
+            <strong class="font-medium text-ui-ink">Listed</strong> so your agent can call it.
+            Details:
+            <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a>.
+          </p>
+          {% include "docs/_docs_dashboard_mock.html" %}
+        </section>
+
+        <p class="text-sm">
+          <span class="text-ui-ink-muted">Next:</span>
+          <a href="/docs/run-a-tree" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Run a tree →</a>
+        </p>
+      </div>
+    </article>
+  </div>
+</div>
+<script src="/static/js/docs-copy.js"></script>
+{% endblock %}
