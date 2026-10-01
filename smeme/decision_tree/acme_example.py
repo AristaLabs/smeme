@@ -109,17 +109,6 @@ async def _ensure_live_and_listed(
     return tree
 
 
-async def _check_slot_quota(
-    db: AsyncSession,
-    user: User,
-) -> None:
-    from smeme.billing.quota import QuotaDimension, check_quota
-
-    quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
-    if not quota.allowed:
-        raise AcmeExampleError("quota_exceeded", quota.message)
-
-
 def _deploy_error(exc: DeployNotReadyError) -> AcmeExampleError:
     return AcmeExampleError(
         "deploy_failed",
@@ -140,10 +129,13 @@ async def ensure_acme_example_tree(
         return None
     user_id = user.id
 
+    from smeme.billing.quota import reserve_decision_tree_slot
+
+    quota = await reserve_decision_tree_slot(db, user)
     existing = await find_acme_example_tree(db, user_id)
     if existing is not None:
-        if not existing.is_current or existing.is_archived:
-            await _check_slot_quota(db, user)
+        if (not existing.is_current or existing.is_archived) and not quota.allowed:
+            raise AcmeExampleError("quota_exceeded", quota.message)
         try:
             tree = await _ensure_live_and_listed(db, existing)
         except DeployNotReadyError as exc:
@@ -157,7 +149,8 @@ async def ensure_acme_example_tree(
         await db.refresh(tree)
         return tree
 
-    await _check_slot_quota(db, user)
+    if not quota.allowed:
+        raise AcmeExampleError("quota_exceeded", quota.message)
     graph = acme_example_graph()
     tree = DecisionTree(
         author_id=user_id,
