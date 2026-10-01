@@ -1,0 +1,96 @@
+{% extends "layouts/base.html" %}
+{% block title %}Ask more of a result — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/ask-more" %}
+{% set docs_og_title = "Ask more of a result — Docs" %}
+{% set docs_meta_description = "After a SMEme report, ask what follows, which facts decided it, what if a fact changed, what would have to change, what cannot change the result, and what the tree allows." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Ask more", "path": "/docs/ask-more"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Ask more" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Ask more of a result</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          After a report comes back, keep going in the same chat.
+          These prompts stay in plain language. Tool names live on
+          <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a>.
+        </p>
+      </header>
+
+      <div class="space-y-8">
+        <section aria-labelledby="ask-follows">
+          <h2 id="ask-follows" class="text-base font-semibold text-ui-ink mb-2">What follows</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">A conclusion follows, is ruled out, or still depends on facts you have not admitted.</p>
+          {% set prompt_id = "prompt-follows" %}
+          {% set prompt_label = "What follows" %}
+          {% set prompt_text = "What follows from the facts we have admitted for this matter?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="ask-facts">
+          <h2 id="ask-facts" class="text-base font-semibold text-ui-ink mb-2">Which facts decided this</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The smallest set of admitted facts that still forces the conclusion.</p>
+          {% set prompt_id = "prompt-facts" %}
+          {% set prompt_label = "Which facts decided this" %}
+          {% set prompt_text = "Which admitted facts decided this conclusion?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="ask-whatif">
+          <h2 id="ask-whatif" class="text-base font-semibold text-ui-ink mb-2">What if a fact changed</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Compare this case with one different fact and see whether the conclusion still follows.</p>
+          {% set prompt_id = "prompt-whatif" %}
+          {% set prompt_label = "What if a fact changed" %}
+          {% set prompt_text = "What if [name one fact] were different — would the conclusion still follow?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="ask-change">
+          <h2 id="ask-change" class="text-base font-semibold text-ui-ink mb-2">What would have to change</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The edits that would make another conclusion follow, or leave it still possible.</p>
+          {% set prompt_id = "prompt-change" %}
+          {% set prompt_label = "What would have to change" %}
+          {% set prompt_text = "What would have to change for [the other conclusion] to follow?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="ask-cannot">
+          <h2 id="ask-cannot" class="text-base font-semibold text-ui-ink mb-2">What cannot change the result</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Unanswered questions that would not move a conclusion that already follows.</p>
+          {% set prompt_id = "prompt-cannot" %}
+          {% set prompt_label = "What cannot change the result" %}
+          {% set prompt_text = "Which unanswered questions cannot change this result?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="ask-allows">
+          <h2 id="ask-allows" class="text-base font-semibold text-ui-ink mb-2">What the tree allows</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The conclusions the deployed tree can reach.</p>
+          {% set prompt_id = "prompt-allows" %}
+          {% set prompt_label = "What the tree allows" %}
+          {% set prompt_text = "What outcomes can this tree reach?" %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+      </div>
+    </article>
+  </div>
+</div>
+<script src="/static/js/docs-copy.js"></script>
+{% endblock %}

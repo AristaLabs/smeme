@@ -1,0 +1,72 @@
+{% extends "layouts/base.html" %}
+{% block title %}Run a tree — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/run-a-tree" %}
+{% set docs_og_title = "Run a tree — Docs" %}
+{% set docs_meta_description = "Put a matter in front of your agent, run a deployed SMEme decision tree, cite a source for every answer, and flag anything that conflicts." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Run a tree", "path": "/docs/run-a-tree"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Run a tree" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Run a tree</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Keep the matter in the apps you already use: a folder, mail, a CRM record.
+          Your agent gathers from those sources. SMEme asks one question at a time and returns a structured report.
+          The tree must be <strong class="font-medium text-ui-ink">Deployed</strong> and
+          <strong class="font-medium text-ui-ink">Listed</strong> first.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+        <section aria-labelledby="context-heading">
+          <h2 id="context-heading" class="text-base font-semibold text-ui-ink mb-3">Put the matter where the agent can see it</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            Point at a folder, attach files, or name the connected apps that hold the facts.
+            The decision tree does not store those files. The agent cites them as evidence for each answer.
+          </p>
+        </section>
+
+        <section aria-labelledby="run-heading">
+          <h2 id="run-heading" class="text-base font-semibold text-ui-ink mb-3">Run prompt</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Fill in the brackets. Ask the agent to cite a source for every answer and to flag anything that conflicts.
+          </p>
+          {% set prompt_id = "prompt-run" %}
+          {% set prompt_label = "Run template" %}
+          {% set prompt_text = "Run my [name of decision tree] on this matter. Everything you need is in [the folder, files, or apps I have connected]. Cite a source for every answer and flag anything that conflicts." %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <section aria-labelledby="chat-heading">
+          <h2 id="chat-heading" class="text-base font-semibold text-ui-ink mb-3">What a run looks like</h2>
+          {% include "docs/_docs_chat_mock.html" %}
+        </section>
+
+        <p class="text-sm">
+          <span class="text-ui-ink-muted">Next:</span>
+          <a href="/docs/ask-more" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Ask more of a result →</a>
+        </p>
+      </div>
+    </article>
+  </div>
+</div>
+<script src="/static/js/docs-copy.js"></script>
+{% endblock %}
