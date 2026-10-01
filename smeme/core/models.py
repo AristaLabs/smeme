@@ -335,6 +335,24 @@ class DecisionTree(BaseSQLModel, table=True):
         description="Post-downgrade Free tier: download-only; cleared on Pro re-upgrade.",
     )
 
+    # Import copy provenance. Null means this tree was not imported.
+    # Kept off graph_data so a later download does not carry the banner.
+    import_filename: str | None = Field(
+        default=None,
+        sa_column=Column(sa.String(200), nullable=True),
+        description="Basename of the .smeme.json file this draft was copied from.",
+    )
+    import_export_version: str | None = Field(
+        default=None,
+        sa_column=Column(sa.String(16), nullable=True),
+        description="smeme_export_version accepted at import time.",
+    )
+    imported_at: Mapped[datetime] | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="When this draft was created by Import copy.",
+    )
+
     # Timestamps (timezone-aware)
     created_at: Mapped[datetime] = Field(
         default_factory=lambda: datetime.now(UTC),

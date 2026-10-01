@@ -125,6 +125,9 @@ class DecisionTreeViewerState(TypedDict):
     research_corpus_body: NotRequired[str]
     tools_row_state: NotRequired[str]  # live | stale | not_built
     editor_view: NotRequired[str]
+    import_filename: NotRequired[str | None]
+    import_export_version: NotRequired[str | None]
+    show_import_banner: NotRequired[bool]
     warnings: NotRequired[list[str]]  # Validation warnings for drafts (legacy)
     validation_data: NotRequired[dict[str, Any]]  # Structured validation data (categorized)
     validation_issue_rows: NotRequired[list[dict[str, Any]]]

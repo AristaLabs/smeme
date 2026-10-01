@@ -12,6 +12,9 @@
 
   {% if error_message %}
   {{ alert(error_message, "error") }}
+  {% if error_code|default("") == "account_downgrade_pending" %}
+  <p class="text-sm"><a href="/billing/choose-workflow" class="font-medium text-brand-700 underline decoration-brand-700/30 hover:decoration-brand-700">Choose which decision trees stay live</a></p>
+  {% endif %}
   {% endif %}
 
   {% if show_upgraded %}
@@ -136,9 +139,18 @@
         <p class="text-sm text-amber-800 mt-1">Decision-tree limit reached — delete a decision tree or <button type="button" class="font-medium underline hover:no-underline" hx-get="/billing/upgrade-modal" hx-target="#modal-container" hx-swap="innerHTML">upgrade to Pro</button> to create another.</p>
         {% endif %}
       </div>
-      <form method="post" action="/decision-trees/sample" class="shrink-0">
-        {{ btn("Load sample", variant="secondary", size="sm", type="submit") }}
-      </form>
+      <div class="flex flex-wrap items-center gap-2">
+        <form method="post" action="/decision-trees/import" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+          <label class="text-sm text-ui-ink-muted">
+            <span class="sr-only">Decision tree file</span>
+            <input type="file" name="file" accept=".json,application/json" required class="block max-w-[14rem] text-sm text-ui-ink-muted file:mr-2 file:rounded-md file:border-0 file:bg-ui-surface-muted file:px-2 file:py-1 file:text-xs file:font-medium">
+          </label>
+          {{ btn("Import copy", variant="secondary", size="sm", type="submit") }}
+        </form>
+        <form method="post" action="/decision-trees/sample" class="shrink-0">
+          {{ btn("Load sample", variant="secondary", size="sm", type="submit") }}
+        </form>
+      </div>
     </div>
 
     {% if decision_trees %}
