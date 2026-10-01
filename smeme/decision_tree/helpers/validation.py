@@ -660,6 +660,8 @@ def _validate_answering_hints(nodes: list[GraphNode], ctx: _ValidationContext) -
     ]
     if not titles:
         return
+    # Whole words only, so "Approve" does not match "approval packet".
+    patterns = [(t, re.compile(rf"(?<!\w){re.escape(t)}(?!\w)", re.IGNORECASE)) for t in titles]
     for node in nodes:
         qdata = node.question_data
         if qdata is None:
@@ -672,8 +674,7 @@ def _validate_answering_hints(nodes: list[GraphNode], ctx: _ValidationContext) -
             if source.note:
                 fields.append((f"evidence_sources[{i}].note", source.note))
         for field_name, value in fields:
-            lowered = value.lower()
-            named = [t for t in titles if t.lower() in lowered]
+            named = [t for t, pattern in patterns if pattern.search(value)]
             if named:
                 ctx.warning(
                     f"Question '{node.id}' {field_name} names the outcome "

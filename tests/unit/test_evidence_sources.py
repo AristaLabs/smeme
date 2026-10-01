@@ -155,6 +155,12 @@ def test_validation_warns_when_hints_name_an_outcome() -> None:
     assert any("evidence_sources[0].note" in w and "Light touch" in w for w in hits)
 
 
+def test_validation_hint_check_matches_whole_words_only() -> None:
+    graph = _graph(help_text="Check the full reviewer notes and the light touches log.")
+    result = validate_graph_for_editing(graph)
+    assert not any("names the outcome" in w for w in result["warnings"])
+
+
 def test_worksheet_prints_hints_per_question() -> None:
     graph = _graph(help_text="Use invoiced amounts.", evidence_sources=_SOURCES)
     core = build_manifest_core(graph, _TREE_ID)

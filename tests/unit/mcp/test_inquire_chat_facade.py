@@ -276,17 +276,19 @@ async def test_active_task_or_terminal_acquire_strips_task() -> None:
     with (
         patch.object(
             facade,
-            "get_task_for_session",
+            "get_chat_task_for_session",
             new=AsyncMock(
-                return_value={
-                    "question_id": "q1",
-                    "stem": "Stem?",
-                    "options": ["A", "B"],
-                    "extra_leaked": True,
-                }
+                return_value=(
+                    {
+                        "question_id": "q1",
+                        "stem": "Stem?",
+                        "options": ["A", "B"],
+                        "extra_leaked": True,
+                    },
+                    None,
+                )
             ),
         ),
-        patch.object(facade, "get_answer_guidance_for_session", new=AsyncMock(return_value=None)),
     ):
         out = await facade._active_task_or_terminal(
             db,

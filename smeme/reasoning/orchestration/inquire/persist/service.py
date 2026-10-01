@@ -454,20 +454,28 @@ async def get_task_for_session(
     )
 
 
-async def get_answer_guidance_for_session(
+async def get_chat_task_for_session(
     db: AsyncSession,
     *,
     user: User,
     inquiry_session_id: UUID,
     question_id: str,
-) -> dict[str, Any] | None:
-    """Chat gather hints for one question from the frozen catalog (never VERIFY)."""
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Blind task plus chat gather hints from one load of the frozen catalog.
+
+    Chat gather only; the orchestrator and VERIFY use :func:`get_task_for_session`.
+    """
     session = await load_owned_session(
         db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
     )
-    catalog = decode_worksheet_catalog(json.dumps(session.worksheet_catalog))
+    catalog_json = json.dumps(session.worksheet_catalog)
+    catalog = decode_worksheet_catalog(catalog_json)
+    task = inquire_handlers.get_task(
+        worksheet_catalog_json=catalog_json,
+        question_id=question_id,
+    )
     item = catalog.get(question_id)
-    return encode_answer_guidance(item) if item is not None else None
+    return task, encode_answer_guidance(item) if item is not None else None
 
 
 def _should_reject_stale_admit_replay(
@@ -792,7 +800,7 @@ __all__ = [
     "abandon_session",
     "admit_to_session",
     "canonical_request_hash",
-    "get_answer_guidance_for_session",
+    "get_chat_task_for_session",
     "get_task_for_session",
     "next_directive",
     "start_inquiry",

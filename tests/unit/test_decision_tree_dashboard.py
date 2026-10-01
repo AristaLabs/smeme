@@ -320,6 +320,10 @@ async def test_docs_index_public_anonymous(client):
     r = await client.get("/docs")
     assert r.status_code == 200
     assert b"Documentation" in r.content
+    assert b'id="why-smeme"' in r.content
+    assert b"Business rules don&rsquo;t belong in prompts." in r.content
+    assert b"SMEme is rational AI." in r.content
+    assert b"It asks only what still matters." in r.content
     assert b"/docs/mcp" in r.content
     assert b"/docs/delete-account" not in r.content
     assert "public, max-age=300" in r.headers.get("cache-control", "")
@@ -449,6 +453,9 @@ async def test_docs_quick_start_path(client):
     assert "not sure which decision procedure to encode." in html
     assert "Record where each answer should come from and where not to look" in html
     assert "docs-dash" in html
+    assert 'href="/docs#why-smeme"' in html
+    assert "asks only the questions that can still change the outcome" in html
+    assert "which open questions can" not in html
     assert 'href="/docs/run-a-tree"' in html
     assert 'href="/docs/ask-more"' in html
     assert '"@type": "HowTo"' in html
@@ -473,6 +480,8 @@ async def test_docs_run_and_ask_more_prompts(client):
     ):
         assert result in run.text
     assert "Send a batch of answers in one shot" in run.text
+    assert "instead of guessing" in run.text
+    assert "needs isolated verification" in run.text
     assert "answer the questions you can from the evidence" in run.text
     ask = await client.get("/docs/ask-more")
     assert ask.status_code == 200

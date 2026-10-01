@@ -31,8 +31,7 @@ from smeme.reasoning.orchestration.inquire.persist import (
     STATUS_STOPPED,
     admit_to_session,
     canonical_request_hash,
-    get_answer_guidance_for_session,
-    get_task_for_session,
+    get_chat_task_for_session,
     start_inquiry,
 )
 from smeme.reasoning.orchestration.inquire.persist.auth import load_owned_session
@@ -223,13 +222,7 @@ async def _active_task_or_terminal(
             "inquire_session_invariant",
             "ACQUIRE directive missing question_id",
         )
-    task = await get_task_for_session(
-        db,
-        user=user,
-        inquiry_session_id=UUID(session_id),
-        question_id=qid,
-    )
-    answer_guidance = await get_answer_guidance_for_session(
+    task, answer_guidance = await get_chat_task_for_session(
         db,
         user=user,
         inquiry_session_id=UUID(session_id),

@@ -58,6 +58,10 @@
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
           Follow these steps in the chatbot you already use. Each step has a short instruction and a prompt to copy.
         </p>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          New to SMEme?
+          <a href="/docs#why-smeme" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Read why business rules don&rsquo;t belong in prompts</a>.
+        </p>
       </header>
 
       {% call callout("info", title="Before you start", extra_class="mb-10") %}
@@ -112,8 +116,9 @@ If any step fails, quote the error and tell me what to do next.
             <p>
               Encode a decision when it matters, when it repeats, or both. Strong candidates are costly to get wrong,
               made often enough that consistency counts, have to be explained afterward, or are complex enough that
-              people regularly miss a detail. Once a decision is encoded, your agent can do more than run it. It can
-              tell you which facts decided the outcome, what would change it, and which open questions can&rsquo;t change it.
+              people regularly miss a detail. Once a decision is encoded, your agent can do more than run it. While it
+              runs, SMEme asks only the questions that can still change the outcome. Afterward, your agent can tell you
+              which facts decided the outcome and what would change it.
             </p>
             <p>
               Each answer comes from evidence: a document, a record, a field in a system, a calculation, a lookup, or a

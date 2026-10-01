@@ -69,6 +69,9 @@ When SMEme returns the report, tell me the outcome, the path that led there, and
 
         <section aria-labelledby="report-heading">
           <h2 id="report-heading" class="text-base font-semibold text-ui-ink mb-3">Reading the report</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            SMEme tells you when the answers aren&rsquo;t enough, instead of guessing. Every result except Concluded tells you what to do next.
+          </p>
           <div class="overflow-x-auto rounded-xl border border-ui-line">
             <table class="w-full text-left text-sm" data-testid="docs-result-kinds">
               <thead class="bg-ui-surface-muted text-xs uppercase tracking-wide text-ui-ink-muted">
@@ -107,6 +110,11 @@ When SMEme returns the report, tell me the outcome, the path that led there, and
               </tbody>
             </table>
           </div>
+          <p class="mt-4 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+            Now and then a run stops before the report because an answer needs an independent check that an ordinary chat
+            can&rsquo;t run. Your agent will say the run needs isolated verification. Starting the tree over in the same chat
+            won&rsquo;t get past it.
+          </p>
         </section>
 
         <section aria-labelledby="batch-heading">
