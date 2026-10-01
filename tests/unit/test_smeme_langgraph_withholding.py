@@ -513,27 +513,41 @@ def test_terminal_summary_keeps_report_qualifications_and_verification_status() 
     assert summary["inquire_diagnostics"]["phase"] == "resolving_support"
     assert summary["warnings"] == [{"code": "missing_evidence_ref", "message": "Missing evidence"}]
 
-    verification = example._terminal_summary(
+    settled = example._terminal_summary(
         {
             "report": {
-                "error": {
-                    "code": "isolated_evaluations_required",
-                    "message": "Run isolated verification.",
-                    "status": "verification_required",
-                }
+                "result_kind": "concluded",
+                "headline": "On",
+                "inquire_stop_reason": "isolated_verification_not_run",
             },
             "terminal_payload": {
-                "error": {
-                    "code": "isolated_evaluations_required",
-                    "message": "Run isolated verification.",
-                    "status": "verification_required",
-                }
+                "status": "ACTIVE",
+                "harness_next": "phase_2_ok",
+                "stop_reason": "isolated_verification_not_run",
+                "inquire_stop_reason": "isolated_verification_not_run",
+                "warnings": [
+                    {
+                        "code": "inquire_verification_not_run",
+                        "message": "The deciding answers were not independently re-checked.",
+                    }
+                ],
+                "report": {
+                    "result_kind": "concluded",
+                    "headline": "On",
+                    "inquire_stop_reason": "isolated_verification_not_run",
+                },
             },
         }
     )
-    assert verification["verification_required"]["code"] == "isolated_evaluations_required"
-    assert "report" not in verification
-    assert "terminal_error" not in verification
+    assert settled["report"] == {
+        "result_kind": "concluded",
+        "headline": "On",
+    }
+    assert settled["status"] == "ACTIVE"
+    assert settled["harness_next"] == "phase_2_ok"
+    assert settled["stop_reason"] == "isolated_verification_not_run"
+    assert "verification_required" not in settled
+    assert "terminal_error" not in settled
 
 
 @pytest.mark.asyncio

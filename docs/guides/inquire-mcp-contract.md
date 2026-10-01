@@ -77,9 +77,12 @@ Server mints `expected_revision` / idempotency. Never map continue onto `verify`
 `harness_next: continue_evaluate`, and one `{question_id, stem, options}` task.
 
 **VERIFY is a chat-invocation terminal, not an Inquire STOP.** If ANALYZE action is VERIFY:
-do not return a task, do not run \(P_v\), do **not** call persist STOP, do **not** set
-`stop_reason`. Return structured `isolated_evaluations_required`. Session remains `ACTIVE`
-and resumable on `/orchestrator`.
+do not return a task, do not run \(P_v\), do **not** call persist STOP. Apply admitted
+answers and return a `report` with chat-only `stop_reason` /
+`inquire_stop_reason: isolated_verification_not_run` and warning
+`inquire_verification_not_run`. Session remains `ACTIVE` and resumable on
+`/orchestrator`. Payload `status` stays `ACTIVE`. The gather loop ends because
+`harness_next` is not `continue_evaluate`.
 
 **Inquire STOP:** persist STOPs only on true STOP. Then run Apply on admitted
 `(q → option)` and return `report` + `stop_reason` (+ `inquire_stop_reason`, same
@@ -91,8 +94,7 @@ quota denial. Those stops also append warning `inquire_operational_stop`. Do not
 treat `stop_reason: operational_budget` alone as “no conclusion.” Operational
 STOP responses include `inquire_operational_status` and bounded
 `inquire_diagnostics` (phase, SAT-call counts, elapsed milliseconds, and active
-limits); ordinary ACTIVE and VERIFY chat responses do not expose that control
-telemetry.
+limits); ordinary ACTIVE gather tasks do not expose that control telemetry.
 
 Terminal Apply preserves every admitted `provenance_id` as an evidence item and
 question-level evidence reference. Source content remains in the host; the
@@ -102,8 +104,9 @@ guided answer with admitted provenance therefore must not produce
 `missing_evidence_ref`.
 
 **Client ranking.** `status: ok` means the tool call parsed and ran; it is not
-a claim that the case is complete. Clients rank `harness_next` and, on Inquire
-STOP, `stop_reason` / `inquire_stop_reason` over `report.headline`.
+a claim that the case is complete. Clients rank `harness_next`: the gather loop
+ends when `harness_next` is not `continue_evaluate`. On a report, rank
+`stop_reason` / `inquire_stop_reason` over `report.headline`.
 
 Missing-evidence validation example:
 
@@ -137,7 +140,8 @@ stop is present.
 
 | `stop_reason` (selected) | Meaning |
 |--------------------------|---------|
-| `verified_resolved_consequence` | Resolved + \(S_R\) verified under \(P_v\) |
+| `verified_resolved_consequence` | Resolved + \(S_R\) verified under \(P_v\) (kernel STOP; orchestrator) |
+| `isolated_verification_not_run` | **Chat-only.** ANALYZE issued VERIFY; chat Applied admitted answers without running \(P_v\). Session stays `ACTIVE`. Not a kernel stop. |
 | `resolving_support_incomplete` | Resolved, but exact \(S_R\) search hit budget/timeout/unknown |
 | `operational_budget` / `_timeout` / `_unknown` | Cons / Resolved / \(D_1\) / residual witness search operational miss |
 | `inconsistent` | Working base inconsistent |

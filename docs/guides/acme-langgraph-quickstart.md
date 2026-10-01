@@ -92,13 +92,13 @@ human admits; SMEme determines what follows.
 
 Each continuation returns one of:
 
-- another solver-selected task;
-- a structured report; or
-- **verification required** (`isolated_evaluations_required`).
+- another solver-selected task; or
+- a structured report.
 
-Verification required is an intentional fail-closed boundary, not a generic
-client error. If a report includes warnings or an operational stop, the client
-prints those qualifiers rather than presenting an unqualified success.
+When the answers settle, the report notes that the deciding answers were not
+independently re-checked (`isolated_verification_not_run`). If a report includes
+warnings or an operational stop, the client prints those qualifiers rather than
+presenting an unqualified success.
 
 ## Cleanup and troubleshooting
 

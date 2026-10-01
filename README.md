@@ -8,8 +8,8 @@ Experts create decision-trees, **Deploy** a validated version, and connect MCP
 clients that can (1) run the default **guided gather** loop, where
 `smeme_reasoning_evaluate` returns one blind question or a terminal outcome and
 `smeme_reasoning_evaluate_continue` takes an answer with provenance—or an
-abstention—until the loop returns a **report** or
-`isolated_evaluations_required`, (2) submit a full worksheet of structured
+abstention—until **`harness_next`** is not **`continue_evaluate`** and the loop
+returns a **report**, (2) submit a full worksheet of structured
 `raw_answers`
 in a single `smeme_reasoning_evaluate_answers` call for batch, integration, and
 audit use, and (3) ask questions about the deployed tree itself — what-if,

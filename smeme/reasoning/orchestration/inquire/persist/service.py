@@ -58,6 +58,7 @@ EVENT_VERIFICATION_RETAINED = "VERIFICATION_RETAINED"
 EVENT_VERIFICATION_INSUFFICIENT = "VERIFICATION_INSUFFICIENT"
 EVENT_SESSION_STOPPED = "SESSION_STOPPED"
 EVENT_SESSION_ABANDONED = "SESSION_ABANDONED"
+EVENT_CHAT_REPORT_ISSUED = "CHAT_REPORT_ISSUED"
 
 
 def canonical_request_hash(payload: dict[str, Any]) -> str:
@@ -488,6 +489,106 @@ def _should_reject_stale_admit_replay(
     return receipt_rev is not None and int(session_revision) > int(receipt_rev)
 
 
+async def lookup_admit_receipt(
+    db: AsyncSession,
+    *,
+    user: User,
+    inquiry_session_id: UUID,
+    idempotency_key: str,
+    question_id: str,
+    selected_option: str | None,
+    provenance_id: str | None,
+    reject_stale_replay: bool = True,
+) -> dict[str, Any] | None:
+    """Return a stored admit wire without ANALYZE. None when this continue is new."""
+    if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+        raise InquireHandlerError(
+            "inquire_invalid_payload", "idempotency_key must be a non-empty string"
+        )
+    request_hash = canonical_request_hash(
+        {
+            "operation": "admit",
+            "inquiry_session_id": str(inquiry_session_id),
+            "question_id": question_id,
+            "selected_option": selected_option,
+            "provenance_id": provenance_id,
+        }
+    )
+    session = await load_owned_session(
+        db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
+    )
+    replay = await _lookup_receipt(
+        db,
+        session_id=session.id,
+        idempotency_key=idempotency_key.strip(),
+        request_hash=request_hash,
+    )
+    if replay is None:
+        return None
+    if reject_stale_replay and _should_reject_stale_admit_replay(
+        session_revision=int(session.revision),
+        receipt_response=replay,
+    ):
+        raise InquireHandlerError(
+            "inquire_idempotency_conflict",
+            "This admit was already applied earlier in the session; "
+            "the session has advanced since that mutation.",
+        )
+    return replay
+
+
+async def chat_report_issued_payload(
+    db: AsyncSession,
+    *,
+    user: User,
+    inquiry_session_id: UUID,
+) -> dict[str, Any] | None:
+    """Cheap chat-facade signal: a report was already issued for this session."""
+    session = await load_owned_session(
+        db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
+    )
+    result = await db.execute(
+        select(InquirySessionEvent)
+        .where(
+            InquirySessionEvent.session_id == session.id,
+            InquirySessionEvent.event_type == EVENT_CHAT_REPORT_ISSUED,
+        )
+        .order_by(InquirySessionEvent.created_at.asc())
+        .limit(1)
+    )
+    event = result.scalar_one_or_none()
+    if event is None:
+        return None
+    payload = dict(event.payload or {})
+    payload.setdefault("revision", int(event.revision))
+    return payload
+
+
+async def record_chat_report_issued(
+    db: AsyncSession,
+    *,
+    user: User,
+    inquiry_session_id: UUID,
+    payload: dict[str, Any],
+) -> None:
+    """Append CHAT_REPORT_ISSUED after the first persisted chat Apply report."""
+    existing = await chat_report_issued_payload(
+        db, user=user, inquiry_session_id=inquiry_session_id
+    )
+    if existing is not None:
+        return
+    session = await load_owned_session(
+        db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
+    )
+    _append_event(
+        db,
+        session=session,
+        event_type=EVENT_CHAT_REPORT_ISSUED,
+        payload=dict(payload),
+    )
+    await db.commit()
+
+
 async def _lookup_receipt(
     db: AsyncSession,
     *,
@@ -797,12 +898,16 @@ __all__ = [
     "STATUS_ABANDONED",
     "STATUS_ACTIVE",
     "STATUS_STOPPED",
+    "EVENT_CHAT_REPORT_ISSUED",
     "abandon_session",
     "admit_to_session",
     "canonical_request_hash",
+    "chat_report_issued_payload",
     "get_chat_task_for_session",
     "get_task_for_session",
+    "lookup_admit_receipt",
     "next_directive",
+    "record_chat_report_issued",
     "start_inquiry",
     "verify_session",
 ]

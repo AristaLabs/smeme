@@ -618,3 +618,165 @@ async def test_chat_evaluate_continue_replay_and_stale(test_session_factory) -> 
                 provenance_id="p-chat-1",
             )
     assert exc.value.code == "inquire_idempotency_conflict"
+
+
+async def test_chat_settled_run_returns_unverified_report(test_session_factory) -> None:
+    from sqlalchemy import func, select
+
+    from smeme.core.models import InquiryAdmittedAssertion, ReasoningEvaluationRun
+    from smeme.mcp.inquire.chat_facade import (
+        CHAT_ISOLATED_VERIFICATION_NOT_RUN,
+        admitted_apply_envelope_for_session,
+        chat_evaluate_continue,
+        chat_evaluate_start,
+        merge_chat_stop_onto_apply,
+        should_persist_chat_report,
+    )
+    from smeme.reasoning.ir.serialize import ir_from_json
+    from smeme.reasoning.orchestration.inquire.persist import record_chat_report_issued
+    from smeme.reasoning.persistence import persist_reasoning_evaluation_run
+    from smeme.reasoning.runtime.evaluate import evaluate_reasoning
+    from smeme.reasoning.runtime.ingest_envelope import prepare_evaluate_ingest
+    from smeme.reasoning.runtime.report_builder import build_evaluation_report
+
+    user, tree, artifact, _ = await _seed_deployed_inquire_tree(test_session_factory)
+    graph = DTGraph.model_validate(tree.graph_data)
+    async with test_session_factory() as db:
+        started = await chat_evaluate_start(
+            db, user=user, decision_tree=tree, artifact=artifact, graph=graph
+        )
+    session_id = UUID(started["inquiry_session_id"])
+    assert started.get("harness_next") == "continue_evaluate"
+    assert "task" in started
+
+    last = started
+    last_question = started["task"]["question_id"]
+    last_option = ""
+    last_provenance = ""
+    for step in range(8):
+        last_question = last["task"]["question_id"]
+        async with test_session_factory() as db:
+            row = await db.get(InquirySession, session_id)
+            assert row is not None
+            last_option = _choice_for(row.worksheet_catalog, last_question)
+            last_provenance = f"p-settle-{step}"
+            last = await chat_evaluate_continue(
+                db,
+                user=user,
+                inquiry_session_id=session_id,
+                question_id=last_question,
+                selected_option=last_option,
+                provenance_id=last_provenance,
+            )
+        if last.get("_chat_stop"):
+            break
+        assert last.get("harness_next") == "continue_evaluate"
+    else:
+        raise AssertionError("chat run did not settle")
+
+    assert last["status"] == STATUS_ACTIVE
+    assert last["stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert should_persist_chat_report(last) is True
+
+    async def _admitted_count() -> int:
+        async with test_session_factory() as db:
+            n = await db.scalar(
+                select(func.count())
+                .select_from(InquiryAdmittedAssertion)
+                .where(InquiryAdmittedAssertion.session_id == session_id)
+            )
+        return int(n or 0)
+
+    admitted_after_settle = await _admitted_count()
+    assert admitted_after_settle == 2
+
+    async with test_session_factory() as db:
+        replay_before_event = await chat_evaluate_continue(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            question_id=last_question,
+            selected_option=last_option,
+            provenance_id=last_provenance,
+        )
+    assert replay_before_event.get("_chat_report_already_issued") is True
+    assert should_persist_chat_report(replay_before_event) is False
+    assert replay_before_event["stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert await _admitted_count() == admitted_after_settle
+
+    async with test_session_factory() as db:
+        envelope = await admitted_apply_envelope_for_session(
+            db, user=user, inquiry_session_id=session_id
+        )
+        ir = ir_from_json(dict(artifact.ir_json))
+        _flat, ingest_env, warnings, harness_next = prepare_evaluate_ingest(ir, envelope)
+        eval_result, audit = evaluate_reasoning(
+            ir, raw_answers=_flat, skip_ir_validation=True
+        )
+        report = build_evaluation_report(
+            graph=graph, envelope=ingest_env, eval_result=eval_result
+        )
+        merged = merge_chat_stop_onto_apply(
+            {"report": report, "warnings": warnings, "harness_next": harness_next},
+            inquiry_session_id=str(session_id),
+            stop_reason=last["stop_reason"],
+        )
+        assert merged["status"] == STATUS_ACTIVE
+        assert merged["report"]["result_kind"] == "concluded"
+        assert merged["report"]["inquire_stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+        assert merged["harness_next"] != "continue_evaluate"
+        row = await persist_reasoning_evaluation_run(
+            db,
+            decision_tree_id=tree.id,
+            result=eval_result,
+            audit=audit,
+            caller_user_id=user.id,
+            ingest_warnings=list(merged["warnings"] or []),
+            report=dict(merged["report"]),
+            artifact=artifact,
+        )
+        await record_chat_report_issued(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            payload={
+                "stop_reason": last["stop_reason"],
+                "evaluation_run_id": str(row.id),
+                "revision": last["revision"],
+            },
+        )
+        stored_id = row.id
+
+    async with test_session_factory() as db:
+        stored = await db.get(ReasoningEvaluationRun, stored_id)
+        assert stored is not None
+        assert stored.report.get("result_kind") == "concluded"
+        assert stored.report.get("inquire_stop_reason") == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+        assert stored.report.get("inquire_stop_reason") != "verified_resolved_consequence"
+        warning_codes = [w.get("code") for w in (stored.ingest_warnings or [])]
+        assert "inquire_verification_not_run" in warning_codes
+
+    async with test_session_factory() as db:
+        replay_after_event = await chat_evaluate_continue(
+            db,
+            user=user,
+            inquiry_session_id=session_id,
+            question_id=last_question,
+            selected_option=last_option,
+            provenance_id=last_provenance,
+        )
+        session_row = await db.get(InquirySession, session_id)
+    assert replay_after_event.get("_chat_report_already_issued") is True
+    assert should_persist_chat_report(replay_after_event) is False
+    assert session_row is not None
+    assert session_row.status == STATUS_ACTIVE
+    assert await _admitted_count() == admitted_after_settle
+
+    async with test_session_factory() as db:
+        n_runs = await db.scalar(
+            select(func.count())
+            .select_from(ReasoningEvaluationRun)
+            .where(ReasoningEvaluationRun.decision_tree_id == tree.id)
+        )
+    assert int(n_runs or 0) == 1
+

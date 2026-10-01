@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-INQUIRE_GUIDANCE_CONTENT_VERSION = "1.0.0"
+INQUIRE_GUIDANCE_CONTENT_VERSION = "1.0.1"
 
 INQUIRE_GUIDANCE_MARKDOWN = r"""# SMEme Inquire — Orchestrator Protocol
 
@@ -29,8 +29,8 @@ ordinary chat-driven evaluation.
 - **Evaluator isolation is the caller's responsibility.** SMEme does not and cannot
   verify downstream isolation.
 - If your environment cannot provide that isolation, do **not** use VERIFY through
-  this surface; use the standard chat evaluate connector instead (ACQUIRE gather
-  only — chat will not fake a verification battery).
+  this surface; use the standard chat evaluate connector instead. Chat Applies
+  admitted answers and returns a report; it does not run the verification battery.
 
 ## Protocol tools
 

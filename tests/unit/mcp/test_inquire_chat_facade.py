@@ -9,6 +9,7 @@ import pytest
 
 from smeme.mcp.inquire import chat_facade as facade
 from smeme.mcp.inquire.chat_facade import (
+    CHAT_ISOLATED_VERIFICATION_NOT_RUN,
     admitted_assertions_to_apply_envelope,
     isolated_evaluations_required_payload,
     merge_chat_stop_onto_apply,
@@ -214,11 +215,34 @@ def test_merge_chat_stop_onto_apply_verified_has_no_operational_warning() -> Non
         stop_reason="verified_resolved_consequence",
     )
     assert merged["stop_reason"] == "verified_resolved_consequence"
+    assert merged["status"] == "STOPPED"
+    assert merged["report"]["inquire_stop_reason"] == "verified_resolved_consequence"
     assert merged["warnings"] == []
 
 
+def test_merge_chat_stop_onto_apply_isolated_verification_not_run() -> None:
+    merged = merge_chat_stop_onto_apply(
+        {
+            "report": {"result_kind": "concluded", "headline": "On"},
+            "warnings": [],
+            "harness_next": "phase_2_ok",
+        },
+        inquiry_session_id="dddddddd-bbbb-cccc-dddd-eeeeeeeeeeee",
+        stop_reason=CHAT_ISOLATED_VERIFICATION_NOT_RUN,
+    )
+    assert merged["status"] == "ACTIVE"
+    assert merged["stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert merged["inquire_stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert merged["report"]["result_kind"] == "concluded"
+    assert merged["report"]["inquire_stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert merged["harness_next"] == "phase_2_ok"
+    codes = [w["code"] for w in merged["warnings"]]
+    assert codes == ["inquire_verification_not_run"]
+    assert "independently re-checked" in merged["warnings"][0]["message"]
+
+
 @pytest.mark.asyncio
-async def test_active_task_or_terminal_verify_does_not_stop() -> None:
+async def test_active_task_or_terminal_verify_returns_report_marker() -> None:
     user = MagicMock()
     db = AsyncMock()
     session_id = str(uuid4())
@@ -233,10 +257,13 @@ async def test_active_task_or_terminal_verify_does_not_stop() -> None:
             "stop_reason": "should_not_surface",
         },
     )
-    assert out["error"]["code"] == "isolated_evaluations_required"
-    assert out["error"]["status"] == "ACTIVE"
-    assert "stop_reason" not in out["error"]
-    assert "report" not in out
+    assert out["_chat_stop"] is True
+    assert out["status"] == "ACTIVE"
+    assert out["stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
+    assert "error" not in out
+    assert "task" not in out
+    assert "evaluations" not in out
+    assert "verification_key" not in out
 
 
 @pytest.mark.asyncio

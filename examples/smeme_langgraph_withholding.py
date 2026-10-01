@@ -34,7 +34,7 @@ The claim, in the graph itself:
   admit:     interrupt() — counsel admits / edits (among the same options) / rejects
   continue:  evaluate_continue(inquiry_session_id, question_id,
                                selected_option, provenance_id)
-  ANALYZE:   report, isolated_evaluations_required / error, or the next task
+  ANALYZE:   report or the next task
              (harness_next: continue_evaluate). The solver chooses the next question.
 
 Auth: OAuth 2.1 Bearer via RFC 9728 discovery — not the browser cookie session.
@@ -733,8 +733,7 @@ def make_nodes(
                 "open_task": result["task"],
                 "report": None,
             }
-        # Terminal: report, isolated_evaluations_required, or error.
-        # Branch on report.result_kind downstream. Do not invent VERIFY.
+        # Terminal: report or error. Branch on report.result_kind downstream.
         return {
             "report": result.get("report") or result,
             "terminal_payload": result,
