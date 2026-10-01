@@ -41,21 +41,22 @@ Do **not** use this path for case evaluation (use **`smeme-reasoning`**).
 
 ## Phases (do not skip)
 
-### Phase A — Identify
+### Phase A — Choose the decision
 
-Confirm the judgment to encode (one primary outcome decision, expert-gated,
-repeatable). Offer a clear fork when both paths exist:
+Call **`smeme_authoring_design_guidance`** once (cache by `content_digest`).
+Prefer that document over any cached copy of this skill if they disagree.
+Follow its **Choose the decision** section (known procedure, observe your work,
+or not sure yet). Then offer Wizard vs Chat path when both exist:
 
 - **Wizard** — research-heavy greenfield in the SMEme web app.
 - **Chat** — iterate here, then push a draft (this skill).
 
-If revising an existing tree, confirm the `decision_tree_id` (from a prior
-`create_draft`, the dashboard, or the user).
+If revising, confirm the `decision_tree_id` (from a prior `create_draft`, the
+dashboard, or the user).
 
 ### Phase B — Iterate in plain language
 
-1. Call **`smeme_authoring_design_guidance`** once (cache by `content_digest`).
-   Prefer that document over any cached copy of this skill if they disagree.
+1. Use the design guidance loaded in Phase A.
 2. Offer the **session fork** once (from design guidance):
    - **Quick encode** — skip research; lock conclusions → outline → validate.
    - **Research & critique** — host-side context intake → factors (≤12) → pause
@@ -72,8 +73,12 @@ If revising an existing tree, confirm the `decision_tree_id` (from a prior
    forward-only, every path reaches a conclusion. For independently sufficient
    overlapping triggers, agree a priority and use first-hit-wins routing to one
    shared conclusion.
-5. For time-sensitive rules, capture structured per-question `authorities`,
-   graph `effective_date` / `review_by`, and expected-outcome regression fixtures.
+5. For time-sensitive rules, capture structured per-question `authorities` and
+   graph `effective_date` / `review_by`. For every tree, ask for past cases with
+   known outcomes and turn them into regression fixtures.
+6. Ask where each answer’s evidence comes from and where not to look; record it
+   in `help_text` / `evidence_sources` without naming outcomes (see **Evidence
+   for each answer** in the design guidance).
 
 **Do not** emit wire `dt_graph` JSON until the user says they are ready (or
 explicitly asks to push / validate).
@@ -94,8 +99,10 @@ Preflight before structuring (also in the design guidance):
 3. If `draft_ready` is false: fix `errors` with the user; re-validate. Do not create.
 4. When `draft_ready` is true and the user confirms: **`smeme_authoring_create_draft`**.
 5. Keep the returned `decision_tree_id` and `graph_hash`. Show `editor_url` and
-   `next_step`. Remind them: polish in the editor → **Deploy** → **Listed**
-   before the tree appears in **`smeme_reasoning_list`**.
+   `next_step`, then give the **Hand-off after create_draft** from the design
+   guidance: Deploy (runs the regression fixtures), Listed, Redeploy after edits
+   (Stale until then), and a test run in a **new chat** on a case that isn’t a
+   fixture.
 
 **Create is strict:** `create_draft` rejects graphs that are not `draft_ready`.
 

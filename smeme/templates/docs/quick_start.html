@@ -4,7 +4,7 @@
 {% block head %}
 {% set docs_canonical_path = "/docs/quick-start" %}
 {% set docs_og_title = "Quick start — Docs" %}
-{% set docs_meta_description = "Copy prompts to connect your chatbot to SMEme, find candidate decision procedures, and build your first decision tree. Then Deploy and List it from the dashboard." %}
+{% set docs_meta_description = "Connect SMEme to the chatbot you already use, choose and build a decision tree with copyable prompts, then Deploy, List, and try it." %}
 {% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Quick start", "path": "/docs/quick-start"}] %}
 {% include "docs/_docs_seo.html" %}
 <script type="application/ld+json">
@@ -17,23 +17,18 @@
   "step": [
     {
       "@type": "HowToStep",
-      "name": "Connect your chatbot",
-      "text": "Paste the connect prompt into your chatbot and add the SMEme MCP endpoint and OAuth Client ID in that app's settings."
+      "name": "Connect SMEme",
+      "text": "Copy the connect prompt into your chatbot, add SMEme as a remote MCP connector, sign in, and check the connection."
     },
     {
       "@type": "HowToStep",
-      "name": "Find a procedure to encode",
-      "text": "Ask your agent to propose candidate decision procedures from your policies, saved prompts, and runbooks."
+      "name": "Choose and build a decision tree",
+      "text": "Pick the prompt that fits where you're starting. Your agent finds the decision, builds the tree with your approval at each stage, and saves a draft."
     },
     {
       "@type": "HowToStep",
-      "name": "Build the first tree",
-      "text": "Fill in the build template, attach your source, and review the draft before saving."
-    },
-    {
-      "@type": "HowToStep",
-      "name": "Deploy and List",
-      "text": "Open the dashboard, Deploy the tree, and set it Listed so your agent can call it."
+      "name": "Deploy, List, and try it",
+      "text": "Deploy the draft from the editor or dashboard, switch Listed on, and run the tree in a new chat on a case where you know the answer."
     }
   ]
 }
@@ -57,74 +52,193 @@
         {% include "docs/_docs_nav.html" %}
       </div>
 
-      <header class="mb-10">
+      <header class="mb-8">
         <p class="text-xs font-semibold uppercase tracking-wider text-ui-ink-muted mb-1.5">Start here</p>
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Quick start</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Copy these prompts into the chatbot you already use. They walk you through connecting SMEme,
-          finding a judgment worth encoding, and building your first decision tree.
-          For connector settings by product, see
-          <a href="/docs/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Connect your agent</a>.
+          Follow these steps in the chatbot you already use. Each step has a short instruction and a prompt to copy.
+        </p>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          New to SMEme?
+          <a href="/docs#why-smeme" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Read why business rules don&rsquo;t belong in prompts</a>.
         </p>
       </header>
 
-      <div class="space-y-10">
+      {% call callout("info", title="Before you start", extra_class="mb-10") %}
+        Connecting SMEme opens a browser tab where you sign in to SMEme. Sign in, or create a free account,
+        approve access, and then return to your chat.
+      {% endcall %}
+
+      <div class="space-y-12">
         <section aria-labelledby="connect-heading">
-          <h2 id="connect-heading" class="text-base font-semibold text-ui-ink mb-3">Connect your chatbot</h2>
+          <h2 id="connect-heading" class="text-base font-semibold text-ui-ink mb-3">1. Connect SMEme</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Chat, Claude, and Copilot cannot add the connector themselves. Paste the prompt, then add SMEme in that app&rsquo;s settings with the values below.
-            A coding agent such as Cursor or Claude Code may add the connector in its own config.
+            Copy the connect prompt into your chatbot. It walks you through adding SMEme in the app&rsquo;s settings,
+            using the values below. In ChatGPT, Claude, and Microsoft Copilot you click through the settings yourself.
+            Coding agents such as Cursor and Claude Code can usually add the connector for you.
           </p>
-          {% set prompt_id = "prompt-connect" %}
-          {% set prompt_label = "Connect prompt" %}
-          {% set prompt_text = "Help me add SMEme as a remote MCP connector in this app. SMEme is a reasoning layer that runs my decision trees. Walk me through the settings in this product. I will paste the MCP endpoint URL and, if this app asks for one, the OAuth Client ID. After I add it, tell me when to sign in, and use the same email I use on SMEme." %}
-          {% include "docs/_docs_prompt.html" %}
-          <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">
-            If you can edit this client&rsquo;s MCP config yourself, add a remote Streamable HTTP connector named SMEme with that endpoint, and the Client ID when the client requires it. Leave the client secret blank.
-          </p>
-          <div class="mt-4">
+          <div class="mb-4">
             {% include "docs/_docs_connector_values.html" %}
           </div>
-        </section>
+          {% set prompt_id = "prompt-connect" %}
+          {% set prompt_label = "Connect prompt" %}
+          {%- set prompt_text -%}
+Help me add SMEme as a remote MCP connector.
 
-        <section aria-labelledby="candidates-heading">
-          <h2 id="candidates-heading" class="text-base font-semibold text-ui-ink mb-3">Find a procedure to encode</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Ask your agent to look through the policies, saved prompts, and runbooks you already have.
-            A good candidate is a judgment you repeat, with a few questions that change the outcome, and evidence you can point at.
-          </p>
-          {% set prompt_id = "prompt-candidates" %}
-          {% set prompt_label = "Candidate procedures prompt" %}
-          {% set prompt_text = "Look through my policies, saved prompts, runbooks, and operating procedures in this conversation and in the files I have attached. Propose candidate decision procedures worth encoding in SMEme. For each candidate, say: the judgment I repeat, the few questions that change the outcome, and the evidence I can point at. Skip checklists that are only data lookup or one-off research." %}
+MCP endpoint URL: {{ mcp_connector_url if mcp_enabled else "[the MCP endpoint URL from your SMEme operator]" }}
+{% if mcp_oauth_client_id %}OAuth Client ID (only if the app asks; leave the client secret blank): {{ mcp_oauth_client_id }}
+{% endif %}
+Tell me where connectors live in this app's settings, step by step. If you can edit your own MCP config, add a Streamable HTTP connector named SMEme yourself and tell me what you changed. When the SMEme sign-in tab opens, I'll sign in and come back here.
+          {%- endset %}
           {% include "docs/_docs_prompt.html" %}
+
+          <p class="mt-6 text-sm text-ui-ink-secondary leading-relaxed mb-4">Once you&rsquo;re signed in, check the connection.</p>
+          {% set prompt_id = "prompt-check" %}
+          {% set prompt_label = "Check prompt" %}
+          {%- set prompt_text -%}
+Check that SMEme is working.
+
+1. Call SMEme's capabilities tool. Tell me which SMEme tools you can see, and whether the tools for building decision trees are among them.
+2. Load SMEme's design guidance for decision trees and tell me its version. You'll follow it when we build.
+3. List my SMEme decision trees. A new account may show a sample tree. That's expected.
+
+If any step fails, quote the error and tell me what to do next.
+          {%- endset %}
+          {% include "docs/_docs_prompt.html" %}
+          <p class="mt-3 text-xs text-ui-ink-muted leading-relaxed">
+            If your chatbot can&rsquo;t see SMEme tools, start a new conversation. Most apps load connectors only when a chat starts.
+          </p>
         </section>
 
         <section aria-labelledby="build-heading">
-          <h2 id="build-heading" class="text-base font-semibold text-ui-ink mb-3">Build the first tree</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Fill in the brackets. Attach the policy as a file, a folder, or pasted text.
-            Ask the agent to show the draft before it saves.
-          </p>
-          {% set prompt_id = "prompt-build" %}
-          {% set prompt_label = "Build template" %}
-          {% set prompt_text = "Build a [name the decision] decision tree in SMEme from [name the policy, prompt, or file]. Follow SMEme's guidance on how to structure it. Where the source is silent, ask me instead of guessing. I will attach the source as [a file, a folder, or pasted text]. Show me the draft before you save it." %}
-          {% include "docs/_docs_prompt.html" %}
+          <h2 id="build-heading" class="text-base font-semibold text-ui-ink mb-3">2. Choose and build a decision tree</h2>
+          <div class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            <p>
+              Encode a decision when it matters, when it repeats, or both. Strong candidates are costly to get wrong,
+              made often enough that consistency counts, have to be explained afterward, or are complex enough that
+              people regularly miss a detail. Once a decision is encoded, your agent can do more than run it. While it
+              runs, SMEme asks only the questions that can still change the outcome. Afterward, your agent can tell you
+              which facts decided the outcome and what would change it.
+            </p>
+            <p>
+              Each answer comes from evidence: a document, a record, a field in a system, a calculation, a lookup, or a
+              person who knows. While you build the tree, tell your agent where each question&rsquo;s answer should come
+              from. That might be a tool to call, a file or database to check, or a person to ask. Also tell it where not
+              to look, such as an outdated folder or a draft policy. SMEme saves these as hints on each question. When you
+              run the tree later, your agent reads them as it gathers evidence, so it looks in the right places instead of guessing.
+            </p>
+            <p>
+              Pick the prompt that fits where you&rsquo;re starting. Each one takes your agent from finding the decision to
+              saving a draft tree. Along the way it stops for your approval three times: first the outcomes, then the
+              questions, then the full outline. Nothing is saved until you approve.
+            </p>
+          </div>
+          <ul class="mb-8 list-disc space-y-1.5 pl-5 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+            <li><strong class="font-medium text-ui-ink">Attach or link the source.</strong> Don&rsquo;t summarize it.</li>
+            <li><strong class="font-medium text-ui-ink">Name the edge cases you know about</strong>, such as &ldquo;contractors count as vendors.&rdquo;</li>
+            <li><strong class="font-medium text-ui-ink">Say what each outcome means in practice</strong>: who does what next.</li>
+            <li><strong class="font-medium text-ui-ink">Bring past cases with known outcomes</strong>, including one that went the less obvious way. They become test cases that SMEme checks every time you Deploy.</li>
+          </ul>
+
+          <div class="space-y-8">
+            <div>
+              <h3 class="text-sm font-semibold text-ui-ink">You have a specific decision procedure in mind.</h3>
+              <p class="mt-1 mb-3 text-sm text-ui-ink-secondary leading-relaxed">It&rsquo;s likely named and described in a policy, runbook, or standard, either your own or a public one.</p>
+              {% set prompt_id = "prompt-build-known" %}
+              {% set prompt_label = "Known procedure prompt" %}
+              {%- set prompt_text -%}
+I want to encode this procedure in SMEme: [name it].
+Source: [attached file / pasted text / a URL / the name of a public standard or regulation]. If it's public and I haven't attached it, find the current official version and tell me where you got it.
+
+Start by telling me:
+- the decision it governs, in one line
+- the possible outcomes
+- the questions that decide between them, with the answer options for each
+- where the evidence for each answer comes from, including any lookup, calculation, research, or tool it depends on, and anything the source says not to rely on
+- what the source leaves open that I'll have to decide
+
+Then build it as a SMEme decision tree. Follow SMEme's design guidance and pause for my approval at each stage it calls for. Record where each answer should come from and where not to look, and ask me when you don't know. Ask me for past cases with known outcomes and turn them into test cases. Where the source is silent or ambiguous, ask me. Don't fill the gap yourself. When I approve, validate the tree, save it as a draft, and tell me how to Deploy it.
+              {%- endset %}
+              {% include "docs/_docs_prompt.html" %}
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-ui-ink">Have your agent observe your work.</h3>
+              <p class="mt-1 mb-3 text-sm text-ui-ink-secondary leading-relaxed">The procedure lives in your head. Start a new chat and work through a real case, or a few cases if you can.</p>
+              {% set prompt_id = "prompt-build-observe" %}
+              {% set prompt_label = "Observe your work prompt" %}
+              {%- set prompt_text -%}
+I'm going to work through a real [kind of case, e.g. a vendor approval] with you. The procedure isn't written down, so watch how I decide and learn it.
+
+As we work, ask me why whenever I make a call that isn't obvious, and note where I get each fact: a file, a tool, a calculation, or someone I ask. Don't steer my answers.
+
+When I say "done," tell me:
+- the decision in one line, and the outcomes I was choosing between
+- the questions that decided it, with the answer options for each
+- where the evidence for each answer came from, and anywhere I said not to look
+- any call that seemed to contradict an earlier one
+- whether a public standard or common practice covers this, and which one
+
+Then build it as a SMEme decision tree. Follow SMEme's design guidance and pause for my approval at each stage it calls for. Record where each answer should come from and where not to look, and ask me when you don't know. Use the cases we just worked as test cases, and ask me for more. Where something is unclear, ask me. Don't fill the gap yourself. When I approve, validate the tree, save it as a draft, and tell me how to Deploy it.
+              {%- endset %}
+              {% include "docs/_docs_prompt.html" %}
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-ui-ink">You&rsquo;re not sure which decision procedure to encode.</h3>
+              <p class="mt-1 mb-3 text-sm text-ui-ink-secondary leading-relaxed">Brainstorm from what your chatbot already knows about you, and have it interview you.</p>
+              {% set prompt_id = "prompt-build-brainstorm" %}
+              {% set prompt_label = "Brainstorm prompt" %}
+              {%- set prompt_text -%}
+Help me find a decision procedure worth encoding in SMEme.
+
+Start with what you know about me: memory, past conversations, project instructions, and any connected apps you can read. Tell me what you looked at.
+
+Then interview me, one question at a time, to fill the gaps. Ask about my role, the calls I'm responsible for, and which ones are costly to get wrong, come up often, have to be explained afterward, or are complex enough that details get missed. Ask before relying on anything you're unsure about.
+
+When you have enough, suggest up to five decision procedures. For each one, give me:
+- the decision in one line, and why it's worth encoding
+- the likely outcomes
+- the questions that would decide it, and where the evidence for each would come from
+
+Rank them by value and recommend one. When I pick one, build it as a SMEme decision tree. Follow SMEme's design guidance and pause for my approval at each stage it calls for. Record where each answer should come from and where not to look, and ask me when you don't know. Ask me for past cases with known outcomes and turn them into test cases. Where something is unclear, ask me. Don't fill the gap yourself. When I approve, validate the tree, save it as a draft, and tell me how to Deploy it.
+              {%- endset %}
+              {% include "docs/_docs_prompt.html" %}
+            </div>
+          </div>
         </section>
 
         <section aria-labelledby="deploy-heading">
-          <h2 id="deploy-heading" class="text-base font-semibold text-ui-ink mb-3">Deploy and List</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Open the dashboard, choose <strong class="font-medium text-ui-ink">Deploy</strong>, then set the tree
-            <strong class="font-medium text-ui-ink">Listed</strong> so your agent can call it.
-            Details:
-            <a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a>.
+          <h2 id="deploy-heading" class="text-base font-semibold text-ui-ink mb-3">3. Deploy, List, and try it</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            When your agent saves the draft, it gives you a link to the SMEme editor. Open it, or find the tree on your
+            dashboard, and choose <strong class="font-medium text-ui-ink">Deploy</strong>. SMEme runs your test cases first
+            and stops if any of them reaches a different outcome than you said it should. Then switch
+            <strong class="font-medium text-ui-ink">Listed</strong> on so your agents can find the tree. After you edit a
+            deployed tree, choose <strong class="font-medium text-ui-ink">Redeploy</strong>. Until you do, the dashboard marks
+            it <strong class="font-medium text-ui-ink">Stale</strong> and agents keep running the last deployed version.
           </p>
           {% include "docs/_docs_dashboard_mock.html" %}
+          <p class="mt-6 text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            Then test the tree on a case where you already know the right answer. Pick one that isn&rsquo;t among your
+            test cases. Start a <strong class="font-medium text-ui-ink">new chat</strong>, so the agent that runs the tree
+            hasn&rsquo;t seen how it was built. Don&rsquo;t tell it the answer.
+          </p>
+          {% set prompt_id = "prompt-try" %}
+          {% set prompt_label = "Try-it prompt" %}
+          {%- set prompt_text -%}
+Run my [decision tree name] SMEme decision tree on this case: [describe it, or attach the file].
+
+Gather the evidence for each question using the hints in the tree, and cite where each answer came from. Ask me when you can't find an answer. Then tell me the outcome and which answers decided it.
+          {%- endset %}
+          {% include "docs/_docs_prompt.html" %}
         </section>
 
-        <p class="text-sm">
-          <span class="text-ui-ink-muted">Next:</span>
-          <a href="/docs/run-a-tree" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Run a tree →</a>
+        <p class="text-sm text-ui-ink-secondary leading-relaxed">
+          <span class="font-medium text-ui-ink">Next:</span>
+          <a href="/docs/run-a-tree" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Run a tree →</a>.
+          After a run, <a href="/docs/ask-more" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Ask more</a>
+          shows how to find out which facts decided the outcome and what would change it.
         </p>
       </div>
     </article>

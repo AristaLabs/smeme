@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, NewType
+from typing import Any, Literal, NewType
 
 from smeme.reasoning.runtime.consistency_gate import (
     InconsistencyCause,
@@ -163,10 +163,17 @@ class InquiryDiagnostics:
 
 @dataclass(frozen=True, slots=True)
 class WorksheetItem:
-    """Extractor-facing stem and IR option labels for one question."""
+    """Extractor-facing stem and IR option labels for one question.
+
+    ``help_text`` / ``evidence_sources`` are answering hints for the chat gather
+    path only. They never enter :class:`EvidenceQuestion`, so blind tasks and
+    VERIFY trials stay ``{question_id, stem, options}``.
+    """
 
     stem: str
     options: tuple[str, ...]
+    help_text: str | None = None
+    evidence_sources: tuple[Mapping[str, Any], ...] = ()
 
 
 WorksheetCatalog = Mapping[str, WorksheetItem]

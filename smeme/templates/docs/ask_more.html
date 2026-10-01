@@ -1,9 +1,9 @@
 {% extends "layouts/base.html" %}
-{% block title %}Ask more of a result — Docs{% endblock %}
+{% block title %}Ask more — Docs{% endblock %}
 {% block head %}
 {% set docs_canonical_path = "/docs/ask-more" %}
-{% set docs_og_title = "Ask more of a result — Docs" %}
-{% set docs_meta_description = "After a SMEme report, ask what follows, which facts decided it, what if a fact changed, what would have to change, what cannot change the result, and what the tree allows." %}
+{% set docs_og_title = "Ask more — Docs" %}
+{% set docs_meta_description = "After a SMEme run, ask which answers decided the outcome, what would change it, and what it would take to reach a different outcome. Every answer comes from the rules of the tree." %}
 {% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Ask more", "path": "/docs/ask-more"}] %}
 {% include "docs/_docs_seo.html" %}
 {% endblock %}
@@ -26,66 +26,64 @@
       </div>
 
       <header class="mb-10">
-        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Ask more of a result</h1>
-        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          After a report comes back, keep going in the same chat.
-          These prompts stay in plain language. Tool names live on
-          <a href="/mcp" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">/mcp</a>.
-        </p>
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Ask more</h1>
+        <div class="mt-2 space-y-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          <p>
+            A report tells you the outcome. SMEme can also tell you which answers decided it, what would change it, and
+            what it would take to reach a different outcome. Each answer is worked out by logic from your procedure, so the
+            same question always gets the same answer.
+          </p>
+          <p>
+            After a run, keep going in the same chat, and your agent reuses the answers it gathered. You can also ask
+            before you&rsquo;ve run a case, for example to see what a tree can conclude or what you&rsquo;d need to show
+            to reach an outcome.
+          </p>
+        </div>
       </header>
 
       <div class="space-y-8">
-        <section aria-labelledby="ask-follows">
-          <h2 id="ask-follows" class="text-base font-semibold text-ui-ink mb-2">What follows</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">A conclusion follows, is ruled out, or still depends on facts you have not admitted.</p>
-          {% set prompt_id = "prompt-follows" %}
-          {% set prompt_label = "What follows" %}
-          {% set prompt_text = "What follows from the facts we have admitted for this matter?" %}
-          {% include "docs/_docs_prompt.html" %}
-        </section>
-
-        <section aria-labelledby="ask-facts">
-          <h2 id="ask-facts" class="text-base font-semibold text-ui-ink mb-2">Which facts decided this</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The smallest set of admitted facts that still forces the conclusion.</p>
-          {% set prompt_id = "prompt-facts" %}
-          {% set prompt_label = "Which facts decided this" %}
-          {% set prompt_text = "Which admitted facts decided this conclusion?" %}
+        <section aria-labelledby="ask-decided">
+          <h2 id="ask-decided" class="text-base font-semibold text-ui-ink mb-2">Which answers decided it</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">After a run that concluded. Shows the smallest set of answers that still leads to the same outcome.</p>
+          {% set prompt_id = "prompt-decided" %}
+          {% set prompt_label = "Which answers decided it" %}
+          {% set prompt_text = "Which answers decided this outcome? Show me the smallest set that still leads to it." %}
           {% include "docs/_docs_prompt.html" %}
         </section>
 
         <section aria-labelledby="ask-whatif">
-          <h2 id="ask-whatif" class="text-base font-semibold text-ui-ink mb-2">What if a fact changed</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Compare this case with one different fact and see whether the conclusion still follows.</p>
+          <h2 id="ask-whatif" class="text-base font-semibold text-ui-ink mb-2">What if an answer changed</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Try a different answer to one question and see whether the outcome or the path changes.</p>
           {% set prompt_id = "prompt-whatif" %}
-          {% set prompt_label = "What if a fact changed" %}
-          {% set prompt_text = "What if [name one fact] were different — would the conclusion still follow?" %}
+          {% set prompt_label = "What if an answer changed" %}
+          {% set prompt_text = "What if [the question] were answered [the other option]? Would the outcome change, and would the reasoning still follow the same path?" %}
           {% include "docs/_docs_prompt.html" %}
         </section>
 
-        <section aria-labelledby="ask-change">
-          <h2 id="ask-change" class="text-base font-semibold text-ui-ink mb-2">What would have to change</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The edits that would make another conclusion follow, or leave it still possible.</p>
-          {% set prompt_id = "prompt-change" %}
-          {% set prompt_label = "What would have to change" %}
-          {% set prompt_text = "What would have to change for [the other conclusion] to follow?" %}
+        <section aria-labelledby="ask-reach">
+          <h2 id="ask-reach" class="text-base font-semibold text-ui-ink mb-2">What it would take to reach another outcome</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The fewest answer changes that would lead somewhere else. Name the answers that can&rsquo;t change, and SMEme keeps them fixed.</p>
+          {% set prompt_id = "prompt-reach" %}
+          {% set prompt_label = "What it would take" %}
+          {% set prompt_text = "What's the smallest set of answer changes that would lead to [the other outcome] instead? Keep [answers that can't change] fixed." %}
           {% include "docs/_docs_prompt.html" %}
         </section>
 
-        <section aria-labelledby="ask-cannot">
-          <h2 id="ask-cannot" class="text-base font-semibold text-ui-ink mb-2">What cannot change the result</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Unanswered questions that would not move a conclusion that already follows.</p>
-          {% set prompt_id = "prompt-cannot" %}
-          {% set prompt_label = "What cannot change the result" %}
-          {% set prompt_text = "Which unanswered questions cannot change this result?" %}
+        <section aria-labelledby="ask-unsettled">
+          <h2 id="ask-unsettled" class="text-base font-semibold text-ui-ink mb-2">When the run didn&rsquo;t settle on one outcome</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">Find out which open questions matter and where each answer would lead.</p>
+          {% set prompt_id = "prompt-unsettled" %}
+          {% set prompt_label = "Settle an open run" %}
+          {% set prompt_text = "This run didn't reach a single outcome. Which open questions would settle it, and where would each answer lead?" %}
           {% include "docs/_docs_prompt.html" %}
         </section>
 
-        <section aria-labelledby="ask-allows">
-          <h2 id="ask-allows" class="text-base font-semibold text-ui-ink mb-2">What the tree allows</h2>
-          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">The conclusions the deployed tree can reach.</p>
-          {% set prompt_id = "prompt-allows" %}
-          {% set prompt_label = "What the tree allows" %}
-          {% set prompt_text = "What outcomes can this tree reach?" %}
+        <section aria-labelledby="ask-before">
+          <h2 id="ask-before" class="text-base font-semibold text-ui-ink mb-2">Before you run a case</h2>
+          <p class="text-sm text-ui-ink-muted leading-relaxed mb-3">See what a tree can conclude, and what you&rsquo;d need to show to reach a particular outcome.</p>
+          {% set prompt_id = "prompt-before" %}
+          {% set prompt_label = "Before you run" %}
+          {% set prompt_text = "What outcomes can my [decision tree name] reach? For [the outcome I want], what would I need to show?" %}
           {% include "docs/_docs_prompt.html" %}
         </section>
       </div>

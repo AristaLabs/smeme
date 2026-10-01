@@ -1,7 +1,7 @@
 # SMEme — Decision Tree Design Guidance
 
 _Versioned standard for designing reasoning decision trees in chat. Served by
-`smeme_authoring_design_guidance`. Content version: 2.5.0_
+`smeme_authoring_design_guidance`. Content version: 2.6.0_
 
 ---
 
@@ -23,9 +23,61 @@ user says they are ready to push. Optional **Research & critique** below is
 
 ---
 
+## Choose the decision (before the session fork)
+
+Start from where the user is. Recognize which of these three fits (or ask):
+
+1. **You have a specific decision procedure in mind.** It is likely named and
+   described in a policy, runbook, or standard — the user’s own or a public one.
+   Ground on the attached or pasted source. If it is public and not attached,
+   fetch the current official version and say where you got it. Before building,
+   summarize: the decision in one line, the outcomes, the deciding questions with
+   options, where each answer’s evidence comes from (including lookups,
+   calculations, research, or tools, and anything the source says not to rely
+   on), and what the source leaves open for the user to decide.
+2. **Have your agent observe your work.** The procedure lives in the user’s head.
+   Work a real case (or a few) alongside them, ideally in a fresh session. Ask why
+   at each call that isn’t obvious, and note where each fact comes from: a file,
+   a tool, a calculation, or a person. Do **not** steer their answers. Record
+   any place they rule out. When they say “done,” summarize the decision, the
+   outcomes, the deciding questions with options, the evidence for each answer
+   and where not to look, any call that seemed to contradict an earlier one,
+   and any public standard or common practice that covers it.
+3. **You’re not sure which decision procedure to encode.** First look at what
+   the host already knows (memory, past conversations, project instructions,
+   connected apps you can read, where permitted) and say what you looked at.
+   Then interview the user **one question at a time**: role, calls they own,
+   which are costly to get wrong, frequent, explained afterward, or complex
+   enough that details get missed. Suggest up to five candidates (decision, why
+   it’s worth encoding, likely outcomes, deciding questions and their evidence),
+   rank them, and recommend one.
+
+### Good candidates
+
+Encode a decision when it matters, when it repeats, or both. Strong candidates
+are costly to get wrong, made often enough that consistency counts, have to be
+explained or audited afterward, or are complex enough that people regularly miss
+a detail. Encoding also unlocks decision support: after a run, the user can ask
+which answers decided the outcome, what would change it, and what it would take
+to reach another outcome.
+
+**Lookups, calculations, and research are fine.** A question can depend on a
+current value, a computed figure, or a fact someone has to look up. Write it as
+a fixed-option question with the threshold in the tree (e.g. `Is trailing
+12-month spend above $50,000?` → `Yes` / `No` / `Unsure`), and record how to get
+the value in `evidence_sources` (see **Evidence for each answer**).
+
+**Poor candidates** have no closed set of outcomes (open-ended drafting,
+brainstorming, free-form advice).
+
+Once the user confirms a decision, go straight to the session fork and the
+build. Do not add a separate stop between choosing and building.
+
+---
+
 ## Session fork (offer once)
 
-At the start of deliberate chat authoring (after identifying the judgment),
+At the start of deliberate chat authoring (after **Choose the decision**),
 **offer exactly one fork** and wait for the user’s choice:
 
 - **Quick encode** — the user already knows the judgment; skip research; go to
@@ -51,6 +103,9 @@ capabilities** (whatever this session actually provides):
 - URLs the host can fetch
 - Other MCP connectors available in the session
 - Prior prompts or skills the user points at as working prose for the logic
+- The current conversation and its artifacts (cases just worked, drafts, notes)
+- Host memory, past conversations, and project instructions, when the user permits
+- The current official version of a named public standard or regulation
 
 Stay host-agnostic: use tools that exist; do **not** invent APIs or claim a
 connector is present when it is not.
@@ -62,8 +117,9 @@ Hard rules:
 - Never upload private files to SMEme except the `dt_graph` / `.smeme.json`
   export the user asked you to push.
 - Summarize grounding for the user in chat. When a source drives a question,
-  carry the citation into question `authorities` and clarifiers into
-  `help_text` — do not dump full corpora into graph metadata.
+  carry the citation into question `authorities`, clarifiers into `help_text`,
+  and where to find the answer into `evidence_sources` — do not dump full
+  corpora into graph metadata.
 
 ### Factor critique
 
@@ -121,7 +177,9 @@ are **rejected** (`extra=forbid`).
 ```
 Node:            { id, type: "question"|"conclusion", data }
 Question data:   { text, type: "radio", options: [str], required: true,
-                   help_text?, authorities?: [{ citation, title?, url? }] }
+                   help_text?, authorities?: [{ citation, title?, url? }],
+                   evidence_sources?: [{ kind, ref, note?, avoid? }] }
+                   // kind: "mcp_tool"|"database"|"file"|"url"|"system"|"person"|"instruction"
 Conclusion data: { title, summary, recommendations?: [str],
                    severity?: "info"|"warning"|"critical" }
 Edge:            { source, target, condition }   // no id
@@ -168,6 +226,14 @@ Minimal example:
             "title": "Financial review standard",
             "url": "https://example.com/vendor-policy"
           }
+        ],
+        "evidence_sources": [
+          {
+            "kind": "file",
+            "ref": "Finance/Vendors/<vendor>/audited-statements.pdf",
+            "note": "Use the most recent fiscal year."
+          },
+          { "kind": "file", "ref": "Finance/Vendors/Archive/", "avoid": true }
         ]
       }
     },
@@ -343,6 +409,47 @@ For regulated, policy, tax, safety, or other time-sensitive trees:
   sufficient trigger, and conservative/unknown route. Fixtures are assertions,
   not exploratory `what_if` calls.
 
+For **every** tree, regulated or not, ask the user for past cases with known
+outcomes (including one that went the less obvious way) and turn them into
+`regression_fixtures`. Cases worked while observing the user count.
+
+---
+
+## Evidence for each answer
+
+Every answer comes from evidence: a document, a record, a field in a system, a
+calculation, a lookup, or a person. While building, ask the user where each
+question’s answer should come from and where **not** to look. Two question
+fields carry this to the agent that later answers the tree:
+
+- **`help_text`** — context for reading the evidence: clarifiers, definitions,
+  edge cases (“contractors count as vendors”), and short good/bad examples.
+- **`evidence_sources`** — a list of `{ kind, ref, note?, avoid? }`:
+  - `kind`: `mcp_tool`, `database`, `file`, `url`, `system`, `person`, or
+    `instruction`.
+  - `ref`: the tool name, table, path, URL, system name, role, or label.
+  - `note`: how to use it — filters, the calculation to run, or a fallback.
+  - `avoid: true`: a source the user says must not be used (an outdated folder,
+    a draft policy).
+
+Rules:
+
+- Neither field may reveal routing or outcomes. Say how to find and read the
+  answer, never where an option leads. Validation warns when either field names
+  a conclusion.
+- Put calculations in `note` (e.g. `Sum invoiced amounts over the trailing 12
+  months; exclude credits`). Keep the threshold in the question and options.
+- Name only tools and sources that really exist for this user. Ask; do not
+  invent tool names, tables, or paths. If the user doesn’t know the source,
+  leave `evidence_sources` empty for that question.
+- Record exclusions the user states as `avoid: true` entries.
+- Treat sources as deployment-specific: they travel with `.smeme.json` exports,
+  but tool names and paths may not exist in another workspace. Leave out
+  anything the user would not want a recipient of an export to see.
+- Citations for the rule itself belong in `authorities`, not here.
+- The answering agent sees `help_text` and `evidence_sources` during guided
+  evaluate and on the worksheet. Isolated verification trials see neither.
+
 ---
 
 ## Preflight checklist (before validate)
@@ -356,6 +463,9 @@ For regulated, policy, tax, safety, or other time-sensitive trees:
 - [ ] Question `data` has `type: "radio"`, `required: true`, short `text`,
       clarifiers in `help_text`, authorities in `authorities`.
 - [ ] Every question has an explicit unknown/insufficient-information option.
+- [ ] Lookups, calculations, and tools an answer depends on are named in
+      `evidence_sources` (or the user said the source is unknown).
+- [ ] Neither `help_text` nor `evidence_sources` names a conclusion or a route.
 - [ ] Time-sensitive trees set `effective_date` and `review_by`.
 - [ ] Dispositive paths and exceptions have regression fixtures with expected conclusions.
 - [ ] Edges are `{ source, target, condition }` only (no `id`).
@@ -370,6 +480,20 @@ To **revise** an existing owned draft: **`smeme_authoring_get_draft`** → edit 
 `expected_graph_hash`. On `graph_conflict`, fetch again and retry. Create is
 strict (`draft_ready` required); update may persist intentional intermediate
 graphs but validate first anyway. Never auto-Deploy.
+
+### Hand-off after create_draft
+
+When `smeme_authoring_create_draft` succeeds, tell the user:
+
+1. Open the `editor_url` (or find the tree on the dashboard) and choose
+   **Deploy**. Deploy runs the regression fixtures first and blocks if any
+   reaches a different conclusion than expected.
+2. Switch **Listed** on so agents can find the tree.
+3. After any edit to a deployed tree, choose **Redeploy**. Until then the
+   dashboard shows it **Stale** and agents run the last deployed version.
+4. Try it in a **new chat** on a case with a known answer that is not one of
+   the fixtures, without telling the agent the answer. An agent that watched the
+   build can be drawn toward the outcome it expects.
 
 ---
 
@@ -390,11 +514,16 @@ graphs but validate first anyway. Never auto-Deploy.
 - Skipping factor, conclusion, or outline critique pauses.
 - Treating factor or conclusion approval as Deploy / Listed.
 - Inventing host tools or connectors that are not available in the session.
+- Rejecting a candidate because answers need a lookup, calculation, or research.
+- Asking for raw values (free-text numbers) instead of a fixed-option threshold.
+- Inventing tool names, tables, or paths in `evidence_sources`.
 
 ---
 
 ## Summary
 
+- **Choose the decision** first: known procedure, observe the user’s work, or
+  not sure yet (brainstorm and interview).
 - Offer **Quick encode** vs **Research & critique** once; research is client-side.
 - On research: intake host data sources → factors (≤12) → pause → conclusions →
   pause → outline → pause → JSON.
@@ -402,5 +531,8 @@ graphs but validate first anyway. Never auto-Deploy.
 - **Radio-only**, `required: true`, explicit option routes, conclusions only
   as terminals.
 - Prefer sparse branching over checklists; Unsure goes **forward**.
-- Structure only the allowed wire fields; put guidance in `help_text`.
-- Iterate in prose; validate; create draft; user Deploys in the web app.
+- Structure only the allowed wire fields; put guidance in `help_text` and where
+  to look in `evidence_sources`.
+- Ask for past cases and turn them into regression fixtures.
+- Iterate in prose; validate; create draft; hand off Deploy, Listed, and a
+  new-chat test run.

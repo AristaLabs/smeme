@@ -27,6 +27,47 @@ def test_worksheet_catalog_from_graph_and_ir() -> None:
         assert catalog[qid].options == item.options
     encoded = catalog_json_dict(catalog)
     assert encoded["q1"]["stem"] == "Continue on the primary path?"
+    assert "help_text" not in encoded["q1"]
+    assert "evidence_sources" not in encoded["q1"]
+
+
+def test_worksheet_catalog_carries_hints_but_blind_task_does_not() -> None:
+    from smeme.decision_tree.models import EvidenceSource
+    from smeme.mcp.inquire.codec import (
+        BLIND_TASK_KEYS,
+        decode_worksheet_catalog,
+        encode_answer_guidance,
+        encode_blind_task,
+    )
+    from smeme.reasoning.runtime.inquire import build_extractor_issue
+
+    fixture = compile_golden(fork_g2_graph())
+    graph = fixture.graph.model_copy(deep=True)
+    q1 = next(n for n in graph.nodes if n.id == "q1")
+    assert q1.question_data is not None
+    q1.question_data.help_text = "Check the latest signed plan."
+    q1.question_data.evidence_sources = [
+        EvidenceSource(kind="mcp_tool", ref="plans_lookup", note="Filter by current quarter"),
+        EvidenceSource(kind="file", ref="/drafts/", avoid=True),
+    ]
+    catalog = worksheet_catalog_from_graph_and_ir(graph, fixture.ir)
+    decoded = decode_worksheet_catalog(json.dumps(catalog_json_dict(catalog)))
+    assert decoded["q1"] == catalog["q1"]
+    assert encode_answer_guidance(decoded["q1"]) == {
+        "help_text": "Check the latest signed plan.",
+        "evidence_sources": [
+            {
+                "kind": "mcp_tool",
+                "ref": "plans_lookup",
+                "note": "Filter by current quarter",
+                "avoid": False,
+            },
+            {"kind": "file", "ref": "/drafts/", "avoid": True},
+        ],
+    }
+    task = encode_blind_task(build_extractor_issue(decoded, "q1"))
+    assert set(task) == BLIND_TASK_KEYS
+    assert "plans_lookup" not in json.dumps(task)
 
 
 def test_canonical_request_hash_stable() -> None:

@@ -45,7 +45,7 @@ def test_digest_aligns_with_generated_constants() -> None:
 
 def test_generated_markdown_content() -> None:
     assert DESIGN_GUIDANCE_MARKDOWN.strip()
-    assert DESIGN_GUIDANCE_VERSION == "2.5.0"
+    assert DESIGN_GUIDANCE_VERSION == "2.6.0"
     assert "Product constraints" in DESIGN_GUIDANCE_MARKDOWN
     assert "Conclusion-driven" in DESIGN_GUIDANCE_MARKDOWN or "conclusions" in DESIGN_GUIDANCE_MARKDOWN
     assert "smeme_authoring_validate_graph" in DESIGN_GUIDANCE_MARKDOWN

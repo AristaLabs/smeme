@@ -54,7 +54,7 @@ BASE_URL=https://app.example.com
 <!-- profile-mcp-authoring -->
 
 Reasoning plus chat draft tools (`smeme_authoring_*`). Uses the **client** model;
-no server `OPENAI_API_KEY`. Design guidance **2.5.0** (Quick encode + Research &
+no server `OPENAI_API_KEY`. Design guidance **2.6.0** (Quick encode + Research &
 critique) ships in Core ≥ `v0.9.8`. Deploy stays human-in-editor.
 
 ```bash
