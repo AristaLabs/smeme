@@ -28,7 +28,16 @@ def worksheet_catalog_from_graph_and_ir(graph: DTGraph, ir: IR) -> dict[str, Wor
         opts = ir_options.get(node.id)
         if opts is None:
             opts = tuple(qdata.options)
-        catalog[node.id] = WorksheetItem(stem=qdata.text, options=opts)
+        help_text = (qdata.help_text or "").strip() or None
+        catalog[node.id] = WorksheetItem(
+            stem=qdata.text,
+            options=opts,
+            help_text=help_text,
+            evidence_sources=tuple(
+                source.model_dump(mode="json", exclude_none=True)
+                for source in qdata.evidence_sources
+            ),
+        )
     return catalog
 
 

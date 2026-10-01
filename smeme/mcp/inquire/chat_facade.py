@@ -31,6 +31,7 @@ from smeme.reasoning.orchestration.inquire.persist import (
     STATUS_STOPPED,
     admit_to_session,
     canonical_request_hash,
+    get_answer_guidance_for_session,
     get_task_for_session,
     start_inquiry,
 )
@@ -63,9 +64,14 @@ def strip_chat_active_response(
     revision: int,
     status: str,
     task: dict[str, Any],
+    answer_guidance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Extractor-facing ACTIVE payload — no directive / battery / pv_version."""
-    return {
+    """Extractor-facing ACTIVE payload — no directive / battery / pv_version.
+
+    ``answer_guidance`` (author hints on where to look) sits beside ``task``; the
+    task object itself keeps the exact blind shape.
+    """
+    out: dict[str, Any] = {
         "inquiry_session_id": inquiry_session_id,
         "revision": revision,
         "status": status,
@@ -76,6 +82,9 @@ def strip_chat_active_response(
             "options": list(task["options"]),
         },
     }
+    if answer_guidance:
+        out["answer_guidance"] = answer_guidance
+    return out
 
 
 def isolated_evaluations_required_payload(
@@ -220,11 +229,18 @@ async def _active_task_or_terminal(
         inquiry_session_id=UUID(session_id),
         question_id=qid,
     )
+    answer_guidance = await get_answer_guidance_for_session(
+        db,
+        user=user,
+        inquiry_session_id=UUID(session_id),
+        question_id=qid,
+    )
     return strip_chat_active_response(
         inquiry_session_id=session_id,
         revision=revision,
         status=status,
         task=task,
+        answer_guidance=answer_guidance,
     )
 
 

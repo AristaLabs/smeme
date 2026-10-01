@@ -122,6 +122,26 @@ def test_strip_chat_active_response_has_no_control_channel() -> None:
     assert "pv_version" not in out
     assert "verification_key" not in out
     assert "C_poss" not in out
+    assert "answer_guidance" not in out
+
+
+def test_strip_chat_active_response_puts_hints_beside_blind_task() -> None:
+    guidance = {
+        "help_text": "Use invoiced amounts, not purchase orders.",
+        "evidence_sources": [
+            {"kind": "mcp_tool", "ref": "erp_invoice_summary", "avoid": False},
+            {"kind": "file", "ref": "/finance/old/", "avoid": True},
+        ],
+    }
+    out = strip_chat_active_response(
+        inquiry_session_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        revision=2,
+        status="ACTIVE",
+        task={"question_id": "q1", "stem": "Is it?", "options": ["Yes", "No"]},
+        answer_guidance=guidance,
+    )
+    assert set(out["task"].keys()) == {"question_id", "stem", "options"}
+    assert out["answer_guidance"] == guidance
 
 
 def test_isolated_evaluations_required_keeps_active_status() -> None:
@@ -253,17 +273,20 @@ async def test_active_task_or_terminal_acquire_strips_task() -> None:
     user = MagicMock()
     db = AsyncMock()
     session_id = str(uuid4())
-    with patch.object(
-        facade,
-        "get_task_for_session",
-        new=AsyncMock(
-            return_value={
-                "question_id": "q1",
-                "stem": "Stem?",
-                "options": ["A", "B"],
-                "extra_leaked": True,
-            }
+    with (
+        patch.object(
+            facade,
+            "get_task_for_session",
+            new=AsyncMock(
+                return_value={
+                    "question_id": "q1",
+                    "stem": "Stem?",
+                    "options": ["A", "B"],
+                    "extra_leaked": True,
+                }
+            ),
         ),
+        patch.object(facade, "get_answer_guidance_for_session", new=AsyncMock(return_value=None)),
     ):
         out = await facade._active_task_or_terminal(
             db,

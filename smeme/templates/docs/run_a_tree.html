@@ -1,9 +1,10 @@
 {% extends "layouts/base.html" %}
+{% from "components/macros.html" import callout %}
 {% block title %}Run a tree — Docs{% endblock %}
 {% block head %}
 {% set docs_canonical_path = "/docs/run-a-tree" %}
 {% set docs_og_title = "Run a tree — Docs" %}
-{% set docs_meta_description = "Put a matter in front of your agent, run a deployed SMEme decision tree, cite a source for every answer, and flag anything that conflicts." %}
+{% set docs_meta_description = "Run a deployed SMEme decision tree in a new chat. Your agent answers one question at a time from your files and apps, and SMEme returns a report with the outcome, the path, and the evidence." %}
 {% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Run a tree", "path": "/docs/run-a-tree"}] %}
 {% include "docs/_docs_seo.html" %}
 {% endblock %}
@@ -25,33 +26,39 @@
         {% include "docs/_docs_nav.html" %}
       </div>
 
-      <header class="mb-10">
+      <header class="mb-8">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Run a tree</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Keep the matter in the apps you already use: a folder, mail, a CRM record.
-          Your agent gathers from those sources. SMEme asks one question at a time and returns a structured report.
-          The tree must be <strong class="font-medium text-ui-ink">Deployed</strong> and
-          <strong class="font-medium text-ui-ink">Listed</strong> first.
+          Your agent runs a deployed tree one question at a time. SMEme sends a question and its options, your agent
+          finds the answer in your files and apps, and SMEme decides what comes next. At the end you get a report with
+          the outcome, the path that led there, and the evidence behind each answer.
         </p>
       </header>
 
+      {% call callout("info", title="Before you start", extra_class="mb-10") %}
+        The tree must be <strong class="font-medium">Deployed</strong> and <strong class="font-medium">Listed</strong>.
+        Run it in a <strong class="font-medium">new chat</strong>, not the one where you built it. An agent that has seen
+        the tree&rsquo;s branches can be drawn toward the outcome it expects. A new chat sees only each question and its options.
+      {% endcall %}
+
       <div class="space-y-10">
         <section aria-labelledby="context-heading">
-          <h2 id="context-heading" class="text-base font-semibold text-ui-ink mb-3">Put the matter where the agent can see it</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed">
-            Point at a folder, attach files, or name the connected apps that hold the facts.
-            The decision tree does not store those files. The agent cites them as evidence for each answer.
-          </p>
-        </section>
-
-        <section aria-labelledby="run-heading">
-          <h2 id="run-heading" class="text-base font-semibold text-ui-ink mb-3">Run prompt</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Fill in the brackets. Ask the agent to cite a source for every answer and to flag anything that conflicts.
+          <h2 id="context-heading" class="text-base font-semibold text-ui-ink mb-3">Put the case where your agent can reach it</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            Attach the files, point to a folder, or name the connected apps that hold the facts, such as email, a CRM,
+            or a shared drive. SMEme doesn&rsquo;t store your files. Your agent reads them and sends each answer with a
+            short reference to where it found it.
           </p>
           {% set prompt_id = "prompt-run" %}
-          {% set prompt_label = "Run template" %}
-          {% set prompt_text = "Run my [name of decision tree] on this matter. Everything you need is in [the folder, files, or apps I have connected]. Cite a source for every answer and flag anything that conflicts." %}
+          {% set prompt_label = "Run prompt" %}
+          {%- set prompt_text -%}
+Run my [decision tree name] SMEme decision tree on this case: [one line describing the case].
+The evidence is in [the attached files / this folder / these connected apps].
+
+For each question SMEme asks, follow the hints on that question about where to look and what to avoid. Cite where each answer came from. If the evidence is missing or unclear, ask me. If I don't know either, leave it unanswered rather than guess. If two sources disagree, show me both before you answer.
+
+When SMEme returns the report, tell me the outcome, the path that led there, and the evidence behind each answer.
+          {%- endset %}
           {% include "docs/_docs_prompt.html" %}
         </section>
 
@@ -60,9 +67,68 @@
           {% include "docs/_docs_chat_mock.html" %}
         </section>
 
-        <p class="text-sm">
-          <span class="text-ui-ink-muted">Next:</span>
-          <a href="/docs/ask-more" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Ask more of a result →</a>
+        <section aria-labelledby="report-heading">
+          <h2 id="report-heading" class="text-base font-semibold text-ui-ink mb-3">Reading the report</h2>
+          <div class="overflow-x-auto rounded-xl border border-ui-line">
+            <table class="w-full text-left text-sm" data-testid="docs-result-kinds">
+              <thead class="bg-ui-surface-muted text-xs uppercase tracking-wide text-ui-ink-muted">
+                <tr>
+                  <th scope="col" class="px-4 py-2.5 font-semibold">Result</th>
+                  <th scope="col" class="px-4 py-2.5 font-semibold">What it means</th>
+                  <th scope="col" class="px-4 py-2.5 font-semibold">What to do</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-ui-line text-ui-ink-secondary">
+                <tr>
+                  <td class="px-4 py-3 font-medium text-ui-ink">Concluded</td>
+                  <td class="px-4 py-3">One outcome follows from the answers.</td>
+                  <td class="px-4 py-3">Act on it, or ask which answers decided it (see <a href="/docs/ask-more" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Ask more</a>).</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-3 font-medium text-ui-ink">Several outcomes possible</td>
+                  <td class="px-4 py-3">The answers so far don&rsquo;t settle on one outcome.</td>
+                  <td class="px-4 py-3">Answer the open questions, or ask what would settle it.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-3 font-medium text-ui-ink">Needs more information</td>
+                  <td class="px-4 py-3">Questions that decide the outcome are unanswered.</td>
+                  <td class="px-4 py-3">Find the missing evidence and run again.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-3 font-medium text-ui-ink">Answers don&rsquo;t fit together</td>
+                  <td class="px-4 py-3">Some answers can&rsquo;t all be true under the tree&rsquo;s rules.</td>
+                  <td class="px-4 py-3">Recheck those answers and their sources.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-3 font-medium text-ui-ink">Sources conflict</td>
+                  <td class="px-4 py-3">The evidence disagrees about an answer.</td>
+                  <td class="px-4 py-3">Decide which source to trust, then run again.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-labelledby="batch-heading">
+          <h2 id="batch-heading" class="text-base font-semibold text-ui-ink mb-3">Send a batch of answers in one shot</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4 max-w-prose">
+            For a batch of cases, an audit, or an automated agent pipeline, your agent can send the answers it has for a
+            case to a decision tree in one call, instead of one question at a time. SMEme reasons over the answers you
+            send. Questions you leave out stay open, and the report tells you whether the outcome is settled without them.
+          </p>
+          {% set prompt_id = "prompt-batch" %}
+          {% set prompt_label = "Batch prompt" %}
+          {%- set prompt_text -%}
+Load the worksheet for my [decision tree name] SMEme decision tree. For each case in [the attached files / this folder / this list], answer the questions you can from the evidence, following each question's hints on where to look and what to avoid, and cite where each answer came from. Leave a question unanswered when the evidence doesn't settle it.
+
+Send each case's answers to SMEme in one call. Then give me a table with each case, its outcome, and any questions left open.
+          {%- endset %}
+          {% include "docs/_docs_prompt.html" %}
+        </section>
+
+        <p class="text-sm text-ui-ink-secondary leading-relaxed">
+          <span class="font-medium text-ui-ink">Next:</span>
+          <a href="/docs/ask-more" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Ask more →</a>
         </p>
       </div>
     </article>

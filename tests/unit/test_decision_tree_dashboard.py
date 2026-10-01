@@ -437,11 +437,20 @@ async def test_docs_quick_start_path(client):
     r = await client.get("/docs/quick-start")
     assert r.status_code == 200
     html = r.text
-    assert "Walk me through the settings in this product" in html
-    assert "Propose candidate decision procedures" in html
-    assert "Show me the draft before you save it" in html
-    assert "Chat, Claude, and Copilot cannot add the connector themselves" in html
+    assert "1. Connect SMEme" in html
+    assert "2. Choose and build a decision tree" in html
+    assert "3. Deploy, List, and try it" in html
+    assert "opens a browser tab where you sign in to SMEme" in html
+    assert "Help me add SMEme as a remote MCP connector." in html
+    assert "to this app" not in html
+    assert "Check that SMEme is working." in html
+    assert "You have a specific decision procedure in mind." in html
+    assert "Have your agent observe your work." in html
+    assert "not sure which decision procedure to encode." in html
+    assert "Record where each answer should come from and where not to look" in html
+    assert "docs-dash" in html
     assert 'href="/docs/run-a-tree"' in html
+    assert 'href="/docs/ask-more"' in html
     assert '"@type": "HowTo"' in html
     nav = html.split('aria-label="Docs sections"', 1)[1].split("</nav>", 1)[0]
     assert nav.index("/docs/quick-start") < nav.index("/docs/introduction")
@@ -452,13 +461,27 @@ async def test_docs_quick_start_path(client):
 async def test_docs_run_and_ask_more_prompts(client):
     run = await client.get("/docs/run-a-tree")
     assert run.status_code == 200
-    assert "Cite a source for every answer" in run.text
+    assert "Run it in a <strong" in run.text
+    assert "follow the hints on that question about where to look and what to avoid" in run.text
     assert "docs-chat" in run.text
+    assert 'data-testid="docs-result-kinds"' in run.text
+    for result in (
+        "Concluded",
+        "Several outcomes possible",
+        "Needs more information",
+        "Sources conflict",
+    ):
+        assert result in run.text
+    assert "Send a batch of answers in one shot" in run.text
+    assert "answer the questions you can from the evidence" in run.text
     ask = await client.get("/docs/ask-more")
     assert ask.status_code == 200
-    assert "What follows from the facts we have admitted" in ask.text
-    assert "Which admitted facts decided this conclusion?" in ask.text
-    assert "What outcomes can this tree reach?" in ask.text
+    assert "Which answers decided this outcome?" in ask.text
+    assert "Keep [answers that can" in ask.text
+    assert "Which open questions would settle it" in ask.text
+    assert "What outcomes can my [decision tree name] reach?" in ask.text
+    for removed in ("admitted", "What cannot change the result", 'href="/mcp"'):
+        assert removed not in ask.text
 
 
 async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard_user):

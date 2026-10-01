@@ -56,7 +56,7 @@ Establish **one subject** (case, patient, vendor, matter, etc.) before wide sear
 
 1. **Worksheet** — `smeme_reasoning_template_get` (or a filled manifest). If **`in_sync: false`**, ask the user to **Redeploy** the decision tree in the SMEme web app.
 2. **Subject** — Confirm with the user when ambiguous.
-3. **Gather** — Subject-scoped connectors, files, chat.
+3. **Gather** — Subject-scoped connectors, files, chat. Follow each question's **How to answer** / **Look in** lines (`help_text`, `evidence_sources`); never use a source listed under **Do not use**.
 4. **Build envelope** — Map each question to one exact option string; register each source in **`evidence_items`** with a **`locator`** you can reuse to read the full document again.
 5. **`smeme_reasoning_validate_answers`** — Same `raw_answers_json`. Branch on **`harness_next`**:
    - **`phase_2_ok`** — proceed to evaluate or logical analysis.

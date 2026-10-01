@@ -9,7 +9,7 @@ description: >-
   Slot-fill (bulk): smeme-reasoning-slot-fill. Non-concluded results: smeme-reasoning-outcomes.
 ---
 
-<!-- installed_plugin_version: 3.9.0 -->
+<!-- installed_plugin_version: 3.10.0 -->
 
 # SMEme reasoning
 
@@ -40,12 +40,12 @@ These are normal preconditions. Call the tools; if one fails, follow the [error 
 <!-- connector_guidance_transform: this ### block through the next ## is stripped for MCP guidance_get — version-only copy here -->
 
 Every **success** response includes `_server_plugin_version`. Compare it against
-**`3.9.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
+**`3.10.0`** (this skill's installed version, from the `<!-- installed_plugin_version -->` comment above).
 
 - **Match** — continue normally.
 - **Mismatch** — call **`smeme_reasoning_guidance_get`** (or re-check digest via **`smeme_reasoning_guidance_check`** then get) and prefer that contract over this skill file. Show the user one short line, then continue:
 
-  > ⚠️ Local skill version (`3.9.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
+  > ⚠️ Local skill version (`3.10.0`) doesn’t match the server (`{_server_plugin_version}`). Using live SMEme guidance for this session.
 
 ## Two intents (peers)
 
@@ -63,7 +63,7 @@ When the user asks **what these tools let them do**, call **`smeme_reasoning_cap
 1. **`smeme_reasoning_capabilities`** — session bootstrap; `reasoning.tools` is the authoritative tool list. See [Tool catalog](#tool-catalog).
 2. **`smeme_reasoning_list`** — your discoverable decision trees. The first empty list may create the per-user sample (Deployed + Listed). **If the list stays empty or returns `quota_exceeded`, see [When `smeme_reasoning_list` is empty](#when-smeme_reasoning_list-is-empty) — do not guess decision tree ids.**
 3. **`smeme_reasoning_evaluate(decision_tree_id)`** — starts a durable inquiry. Returns a blind **`task`** (`question_id`, `stem`, `options`) and **`inquiry_session_id`**, or a terminal **`report`**, or **`isolated_evaluations_required`**.
-4. Gather evidence for **only that task** (subject-scoped files/chat). Do not dump the full worksheet.
+4. Gather evidence for **only that task** (subject-scoped files/chat). Do not dump the full worksheet. When the response includes **`answer_guidance`**, follow it: `help_text` explains how to read the evidence, and `evidence_sources` names where to look (`kind`, `ref`, `note`). Never use a source marked `avoid: true`. If a named tool or path isn't available here, say so and look elsewhere or abstain.
 5. **`smeme_reasoning_evaluate_continue`** — pass `inquiry_session_id`, `question_id`, `selected_option`, `provenance_id` (omit option to abstain). Repeat until:
    - **`report`** — present `brief_memo` / path / candidates; branch on **`report.result_kind` only**. A terminal report may also include **`stop_reason`** / **`inquire_stop_reason`** (Inquire ANALYZE reason) and warning **`inquire_operational_stop`**. Treat **`result_kind`** as whether you have an answer; do **not** read `operational_budget` / `resolving_support_incomplete` as “no conclusion” or as an MCP quota denial — the report is Apply over admitted answers.
    - **`isolated_evaluations_required`** — stop this chat gather loop. The inquiry session remains ACTIVE for an isolated orchestrator; **do not** invent VERIFY trials in chat.

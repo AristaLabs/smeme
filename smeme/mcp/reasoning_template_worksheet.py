@@ -68,6 +68,13 @@ def build_manifest_core(graph: DTGraph, decision_tree_id: UUID) -> dict[str, Any
             entry["authorities"] = [
                 authority.model_dump(mode="json", exclude_none=True) for authority in qd.authorities
             ]
+        help_text = normalize_manifest_text(qd.help_text or "")
+        if help_text:
+            entry["help_text"] = help_text
+        if qd.evidence_sources:
+            entry["evidence_sources"] = [
+                source.model_dump(mode="json", exclude_none=True) for source in qd.evidence_sources
+            ]
         questions.append(entry)
 
     return {
@@ -133,6 +140,17 @@ def render_manifest_markdown(
             )
             if citations:
                 parts.append(f"  - Authorities: {citations}")
+        if q.get("help_text"):
+            parts.append(f"  - How to answer: {q['help_text']}")
+        for source in q.get("evidence_sources") or []:
+            if not isinstance(source, dict) or not source.get("ref"):
+                continue
+            label = "Do not use" if source.get("avoid") else "Look in"
+            kind = str(source.get("kind", "")).replace("_", " ")
+            line = f"  - {label} ({kind}): `{source['ref']}`"
+            if source.get("note"):
+                line += f" — {source['note']}"
+            parts.append(line)
         bullets.append("\n".join(parts))
 
     per_question = "\n".join(bullets) if bullets else "- _(no question nodes)_"
