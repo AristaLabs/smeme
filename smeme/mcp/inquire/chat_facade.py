@@ -210,6 +210,7 @@ def _chat_stop_marker(
     diagnostics: Any = None,
     admitted: Any = None,
     already_issued: bool = False,
+    evaluation_run_id: Any = None,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {
         "_chat_stop": True,
@@ -225,6 +226,8 @@ def _chat_stop_marker(
         out["diagnostics"] = diagnostics
     if already_issued:
         out["_chat_report_already_issued"] = True
+    if evaluation_run_id is not None:
+        out["_chat_evaluation_run_id"] = str(evaluation_run_id)
     return out
 
 
@@ -340,6 +343,7 @@ async def chat_evaluate_continue(
             operational_status=issued.get("operational_status"),
             diagnostics=issued.get("diagnostics"),
             already_issued=True,
+            evaluation_run_id=issued.get("evaluation_run_id"),
         )
 
     idempotency_key = chat_admit_idempotency_key(
