@@ -129,6 +129,18 @@ async def docs_download_workflow(request: Request, user: OptionalUser):
     )
 
 
+@router.get("/import", response_class=HTMLResponse)
+async def docs_import(request: Request, user: OptionalUser):
+    """Import a copy — upload a v2 export as a new Hidden draft."""
+    return _docs_response(
+        request,
+        "docs/import.html",
+        user=user,
+        active_page="docs_import",
+        docs_section="import_copy",
+    )
+
+
 @router.get("/plans", response_class=HTMLResponse)
 async def docs_plans(request: Request, user: OptionalUser):
     """Plans, tier limits, and usage metering."""

@@ -34,6 +34,7 @@ _PUBLIC_DOCS_PATHS = (
     "/docs/plans",
     "/docs/creator-dashboard",
     "/docs/download-workflow",
+    "/docs/import",
     "/docs/mcp",
     "/docs/changelog",
 )
@@ -342,6 +343,7 @@ async def test_docs_index_returns_200(client, app_with_db, dashboard_user):
     assert DOCS_VERSION.encode() in r.content
     assert b"/docs/creator-dashboard" in r.content
     assert b"/docs/download-workflow" in r.content
+    assert b"/docs/import" in r.content
     assert b"/docs/mcp" in r.content
     assert b"/docs/quick-start" in r.content
     assert b"/docs/run-a-tree" in r.content
@@ -507,13 +509,40 @@ async def test_docs_creator_dashboard_returns_200(client, app_with_db, dashboard
     assert b"one decision-tree slot" in r.content
 
 
+async def test_docs_import_content_contract(client):
+    """Anonymous readers get the public guide, not the engineering brief."""
+    r = await client.get("/docs/import")
+    assert r.status_code == 200
+    html = r.text
+    assert "<title>Import a copy — Docs</title>" in html
+    assert 'id="how-heading"' in html
+    assert "How to import" in html
+    assert 'id="file-heading"' in html
+    assert "The file" in html
+    assert 'id="limits-heading"' in html
+    assert "Limits" in html
+    assert 'id="refused-heading"' in html
+    assert "If the file is refused" in html
+    assert "requires you to be signed in" in html
+    assert 'smeme_export_version' in html
+    lowered = html.lower()
+    for term in (
+        "advisory",
+        "import_filename",
+        "validate_graph_for_editing",
+        "reserve_decision_tree_slot",
+    ):
+        assert term not in lowered
+
+
 async def test_docs_download_workflow_returns_200(client, app_with_db, dashboard_user):
     with auth_as(app_with_db, dashboard_user["user"]):
         r = await client.get("/docs/download-workflow")
     assert r.status_code == 200
     assert b"Download your decision tree" in r.content
     assert b"smeme_export_version" in r.content
-    assert b"Re-import" in r.content
+    assert b'href="/docs/import"' in r.content
+    assert b"not available yet" not in r.content
 
 
 async def test_docs_delete_account_requires_auth(client):
