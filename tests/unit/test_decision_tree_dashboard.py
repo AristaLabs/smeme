@@ -703,16 +703,16 @@ async def test_docs_import_content_contract(client):
     r = await client.get("/docs/import")
     assert r.status_code == 200
     html = r.text
-    assert "<title>Import a copy — Docs</title>" in html
-    assert 'id="how-heading"' in html
-    assert "How to import" in html
+    assert "<title>Upload decision tree — Docs</title>" in html
+    assert html.index("file selector") < html.index('id="file-heading"')
+    assert "Import copy" in html
     assert 'id="file-heading"' in html
     assert "The file" in html
     assert 'id="limits-heading"' in html
     assert "Limits" in html
     assert 'id="refused-heading"' in html
     assert "If the file is refused" in html
-    assert "requires you to be signed in" in html
+    assert "does not share your tree" in html
     assert "smeme_export_version" in html
     lowered = html.lower()
     for term in (

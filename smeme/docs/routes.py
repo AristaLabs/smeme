@@ -131,7 +131,7 @@ async def docs_download_workflow(request: Request, user: OptionalUser):
 
 @router.get("/import", response_class=HTMLResponse)
 async def docs_import(request: Request, user: OptionalUser):
-    """Import a copy — upload a v2 export as a new Hidden draft."""
+    """Upload decision tree — add a downloaded file as a new tree on your account."""
     return _docs_response(
         request,
         "docs/import.html",
