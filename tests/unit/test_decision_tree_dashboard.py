@@ -414,7 +414,7 @@ async def test_acme_example_page_is_account_scoped(
         await session.commit()
 
 
-async def test_docs_langgraph_seo_and_not_in_creator_nav(client):
+async def test_docs_langgraph_is_in_the_sidebar(client):
     from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
 
     index = await client.get("/docs")
@@ -422,8 +422,10 @@ async def test_docs_langgraph_seo_and_not_in_creator_nav(client):
     assert index.status_code == 200
     assert page.status_code == 200
     assert "text/html" in page.headers.get("content-type", "")
-    assert b'href="/docs/langgraph"' not in index.content
-    assert b'href="/docs/langgraph"' not in page.content
+    assert b'href="/docs/langgraph"' in index.content
+    assert b"LangGraph preview" in index.content
+    assert b'href="/docs/langgraph"' in page.content
+    assert b"LangGraph preview" in page.content
     assert b"Load the example in your account" in page.content
     assert b'href="/decision-trees/acme-langgraph-example"' in page.content
     assert ACME_EXAMPLE_DISCLAIMER in page.text
@@ -712,7 +714,8 @@ async def test_docs_import_content_contract(client):
     assert "Limits" in html
     assert 'id="refused-heading"' in html
     assert "If the file is refused" in html
-    assert "does not share your tree" in html
+    assert "someone shared with you" in html
+    assert "their own decision tree" in html
     assert "smeme_export_version" in html
     lowered = html.lower()
     for term in (

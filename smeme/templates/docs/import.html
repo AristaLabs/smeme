@@ -3,7 +3,7 @@
 {% block head %}
 {% set docs_canonical_path = "/docs/import" %}
 {% set docs_og_title = "Upload decision tree — Docs" %}
-{% set docs_meta_description = "On the dashboard, use the file selector to add a decision tree you already saved as a .smeme.json file." %}
+{% set docs_meta_description = "Upload a .smeme.json file you downloaded, or one someone shared with you, from the file selector on the dashboard." %}
 {% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Upload decision tree", "path": "/docs/import"}] %}
 {% include "docs/_docs_seo.html" %}
 {% endblock %}
@@ -30,21 +30,25 @@
       <header class="mb-10">
         <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Upload decision tree</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          You can add a decision tree you already saved.
-          On the dashboard, under <strong class="font-medium text-ui-ink">Decision trees</strong>, use the file selector to choose a <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> file, then click <strong class="font-medium text-ui-ink">Import copy</strong>.
-          SMEme creates a new decision tree on your account and opens it in the editor.
+          <a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download decision tree</a> saves a decision tree as a <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> file.
+          This page is how you upload that file, or a file someone shared with you.
         </p>
         <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          On the dashboard, under <strong class="font-medium text-ui-ink">Decision trees</strong>, use the file selector to choose the file, then click <strong class="font-medium text-ui-ink">Import copy</strong>.
+          SMEme creates a new decision tree on your account and opens it in the editor.
           An <strong class="font-medium text-ui-ink">Imported copy</strong> banner names the file and stays until you Deploy.
+        </p>
+        <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
           The new tree starts Hidden and not Deployed, so an agent cannot run it yet.
           When you want an agent to run it, Deploy it and set it to Listed.
+          It includes the questions, branches, and conclusions from the file.
+          It does not include answers from earlier runs, or the version an agent was already using.
         </p>
         <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Questions, branches, and conclusions come across.
-          Past runs and the deployed snapshot do not.
           Uploading the same file again creates another tree and uses another decision-tree slot.
-          The copy belongs to the account that uploads it.
-          Sending someone the file does not share your tree. If they upload it, they get their own copy.
+          A file someone shared with you becomes your own decision tree.
+          You do not get access to their account, and changes you make do not change their tree.
+          If you send your file to someone else, they can upload it the same way and get their own decision tree.
         </p>
       </header>
 
