@@ -3,7 +3,7 @@
 {% block head %}
 {% set docs_canonical_path = "/docs/download-workflow" %}
 {% set docs_og_title = "Download your decision tree — Docs" %}
-{% set docs_meta_description = "Export a SMEme decision tree as JSON from the dashboard or editor, including export version fields and what re-import supports today." %}
+{% set docs_meta_description = "Export a SMEme decision tree as JSON from the dashboard or editor. A version 2 file can be imported as a new copy on your account." %}
 {% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Download your decision tree", "path": "/docs/download-workflow"}] %}
 {% include "docs/_docs_seo.html" %}
 {% endblock %}
@@ -68,7 +68,7 @@
             The download is your decision tree graph: question nodes, conclusion nodes, edges, conditions, and metadata (title, description, tags, and so on). It also includes basic decision tree identity — ID, title, version number, and created/updated timestamps.
           </p>
           <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            The file uses a small export envelope so future import tools can recognize it:
+            The file uses a small export envelope so import can recognize it:
           </p>
           <pre class="overflow-x-auto rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 text-xs font-mono text-ui-ink-secondary leading-relaxed"><code>{
   "smeme_export_version": "2",
@@ -113,9 +113,10 @@
         <div class="border-t border-ui-line"></div>
 
         <section aria-labelledby="import-heading">
-          <h2 id="import-heading" class="text-base font-semibold text-ui-ink mb-3">Re-import</h2>
+          <h2 id="import-heading" class="text-base font-semibold text-ui-ink mb-3">Import a copy</h2>
           <p class="text-sm text-ui-ink-secondary leading-relaxed">
-            Uploading a downloaded file back into SMEme is not available yet. The export format is designed so import can be added later without changing what you download today.
+            You can upload that file from the dashboard. SMEme creates a new decision tree on the account that uploads it.
+            <a href="/docs/import" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Import a copy</a> explains what comes across and what the file must contain.
           </p>
         </section>
 

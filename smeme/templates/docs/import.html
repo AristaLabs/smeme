@@ -1,0 +1,172 @@
+{% extends "layouts/base.html" %}
+{% block title %}Import a copy — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/import" %}
+{% set docs_og_title = "Import a copy — Docs" %}
+{% set docs_meta_description = "Upload a version 2 .smeme.json file to create a new Hidden decision tree on your account. The guide is public; importing requires sign-in." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Import a copy", "path": "/docs/import"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "Import a copy" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Import a copy</h1>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          You can read this page without an account. Importing a file requires you to be signed in.
+          On the dashboard, choose a <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> file from Download and click <strong class="font-medium text-ui-ink">Import copy</strong>.
+          SMEme creates a new decision tree on that account. It is Hidden and not Deployed.
+        </p>
+        <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Questions, branches, and conclusions come across. The source account’s id, deployed snapshot, sessions, and evaluation history do not.
+          Importing the same file again creates another tree and uses another decision-tree slot.
+          Review the copy, then Deploy and List it when an agent should run it.
+          This does not give another account access to your tree.
+        </p>
+      </header>
+
+      <div class="space-y-10">
+
+        <section aria-labelledby="how-heading">
+          <h2 id="how-heading" class="text-base font-semibold text-ui-ink mb-3">How to import</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Sign in, then open the dashboard. Under <strong class="font-medium text-ui-ink">Decision trees</strong>, choose the file and click <strong class="font-medium text-ui-ink">Import copy</strong>.
+          </p>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed">
+            When the file is accepted, SMEme opens the editor.
+            An <strong class="font-medium text-ui-ink">Imported copy</strong> banner names the file and stays until you Deploy.
+          </p>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="file-heading">
+          <h2 id="file-heading" class="text-base font-semibold text-ui-ink mb-3">The file</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            Import accepts a version 2 export, the same envelope <a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your decision tree</a> writes:
+          </p>
+          <pre class="overflow-x-auto rounded-xl border border-ui-line bg-ui-surface-muted/60 px-4 py-3 text-xs font-mono text-ui-ink-secondary leading-relaxed"><code>{
+  "smeme_export_version": "2",
+  "decision_tree": {
+    "title": "...",
+    "graph": { "nodes": [...], "edges": [...], "metadata": {...} }
+  }
+}</code></pre>
+          <ul class="mt-4 space-y-3 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span><code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">smeme_export_version</code> must be <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">"2"</code>, and <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">decision_tree.graph</code> must be present. A raw graph and a version 1 file are refused.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>The id, version number, and timestamps in the file are ignored. Extra fields at the top of the file are ignored. Question and conclusion ids inside the graph are kept.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>The title is taken from the file and cut at 200 characters.</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="limits-heading">
+          <h2 id="limits-heading" class="text-base font-semibold text-ui-ink mb-3">Limits</h2>
+          <ul class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>The upload must be 600 KiB or smaller.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>The graph must be 512 KiB or smaller, with at most 2,000 nodes and 4,000 edges. No string in the graph may be longer than 8,192 characters. An option label still caps at 2,048 characters.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>An authority link must be an http or https URL, or empty. SMEme does not fetch the link.</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="border-t border-ui-line"></div>
+
+        <section aria-labelledby="refused-heading">
+          <h2 id="refused-heading" class="text-base font-semibold text-ui-ink mb-3">If the file is refused</h2>
+          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
+            The dashboard stays on the list and names the problem. Nothing is added to your account. You may see:
+          </p>
+          <ul class="space-y-3 text-sm text-ui-ink-secondary leading-relaxed">
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This file is larger than 600 KiB.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This file is not a SMEme export. Download a decision tree as <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> and import that file.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This export version is not supported. Import accepts version 2.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This file is not valid JSON, or it is nested too deeply to import.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>Decision tree title is required.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This decision tree is too large to import.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>An authority link must be an http or https URL.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>This decision tree does not match the export schema, or a problem in the tree blocks import. The dashboard quotes that problem.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>Your Pro subscription ended with multiple decision trees. Choose which decision tree to keep live before importing another.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ui-ink-subtle"></span>
+              <span>The decision-tree limit is reached. Delete a tree or upgrade before importing. See <a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a>.</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="pt-2 border-t border-ui-line text-sm text-ui-ink-muted space-y-1.5">
+          <p class="font-medium text-ui-ink">See also</p>
+          <ul class="space-y-1">
+            <li><a href="/docs/download-workflow" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Download your decision tree</a> — save the editor graph as JSON</li>
+            <li><a href="/docs/creator-dashboard" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Deploy, list, &amp; delete</a> — Deploy and List the copy when you want an agent to run it</li>
+            <li><a href="/docs/plans" class="text-brand-600 hover:text-brand-700 dark:text-brand-300 font-medium">Plans &amp; usage</a> — decision-tree slots</li>
+          </ul>
+        </div>
+
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}
