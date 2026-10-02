@@ -326,15 +326,11 @@ async def chat_evaluate_continue(
     session = await load_owned_session(
         db, user=user, inquiry_session_id=inquiry_session_id, for_update=False
     )
-    issued = await chat_report_issued_payload(
-        db, user=user, inquiry_session_id=inquiry_session_id
-    )
+    issued = await chat_report_issued_payload(db, user=user, inquiry_session_id=inquiry_session_id)
     if issued is not None:
         stop_reason = issued.get("stop_reason")
         status = (
-            STATUS_ACTIVE
-            if stop_reason == CHAT_ISOLATED_VERIFICATION_NOT_RUN
-            else STATUS_STOPPED
+            STATUS_ACTIVE if stop_reason == CHAT_ISOLATED_VERIFICATION_NOT_RUN else STATUS_STOPPED
         )
         return _chat_stop_marker(
             inquiry_session_id=str(inquiry_session_id),
@@ -363,9 +359,7 @@ async def chat_evaluate_continue(
         reject_stale_replay=True,
     )
     if replay is not None:
-        return await _active_task_or_terminal(
-            db, user=user, wire=replay, already_issued=True
-        )
+        return await _active_task_or_terminal(db, user=user, wire=replay, already_issued=True)
 
     expected_revision = int(session.revision)
     wire = await admit_to_session(

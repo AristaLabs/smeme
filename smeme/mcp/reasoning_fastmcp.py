@@ -1654,10 +1654,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 except json.JSONDecodeError:
                                     rec.note_json_response(apply_out)
                                     return apply_out
-                                if (
-                                    isinstance(apply_payload, dict)
-                                    and "error" not in apply_payload
-                                ):
+                                if isinstance(apply_payload, dict) and "error" not in apply_payload:
                                     await record_chat_report_issued(
                                         db,
                                         user=user,
@@ -1668,9 +1665,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                                 "evaluation_run_id"
                                             ),
                                             "revision": facade.get("revision"),
-                                            "operational_status": facade.get(
-                                                "operational_status"
-                                            ),
+                                            "operational_status": facade.get("operational_status"),
                                             "diagnostics": facade.get("diagnostics"),
                                         },
                                     )
@@ -1805,10 +1800,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 except json.JSONDecodeError:
                                     rec.note_json_response(apply_out)
                                     return apply_out
-                                if (
-                                    isinstance(apply_payload, dict)
-                                    and "error" not in apply_payload
-                                ):
+                                if isinstance(apply_payload, dict) and "error" not in apply_payload:
                                     await record_chat_report_issued(
                                         db,
                                         user=user,
@@ -1819,9 +1811,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                                 "evaluation_run_id"
                                             ),
                                             "revision": facade.get("revision"),
-                                            "operational_status": facade.get(
-                                                "operational_status"
-                                            ),
+                                            "operational_status": facade.get("operational_status"),
                                             "diagnostics": facade.get("diagnostics"),
                                         },
                                     )
