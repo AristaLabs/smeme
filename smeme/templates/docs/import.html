@@ -1,16 +1,16 @@
 {% extends "layouts/base.html" %}
-{% block title %}Import a copy — Docs{% endblock %}
+{% block title %}Upload decision tree — Docs{% endblock %}
 {% block head %}
 {% set docs_canonical_path = "/docs/import" %}
-{% set docs_og_title = "Import a copy — Docs" %}
-{% set docs_meta_description = "Upload a version 2 .smeme.json file to create a new Hidden decision tree on your account. The guide is public; importing requires sign-in." %}
-{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Import a copy", "path": "/docs/import"}] %}
+{% set docs_og_title = "Upload decision tree — Docs" %}
+{% set docs_meta_description = "On the dashboard, use the file selector to add a decision tree you already saved as a .smeme.json file." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "Upload decision tree", "path": "/docs/import"}] %}
 {% include "docs/_docs_seo.html" %}
 {% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
-  {% set docs_breadcrumb_current = "Import a copy" %}
+  {% set docs_breadcrumb_current = "Upload decision tree" %}
   {% include "docs/_docs_breadcrumb.html" %}
 
   <div class="mt-6 lg:flex lg:gap-12">
@@ -28,34 +28,27 @@
       </div>
 
       <header class="mb-10">
-        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Import a copy</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ui-ink">Upload decision tree</h1>
         <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          You can read this page without an account. Importing a file requires you to be signed in.
-          On the dashboard, choose a <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> file from Download and click <strong class="font-medium text-ui-ink">Import copy</strong>.
-          SMEme creates a new decision tree on that account. It is Hidden and not Deployed.
+          You can add a decision tree you already saved.
+          On the dashboard, under <strong class="font-medium text-ui-ink">Decision trees</strong>, use the file selector to choose a <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-ui-surface-muted">.smeme.json</code> file, then click <strong class="font-medium text-ui-ink">Import copy</strong>.
+          SMEme creates a new decision tree on your account and opens it in the editor.
         </p>
         <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
-          Questions, branches, and conclusions come across. The source account’s id, deployed snapshot, sessions, and evaluation history do not.
-          Importing the same file again creates another tree and uses another decision-tree slot.
-          Review the copy, then Deploy and List it when an agent should run it.
-          This does not give another account access to your tree.
+          An <strong class="font-medium text-ui-ink">Imported copy</strong> banner names the file and stays until you Deploy.
+          The new tree starts Hidden and not Deployed, so an agent cannot run it yet.
+          When you want an agent to run it, Deploy it and set it to Listed.
+        </p>
+        <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          Questions, branches, and conclusions come across.
+          Past runs and the deployed snapshot do not.
+          Uploading the same file again creates another tree and uses another decision-tree slot.
+          The copy belongs to the account that uploads it.
+          Sending someone the file does not share your tree. If they upload it, they get their own copy.
         </p>
       </header>
 
       <div class="space-y-10">
-
-        <section aria-labelledby="how-heading">
-          <h2 id="how-heading" class="text-base font-semibold text-ui-ink mb-3">How to import</h2>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed mb-4">
-            Sign in, then open the dashboard. Under <strong class="font-medium text-ui-ink">Decision trees</strong>, choose the file and click <strong class="font-medium text-ui-ink">Import copy</strong>.
-          </p>
-          <p class="text-sm text-ui-ink-secondary leading-relaxed">
-            When the file is accepted, SMEme opens the editor.
-            An <strong class="font-medium text-ui-ink">Imported copy</strong> banner names the file and stays until you Deploy.
-          </p>
-        </section>
-
-        <div class="border-t border-ui-line"></div>
 
         <section aria-labelledby="file-heading">
           <h2 id="file-heading" class="text-base font-semibold text-ui-ink mb-3">The file</h2>
