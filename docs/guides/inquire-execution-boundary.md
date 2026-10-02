@@ -30,7 +30,7 @@ smeme.reasoning.runtime.inquire                 # deterministic kernel
 | ----- | ---- | -------- |
 | Kernel | `ANALYZE` → `InquiryDirective`; `admit_assertion`; `apply_verification_decision`; blind `ExtractionTask` builder | Run extractors, hold session loops, interpret citations |
 | Orchestrator (protocol) | Convert directive → blind task; bind result to issued task; route to admission or `P_v`; construct `VerificationRequest`; prepare/evaluate verification transcripts | Leak VERIFY vs ACQUIRE to the extractor; auto-REPLACE on option disagreement |
-| Chat facade | Strip control channel; ACQUIRE-only continue; fail-closed VERIFY → `isolated_evaluations_required` without STOP; on true STOP, Apply admitted answers and return `report` + `stop_reason` / `inquire_stop_reason` | Fake a VERIFY battery; invent STOP on VERIFY; treat `operational_budget` as “no report” |
+| Chat facade | Strip control channel; ACQUIRE-only continue; VERIFY → Apply report with `isolated_verification_not_run` without persist STOP; on true STOP, Apply admitted answers and return `report` + `stop_reason` / `inquire_stop_reason` | Fake a VERIFY battery; invent persist STOP on VERIFY; treat `operational_budget` as “no report” |
 | Persist (Phase 6) | `inquiry_session_id`, frozen artifact snapshot, admitted/verified rows, revision, idempotency receipts | Put DB sessions in kernel state; persist `C_poss` / `D_1` / `S_R` / directive / battery |
 | Extractor | Propose an empirical judgment over sources | See mode, verification keys, conclusions, or prior answers |
 
@@ -38,8 +38,8 @@ Corpus and source access stay on the `Extractor` implementation. `ExtractionTask
 describes the question SMEme demands answered; it is not a document transport.
 
 Evaluator isolation for orchestrator VERIFY is **caller_responsibility**. Chat never
-runs \(P_v\); when ANALYZE asks VERIFY, the facade returns `isolated_evaluations_required`
-and leaves the session `ACTIVE` for an isolated orchestrator.
+runs \(P_v\); when ANALYZE asks VERIFY, the facade Applies admitted answers and
+returns a report with `isolated_verification_not_run`. The session stays `ACTIVE`.
 
 When ANALYZE issues **STOP**, chat persists STOP then **Applies** the admitted sheet.
 Semantic stops (`verified_resolved_consequence`, `inconsistent`, …) and operational /
@@ -179,7 +179,7 @@ client-minted `Retain` / `VerificationDecision`.
 
 See [`inquire-mcp-contract.md`](./inquire-mcp-contract.md). Summary:
 
-- **Chat:** `smeme_reasoning_evaluate` / `evaluate_continue` (ACQUIRE-only facade; VERIFY → `isolated_evaluations_required`)
+- **Chat:** `smeme_reasoning_evaluate` / `evaluate_continue` (ACQUIRE-only facade; VERIFY → Apply report with `isolated_verification_not_run`)
 - **Bulk Apply:** `smeme_reasoning_evaluate_answers`
 - **Orchestrator (flag-gated):** five `smeme_inquire_*` + inquire guidance
 

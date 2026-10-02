@@ -197,7 +197,7 @@ logger = get_logger(__name__)
 # MCP surface version: ``version`` in ``smeme_reasoning_capabilities`` and the
 # ``_server_plugin_version`` watermark. Keep in sync with
 # ``<!-- installed_plugin_version -->`` in ``agent-skills/smeme-reasoning/SKILL.md``.
-REASONING_CAPABILITIES_VERSION = "3.10.0"
+REASONING_CAPABILITIES_VERSION = "3.11.0"
 REASONING_CAPABILITIES_MCP_SURFACE = "DR-3-transport-reasoning"
 
 
@@ -466,7 +466,8 @@ def reasoning_capabilities_document(
             },
             "note": (
                 "Ordinary chat evaluation: smeme_reasoning_evaluate then "
-                "smeme_reasoning_evaluate_continue. Do not use the explicit Inquire "
+                "smeme_reasoning_evaluate_continue until harness_next is not "
+                "continue_evaluate. Do not use the explicit Inquire "
                 "orchestrator protocol from conversational context; that protocol "
                 "requires evaluator isolation that ordinary chat does not provide. "
                 "Bulk/audit: template_get → validate_answers → evaluate_answers."
@@ -807,8 +808,8 @@ def _build_mcp_instructions(cfg: Settings) -> str:
         "2. If no cached guidance or digest mismatch: smeme_reasoning_guidance_get "
         "(full calling contract — cache it)\n"
         "3. smeme_reasoning_list → smeme_reasoning_evaluate(decision_tree_id) → "
-        "loop smeme_reasoning_evaluate_continue until report or "
-        "isolated_evaluations_required\n\n"
+        "loop smeme_reasoning_evaluate_continue until harness_next is not "
+        "continue_evaluate (a report ends the gather loop).\n\n"
         "Do not call template_get first for ordinary chat evaluation. "
         "Do not invoke the explicit Inquire orchestrator protocol from this "
         "chat connector; that protocol requires isolated evaluators.\n\n"
@@ -1549,13 +1550,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             ``{question_id, stem, options}`` plus ``inquiry_session_id`` and, when the
             author left hints, ``answer_guidance`` (``help_text``, ``evidence_sources``:
             where to look; entries with ``avoid: true`` must not be used), or a
-            terminal ``report`` if Inquire already STOPs, or
-            ``isolated_evaluations_required`` if VERIFY is needed (session stays
-            ACTIVE — do not fake VERIFY in chat).
+            terminal ``report`` if Inquire already STOPs or ANALYZE issues VERIFY
+            (session stays ACTIVE — chat does not run the verification battery).
 
             A terminal ``report`` includes ``stop_reason`` / ``inquire_stop_reason``.
             Prefer ``report.result_kind`` for outcome; operational stops are not
-            MCP quota denials.
+            MCP quota denials. The gather loop ends when ``harness_next`` is not
+            ``continue_evaluate``.
 
             Continue with ``smeme_reasoning_evaluate_continue``. Do **not** call
             ``template_get`` first. For bulk worksheet Apply use
@@ -1566,9 +1567,13 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                 admitted_apply_envelope_for_session,
                 apply_envelope_to_raw_json,
                 chat_evaluate_start,
-                merge_chat_stop_onto_apply,
+                chat_merge_kwargs,
+                should_persist_chat_report,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
+            from smeme.reasoning.orchestration.inquire.persist import (
+                record_chat_report_issued,
+            )
 
             try:
                 async with mcp_invocation_scope("smeme_reasoning_evaluate", ctx) as rec:
@@ -1634,29 +1639,36 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 user=user,
                                 inquiry_session_id=session_id,
                             )
+                            persist_report = should_persist_chat_report(facade)
                             apply_out = await _smeme_reasoning_evaluate_body(
                                 decision_tree_id=decision_tree_id,
                                 raw_answers_json=apply_envelope_to_raw_json(apply_envelope),
                                 ctx=ctx,
-                                persist=True,
+                                persist=persist_report,
                                 reserve_quota=False,
+                                chat_merge=chat_merge_kwargs(facade),
                             )
-                            # Merge Inquire STOP metadata onto Apply success when possible
-                            try:
-                                apply_payload = json.loads(apply_out)
-                            except json.JSONDecodeError:
-                                rec.note_json_response(apply_out)
-                                return apply_out
-                            if isinstance(apply_payload, dict) and "error" not in apply_payload:
-                                apply_out = _tool_json(
-                                    merge_chat_stop_onto_apply(
-                                        apply_payload,
-                                        inquiry_session_id=str(session_id),
-                                        stop_reason=facade.get("stop_reason"),
-                                        operational_status=facade.get("operational_status"),
-                                        diagnostics=facade.get("diagnostics"),
+                            if persist_report:
+                                try:
+                                    apply_payload = json.loads(apply_out)
+                                except json.JSONDecodeError:
+                                    rec.note_json_response(apply_out)
+                                    return apply_out
+                                if isinstance(apply_payload, dict) and "error" not in apply_payload:
+                                    await record_chat_report_issued(
+                                        db,
+                                        user=user,
+                                        inquiry_session_id=session_id,
+                                        payload={
+                                            "stop_reason": facade.get("stop_reason"),
+                                            "evaluation_run_id": apply_payload.get(
+                                                "evaluation_run_id"
+                                            ),
+                                            "revision": facade.get("revision"),
+                                            "operational_status": facade.get("operational_status"),
+                                            "diagnostics": facade.get("diagnostics"),
+                                        },
                                     )
-                                )
                             rec.note_json_response(apply_out)
                             return apply_out
                         out = _tool_json(facade)
@@ -1689,22 +1701,28 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             Pass ``inquiry_session_id`` from ``smeme_reasoning_evaluate``. Provide
             ``selected_option`` + ``provenance_id`` to admit, or omit option to abstain.
             The next task may carry ``answer_guidance`` like ``smeme_reasoning_evaluate``.
-            Never runs VERIFY — if the server needs isolated verification, returns
-            ``isolated_evaluations_required`` and leaves the session ACTIVE.
+            Never runs VERIFY. If ANALYZE issues VERIFY, Applies admitted answers and
+            returns a ``report`` with ``inquire_stop_reason: isolated_verification_not_run``
+            (session stays ACTIVE).
 
             On Inquire STOP, runs Apply over admitted answers and returns ``report``
             plus ``stop_reason`` / ``inquire_stop_reason``. Operational or
             ``resolving_support_incomplete`` stops may still yield a concluded report
             (warning ``inquire_operational_stop``); branch on ``report.result_kind``,
-            not on ``operational_budget`` alone.
+            not on ``operational_budget`` alone. The gather loop ends when
+            ``harness_next`` is not ``continue_evaluate``.
             """
             from smeme.mcp.inquire.chat_facade import (
                 admitted_apply_envelope_for_session,
                 apply_envelope_to_raw_json,
                 chat_evaluate_continue,
-                merge_chat_stop_onto_apply,
+                chat_merge_kwargs,
+                should_persist_chat_report,
             )
             from smeme.mcp.inquire.handlers import InquireHandlerError
+            from smeme.reasoning.orchestration.inquire.persist import (
+                record_chat_report_issued,
+            )
 
             try:
                 async with mcp_invocation_scope("smeme_reasoning_evaluate_continue", ctx) as rec:
@@ -1767,28 +1785,36 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 user=user,
                                 inquiry_session_id=session_uuid,
                             )
+                            persist_report = should_persist_chat_report(facade)
                             apply_out = await _smeme_reasoning_evaluate_body(
                                 decision_tree_id=tree_id,
                                 raw_answers_json=apply_envelope_to_raw_json(apply_envelope),
                                 ctx=ctx,
-                                persist=True,
+                                persist=persist_report,
                                 reserve_quota=False,
+                                chat_merge=chat_merge_kwargs(facade),
                             )
-                            try:
-                                apply_payload = json.loads(apply_out)
-                            except json.JSONDecodeError:
-                                rec.note_json_response(apply_out)
-                                return apply_out
-                            if isinstance(apply_payload, dict) and "error" not in apply_payload:
-                                apply_out = _tool_json(
-                                    merge_chat_stop_onto_apply(
-                                        apply_payload,
-                                        inquiry_session_id=str(session_uuid),
-                                        stop_reason=facade.get("stop_reason"),
-                                        operational_status=facade.get("operational_status"),
-                                        diagnostics=facade.get("diagnostics"),
+                            if persist_report:
+                                try:
+                                    apply_payload = json.loads(apply_out)
+                                except json.JSONDecodeError:
+                                    rec.note_json_response(apply_out)
+                                    return apply_out
+                                if isinstance(apply_payload, dict) and "error" not in apply_payload:
+                                    await record_chat_report_issued(
+                                        db,
+                                        user=user,
+                                        inquiry_session_id=session_uuid,
+                                        payload={
+                                            "stop_reason": facade.get("stop_reason"),
+                                            "evaluation_run_id": apply_payload.get(
+                                                "evaluation_run_id"
+                                            ),
+                                            "revision": facade.get("revision"),
+                                            "operational_status": facade.get("operational_status"),
+                                            "diagnostics": facade.get("diagnostics"),
+                                        },
                                     )
-                                )
                             rec.note_json_response(apply_out)
                             return apply_out
                         out = _tool_json(facade)
@@ -1895,6 +1921,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             force_unreachable_ids: list[str] | None = None,
             *,
             reserve_quota: bool = True,
+            chat_merge: dict[str, Any] | None = None,
         ) -> str:
             # ---- Step 1: Parse and validate inputs BEFORE opening the DB session ----
             # Fail fast on bad inputs without consuming a connection.
@@ -2031,6 +2058,21 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
 
                 report["theory"] = theory_stamp_from_artifact(artifact)
 
+                payload_out: dict[str, Any] = {
+                    "report": report,
+                    "evaluation_run_id": None,
+                    "warnings": ingest_warnings,
+                    "decision_tree_warnings": decision_tree_review_warnings(graph),
+                    "harness_next": harness_next,
+                }
+                wire_assumptions = phi.to_wire()
+                if wire_assumptions is not None:
+                    payload_out["assumptions"] = wire_assumptions
+                if chat_merge:
+                    from smeme.mcp.inquire.chat_facade import merge_chat_stop_onto_apply
+
+                    payload_out = merge_chat_stop_onto_apply(payload_out, **chat_merge)
+
                 run_id: UUID | None = None
                 if persist:
                     row = await persist_reasoning_evaluation_run(
@@ -2039,23 +2081,14 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                         result=eval_result,
                         audit=audit,
                         caller_user_id=user.id,
-                        ingest_warnings=ingest_warnings,
-                        report=report,
+                        ingest_warnings=list(payload_out.get("warnings") or []),
+                        report=dict(payload_out.get("report") or {}),
                         ingest_envelope=ingest_wire,
                         artifact=artifact,
                     )
                     run_id = row.id
+                    payload_out["evaluation_run_id"] = str(run_id)
 
-            payload_out: dict[str, Any] = {
-                "report": report,
-                "evaluation_run_id": str(run_id) if run_id else None,
-                "warnings": ingest_warnings,
-                "decision_tree_warnings": decision_tree_review_warnings(graph),
-                "harness_next": harness_next,
-            }
-            wire_assumptions = phi.to_wire()
-            if wire_assumptions is not None:
-                payload_out["assumptions"] = wire_assumptions
             return _tool_json(payload_out)
 
         def _mcp_parse_json_object(

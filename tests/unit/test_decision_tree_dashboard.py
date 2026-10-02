@@ -481,7 +481,7 @@ async def test_docs_run_and_ask_more_prompts(client):
         assert result in run.text
     assert "Send a batch of answers in one shot" in run.text
     assert "instead of guessing" in run.text
-    assert "needs isolated verification" in run.text
+    assert "were not independently re-checked" in run.text
     assert "answer the questions you can from the evidence" in run.text
     ask = await client.get("/docs/ask-more")
     assert ask.status_code == 200

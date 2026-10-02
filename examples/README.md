@@ -84,17 +84,18 @@ Help: [GitHub Discussions — Start here](https://github.com/AristaLabs/smeme/di
 Guided gather against a **Deployed + Listed** decision tree:
 
 `list` → `evaluate(decision_tree_id)` → host or optional model proposes one
-option → human `interrupt()` → `evaluate_continue` → report, the next task the
-solver chooses, **or** `isolated_evaluations_required`.
+option → human `interrupt()` → `evaluate_continue` → report or the next task the
+solver chooses.
+
+When the answers settle, the chat connector returns an Apply report. The
+deciding answers were not independently re-checked (`isolated_verification_not_run`).
+Apply remains the
+shortest first-run path when the host already has a reviewed worksheet and
+wants a deterministic report.
 
 For the account fixture, public case-file download, and dashboard-generated
 command, follow the
 [five-minute ACME LangGraph quickstart](../docs/guides/acme-langgraph-quickstart.md).
-
-The last outcome is an intentional fail-closed boundary: the chat connector
-does not fabricate the independent verification trials. Apply remains the
-shortest first-run path when the host already has a reviewed worksheet and
-wants a deterministic report.
 
 The ACME withholding file (CRM #123) is the prose case from
 [*Introducing SMEme*](https://aristalabs.ai/introducing-smeme.html). Point
@@ -165,8 +166,8 @@ The model only proposes. The same operator admission prompt still runs before
 Terminal JSON keeps the report together with warnings, `harness_next`, status,
 and stop reasons. Rank `harness_next` and stop reason over `report.headline`:
 `status: ok` plus `missing_evidence_ref` means gather evidence, and a concluded
-report may coexist with an operational stop. `isolated_evaluations_required` is
-rendered under `verification_required`, not as a generic terminal error.
+report may coexist with an operational stop. A settled chat run returns a report
+with `isolated_verification_not_run` rather than a verification-required error.
 Operational stops also retain the bounded Inquire status and SAT/timing
 diagnostics returned by the server.
 

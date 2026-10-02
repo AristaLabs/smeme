@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from smeme.core.config import settings as process_settings
 from smeme.mcp.reasoning_fastmcp import (
@@ -48,6 +49,9 @@ def test_inquire_tools_off_by_default_in_chat_capabilities() -> None:
     assert "smeme_reasoning_evaluate_continue" in doc["reasoning"]["tools"]
     assert "smeme_reasoning_evaluate_answers" in doc["reasoning"]["tools"]
     assert doc["reasoning"]["query_modes"]["apply"] == "smeme_reasoning_evaluate_answers"
+    dumped = json.dumps(doc)
+    assert "smeme_inquire_" not in dumped
+    assert "/orchestrator" not in dumped
 
 
 def test_inquire_tools_on_orchestrator_not_chat_fastmcp() -> None:
@@ -63,6 +67,7 @@ def test_inquire_tools_on_orchestrator_not_chat_fastmcp() -> None:
     assert chat_names.isdisjoint(INQUIRE_TOOLS)
     assert CHAT_FACADE_TOOLS <= chat_names
     assert orch_names >= INQUIRE_TOOLS
+    assert "smeme_inquire_verify" in orch_names
     assert "smeme_inquire_guidance_get" in orch_names
     doc = reasoning_capabilities_document(
         cap_settings=_settings(inquire=True), surface="orchestrator"

@@ -10,7 +10,7 @@ description: >-
 
 Use when **`smeme_reasoning_evaluate_answers`** (bulk Apply) or a guided gather that ends with a **`report`** returns **`report.result_kind`** other than **`concluded`**, or preload before Apply when ambiguity is likely.
 
-If the tool returned **`{"error": {...}}`**, use **`smeme-reasoning`** — that is an error, not a report. Guided chat **`isolated_evaluations_required`** is also an error path (session stays ACTIVE); do not treat it as a report.
+If the tool returned **`{"error": {...}}`**, use **`smeme-reasoning`** — that is an error, not a report. A guided chat **`report`** with **`inquire_stop_reason: isolated_verification_not_run`** is still a report (`status` may stay ACTIVE); present **`report.result_kind`** and the **`inquire_verification_not_run`** warning.
 
 ## Quick map (`report.result_kind`)
 
