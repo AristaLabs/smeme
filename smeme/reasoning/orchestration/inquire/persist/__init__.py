@@ -1,10 +1,10 @@
 """Durable Inquire session persistence (Phase 6)."""
 
 from smeme.reasoning.orchestration.inquire.persist.service import (
+    EVENT_CHAT_REPORT_ISSUED,
     STATUS_ABANDONED,
     STATUS_ACTIVE,
     STATUS_STOPPED,
-    EVENT_CHAT_REPORT_ISSUED,
     abandon_session,
     admit_to_session,
     canonical_request_hash,

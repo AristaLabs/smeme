@@ -39,7 +39,6 @@ from smeme.reasoning.orchestration.inquire.persist import (
 )
 from smeme.reasoning.orchestration.inquire.persist.auth import load_owned_session
 
-
 CHAT_ISOLATED_VERIFICATION_NOT_RUN = "isolated_verification_not_run"
 
 
