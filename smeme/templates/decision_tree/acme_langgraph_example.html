@@ -1,0 +1,75 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import alert, btn %}
+{% block title %}ACME LangGraph example - SMEme{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <p class="text-sm">
+    <a href="/docs/langgraph" class="font-medium text-brand-700 hover:text-brand-900 dark:text-brand-300">LangGraph technical preview</a>
+  </p>
+
+  <header>
+    <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Technical preview</p>
+    <h1 class="mt-1 text-2xl font-semibold text-ui-ink">ACME LangGraph example</h1>
+    <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed">
+      Loading creates, Deploys, and Lists one decision tree on this account.
+      Your LangGraph workflow gathers the synthetic case, a person admits each answer, and SMEme evaluates the deployed tree.
+      The full walkthrough is in the
+      <a href="/docs/langgraph" class="font-medium text-brand-700 hover:text-brand-900 dark:text-brand-300">technical preview docs</a>.
+    </p>
+  </header>
+
+  {% if error_message %}
+  {{ alert(error_message, "error") }}
+  {% endif %}
+
+  <section aria-labelledby="acme-disclaimer-heading" class="rounded-xl border border-ui-line bg-ui-surface p-5">
+    <h2 id="acme-disclaimer-heading" class="text-sm font-semibold text-ui-ink">Fictional-demo disclaimer</h2>
+    <div class="mt-3 whitespace-pre-line text-xs leading-5 text-ui-ink-muted">{{ acme_example_disclaimer }}</div>
+  </section>
+
+  {% if acme_example_tree %}
+  <section aria-labelledby="acme-loaded-heading" class="rounded-xl border border-ui-line bg-ui-surface p-5 space-y-5">
+    <div>
+      <h2 id="acme-loaded-heading" class="text-lg font-semibold text-ui-ink">This account owns the example</h2>
+      <p class="mt-2 text-sm text-ui-ink-secondary">
+        The example is Deployed and Listed. Reloading it does not consume another decision-tree slot.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      {{ btn("Open example tree", href="/decision-trees/" ~ acme_example_tree.id ~ "/editor", variant="secondary", size="sm") }}
+      {% if acme_dataset_url %}
+      {{ btn("Download synthetic case files", href=acme_dataset_url, variant="secondary", size="sm") }}
+      {% endif %}
+      {{ btn("Five-minute runbook", href="https://github.com/AristaLabs/smeme/blob/main/docs/guides/acme-langgraph-quickstart.md", variant="secondary", size="sm") }}
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-ui-ink">Run with LangGraph</h3>
+      <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm text-ui-ink-secondary">
+        <li>Clone the public Core repository.</li>
+        <li>Download the synthetic case files and keep the ZIP name.</li>
+        <li>Run the command below from the repository root.</li>
+      </ol>
+      {% if acme_run_command %}
+      <pre class="mt-3 overflow-x-auto rounded-lg bg-ui-ink px-4 py-3 text-xs text-ui-surface"><code>{{ acme_run_command }}</code></pre>
+      {% else %}
+      <p class="mt-2 text-sm text-ui-ink-muted">
+        This deployment has not configured a public OAuth client ID, so it cannot generate a runnable command.
+      </p>
+      {% endif %}
+    </div>
+  </section>
+  {% else %}
+  <section aria-labelledby="acme-load-heading" class="rounded-xl border border-ui-line bg-ui-surface p-5">
+    <h2 id="acme-load-heading" class="text-lg font-semibold text-ui-ink">Load the example</h2>
+    <p class="mt-2 text-sm text-ui-ink-secondary">
+      Loading this opt-in example creates, Deploys, and Lists one decision tree and consumes one decision-tree slot.
+      It does not replace the small first-run sample.
+    </p>
+    <form method="post" action="/decision-trees/acme-langgraph-example" class="mt-4">
+      {{ btn("Load ACME LangGraph example", variant="secondary", size="sm", type="submit") }}
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

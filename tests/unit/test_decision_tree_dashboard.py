@@ -35,6 +35,7 @@ _PUBLIC_DOCS_PATHS = (
     "/docs/creator-dashboard",
     "/docs/download-workflow",
     "/docs/import",
+    "/docs/langgraph",
     "/docs/mcp",
     "/docs/changelog",
 )
@@ -170,38 +171,90 @@ async def test_dashboard_shows_authored_decision_tree_title(client, app_with_db,
     assert title.encode() in r.content
 
 
-async def test_dashboard_offers_opt_in_acme_example_with_exact_disclaimer(
+async def test_dashboard_has_no_acme_preview_box(client, app_with_db, dashboard_user):
+    with auth_as(app_with_db, dashboard_user["user"]):
+        r = await client.get("/decision-trees/dashboard")
+
+    assert r.status_code == 200
+    assert b"acme-langgraph-heading" not in r.content
+    assert b"Load ACME LangGraph example" not in r.content
+    assert b"LangGraph example" not in r.content
+    assert b"Download synthetic case files" not in r.content
+
+
+async def test_acme_example_page_requires_auth(client):
+    for method in ("GET", "POST"):
+        r = await client.request(method, "/decision-trees/acme-langgraph-example")
+        assert r.status_code in (302, 401, 403)
+        assert b"Load ACME LangGraph example" not in r.content
+        assert b"Fictional-demo disclaimer" not in r.content
+
+
+async def test_acme_example_page_shows_slot_warning_and_disclaimer(
     client, app_with_db, dashboard_user
 ):
     from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
 
     with auth_as(app_with_db, dashboard_user["user"]):
-        r = await client.get("/decision-trees/dashboard")
+        r = await client.get("/decision-trees/acme-langgraph-example")
 
     assert r.status_code == 200
     assert b"Load ACME LangGraph example" in r.content
     assert b"consumes one decision-tree slot" in r.content
+    assert b"does not replace the small first-run sample" in r.content
     assert ACME_EXAMPLE_DISCLAIMER in r.text
-    assert b"Download synthetic case files" not in r.content
+    assert b'href="/docs/langgraph"' in r.content
+    assert "no-store" in r.headers["cache-control"]
 
 
-async def test_dashboard_generates_deployment_scoped_acme_command(
+def _mark_tree_as_acme(session_factory, tree_id):
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_SAMPLE_KEY
+
+    async def _mark():
+        async with session_factory() as session:
+            persisted = await session.get(DecisionTree, tree_id)
+            assert persisted is not None
+            persisted.sample_key = ACME_EXAMPLE_SAMPLE_KEY
+            session.add(persisted)
+            await session.commit()
+
+    return _mark()
+
+
+async def test_acme_return_link_is_only_on_the_owners_acme_tree(
+    client, app_with_db, dashboard_user, test_session_factory
+):
+    tree = dashboard_user["my_decision_tree"]
+    with auth_as(app_with_db, dashboard_user["user"]):
+        before = await client.get("/decision-trees/dashboard")
+        editor_before = await client.get(f"/decision-trees/{tree.id}/editor")
+    assert b"LangGraph example" not in before.content
+    assert b"LangGraph example" not in editor_before.content
+
+    await _mark_tree_as_acme(test_session_factory, tree.id)
+
+    with auth_as(app_with_db, dashboard_user["user"]):
+        dashboard = await client.get("/decision-trees/dashboard")
+        editor = await client.get(f"/decision-trees/{tree.id}/editor")
+
+    assert dashboard.status_code == 200
+    assert b"LangGraph example" in dashboard.content
+    assert b'href="/decision-trees/acme-langgraph-example"' in dashboard.content
+    assert b"Load ACME LangGraph example" not in dashboard.content
+    assert editor.status_code == 200
+    assert b"LangGraph example" in editor.content
+    assert b'href="/decision-trees/acme-langgraph-example"' in editor.content
+
+
+async def test_acme_example_page_command_is_deployment_scoped(
     client,
     app_with_db,
     dashboard_user,
     monkeypatch,
     test_session_factory,
 ):
-    from smeme.decision_tree.acme_example import ACME_EXAMPLE_SAMPLE_KEY
-
     tree = dashboard_user["my_decision_tree"]
-    async with test_session_factory() as session:
-        persisted = await session.get(DecisionTree, tree.id)
-        assert persisted is not None
-        persisted.sample_key = ACME_EXAMPLE_SAMPLE_KEY
-        session.add(persisted)
-        await session.commit()
-
+    await _mark_tree_as_acme(test_session_factory, tree.id)
     monkeypatch.setattr(process_settings, "mcp_enabled", True)
     monkeypatch.setattr(process_settings, "mcp_http_path", "/preview/mcp")
     monkeypatch.setattr(process_settings, "mcp_allowed_oauth_client_ids", ["staging-client"])
@@ -212,7 +265,7 @@ async def test_dashboard_generates_deployment_scoped_acme_command(
     )
 
     with auth_as(app_with_db, dashboard_user["user"]):
-        r = await client.get("/decision-trees/dashboard")
+        r = await client.get("/decision-trees/acme-langgraph-example")
 
     assert r.status_code == 200
     assert b"Open example tree" in r.content
@@ -221,12 +274,17 @@ async def test_dashboard_generates_deployment_scoped_acme_command(
     assert b"SMEME_MCP_URL=http://test/preview/mcp" in r.content
     assert b"SMEME_OAUTH_CLIENT_ID=staging-client" in r.content
     assert f"--decision-tree-id {tree.id}".encode() in r.content
+    lowered = r.text.lower()
+    assert "bearer " not in lowered
+    assert "secret" not in lowered
+    assert "production-client" not in r.text
 
 
-async def test_acme_load_route_renders_fixture_error(
+async def test_acme_load_error_keeps_the_example_page(
     client, app_with_db, dashboard_user, monkeypatch
 ):
     from smeme.decision_tree import acme_example
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
 
     async def fail_load(user, db):
         raise acme_example.AcmeExampleError("quota_exceeded", "No decision-tree slot remains.")
@@ -238,7 +296,138 @@ async def test_acme_load_route_renders_fixture_error(
 
     assert r.status_code == 200
     assert b"No decision-tree slot remains." in r.content
+    assert b"Load ACME LangGraph example" in r.content
+    assert ACME_EXAMPLE_DISCLAIMER in r.text
+    assert b"consumes one decision-tree slot" in r.content
     assert "no-store" in r.headers["cache-control"]
+
+
+async def test_acme_load_success_redirects_and_reload_is_idempotent(
+    client, app_with_db, dashboard_user, test_session_factory
+):
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_SAMPLE_KEY
+
+    user = dashboard_user["user"]
+    with auth_as(app_with_db, user):
+        first = await client.post("/decision-trees/acme-langgraph-example", follow_redirects=False)
+        second = await client.post("/decision-trees/acme-langgraph-example", follow_redirects=False)
+
+    assert first.status_code == 303
+    assert first.headers["location"] == "/decision-trees/acme-langgraph-example"
+    assert second.status_code == 303
+    assert second.headers["location"] == "/decision-trees/acme-langgraph-example"
+
+    async with test_session_factory() as session:
+        rows = (
+            (
+                await session.execute(
+                    select(DecisionTree).where(
+                        DecisionTree.author_id == user.id,
+                        DecisionTree.sample_key == ACME_EXAMPLE_SAMPLE_KEY,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert len(rows) == 1
+    created_ids = [row.id for row in rows]
+    async with test_session_factory() as session:
+        from smeme.core.models import ReasoningCompiledArtifact
+
+        await session.execute(
+            delete(ReasoningCompiledArtifact).where(
+                ReasoningCompiledArtifact.decision_tree_id.in_(created_ids)
+            )
+        )
+        await session.execute(delete(DecisionTree).where(DecisionTree.id.in_(created_ids)))
+        await session.commit()
+
+
+async def test_acme_example_page_is_account_scoped(
+    client, app_with_db, dashboard_user, test_session_factory
+):
+    owner = dashboard_user["user"]
+    owner_tree = dashboard_user["my_decision_tree"]
+    await _mark_tree_as_acme(test_session_factory, owner_tree.id)
+
+    uid = uuid4().hex[:8]
+    async with test_session_factory() as session:
+        other = User(
+            email=f"acme_other_{uid}@example.com",
+            hashed_password="x",
+            is_active=True,
+            is_verified=True,
+            is_superuser=False,
+            username=f"acme_other_{uid}",
+        )
+        session.add(other)
+        await session.commit()
+        await session.refresh(other)
+        other_id = other.id
+
+    with auth_as(app_with_db, other):
+        page = await client.get("/decision-trees/acme-langgraph-example")
+        dashboard = await client.get("/decision-trees/dashboard")
+        loaded = await client.post("/decision-trees/acme-langgraph-example", follow_redirects=False)
+    assert str(owner_tree.id) not in page.text
+    assert b"LangGraph example" not in dashboard.content
+    assert b"Load ACME LangGraph example" in page.content
+    assert loaded.status_code == 303
+
+    async with test_session_factory() as session:
+        owner_rows = (
+            (
+                await session.execute(
+                    select(DecisionTree.id).where(
+                        DecisionTree.author_id == owner.id,
+                        DecisionTree.sample_key == "smeme_acme_xborder_withholding_v1",
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        other_ids = (
+            (
+                await session.execute(
+                    select(DecisionTree.id).where(DecisionTree.author_id == other_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert owner_rows == [owner_tree.id]
+    assert owner_tree.id not in other_ids
+
+    async with test_session_factory() as session:
+        if other_ids:
+            from smeme.core.models import ReasoningCompiledArtifact
+
+            await session.execute(
+                delete(ReasoningCompiledArtifact).where(
+                    ReasoningCompiledArtifact.decision_tree_id.in_(other_ids)
+                )
+            )
+            await session.execute(delete(DecisionTree).where(DecisionTree.id.in_(other_ids)))
+        await session.execute(delete(User).where(User.id == other_id))
+        await session.commit()
+
+
+async def test_docs_langgraph_seo_and_not_in_creator_nav(client):
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
+
+    index = await client.get("/docs")
+    page = await client.get("/docs/langgraph")
+    assert index.status_code == 200
+    assert page.status_code == 200
+    assert "text/html" in page.headers.get("content-type", "")
+    assert b'href="/docs/langgraph"' not in index.content
+    assert b'href="/docs/langgraph"' not in page.content
+    assert b"Load the example in your account" in page.content
+    assert b'href="/decision-trees/acme-langgraph-example"' in page.content
+    assert ACME_EXAMPLE_DISCLAIMER in page.text
+    assert b"does not replace the two-question sample" in page.content
 
 
 async def test_dashboard_generation_disabled_offers_mcp_authoring(
@@ -524,7 +713,7 @@ async def test_docs_import_content_contract(client):
     assert 'id="refused-heading"' in html
     assert "If the file is refused" in html
     assert "requires you to be signed in" in html
-    assert 'smeme_export_version' in html
+    assert "smeme_export_version" in html
     lowered = html.lower()
     for term in (
         "advisory",
