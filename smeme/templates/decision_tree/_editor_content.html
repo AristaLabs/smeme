@@ -10,6 +10,12 @@
 
   <div id="editor-publish-blocked-banner" class="mb-0"></div>
 
+  {% if show_import_banner|default(false) %}
+  {% call callout("info", title="Imported copy", extra_class="mb-4") %}
+    <p>Imported from {{ import_filename }} (export version {{ import_export_version }}). Review this decision tree before you Deploy it.</p>
+  {% endcall %}
+  {% endif %}
+
   <div id="warning-banner">
     {% if not is_read_only and warnings %}
       {% include 'decision_tree/_warning_banner.html' %}

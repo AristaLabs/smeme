@@ -77,7 +77,7 @@ def _require_list(value: Any, *, label: str) -> list[Any]:
 def parse_json_object(raw: str, *, label: str) -> dict[str, Any]:
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, RecursionError) as exc:
         raise InquireCodecError(
             "inquire_invalid_payload", f"{label} is not valid JSON: {exc}"
         ) from exc
@@ -87,7 +87,7 @@ def parse_json_object(raw: str, *, label: str) -> dict[str, Any]:
 def parse_json_array(raw: str, *, label: str) -> list[Any]:
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, RecursionError) as exc:
         raise InquireCodecError(
             "inquire_invalid_payload", f"{label} is not valid JSON: {exc}"
         ) from exc

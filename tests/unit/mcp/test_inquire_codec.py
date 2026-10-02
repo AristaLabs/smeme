@@ -23,6 +23,8 @@ from smeme.mcp.inquire.codec import (
     encode_ir,
     encode_verified,
     encode_worksheet_catalog,
+    parse_json_array,
+    parse_json_object,
 )
 from smeme.reasoning.ir.serialize import ir_to_json
 from smeme.reasoning.orchestration.inquire import DEFAULT_PV_VERSION
@@ -66,6 +68,19 @@ def test_ir_roundtrip() -> None:
     raw = json.dumps(ir_to_json(fixture.ir))
     ir = decode_ir(raw)
     assert encode_ir(ir) == ir_to_json(fixture.ir)
+
+
+@pytest.mark.parametrize(
+    ("decoder", "raw"),
+    [
+        (parse_json_object, "[" * 100_000 + "]" * 100_000),
+        (parse_json_array, "[" * 100_000 + "]" * 100_000),
+    ],
+)
+def test_parse_json_rejects_nesting_deeper_than_recursion_limit(decoder, raw) -> None:
+    with pytest.raises(InquireCodecError) as exc:
+        decoder(raw, label="payload")
+    assert exc.value.code == "inquire_invalid_payload"
 
 
 def test_assert_blind_task_rejects_extra_keys() -> None:

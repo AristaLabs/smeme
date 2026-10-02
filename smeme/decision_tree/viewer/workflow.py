@@ -16,6 +16,7 @@ from smeme.decision_tree.helpers.db_queries import (
     get_decision_tree_research_corpus_row,
     parse_graph_data,
 )
+from smeme.decision_tree.helpers.import_copy import import_banner_visible
 from smeme.decision_tree.helpers.validation import (
     build_validation_issue_rows,
     format_validation_results,
@@ -92,6 +93,12 @@ async def load_decision_tree_node(
             "research_corpus_body": corpus_body,
             "tools_row_state": tools_row_state,
             "editor_view": editor_view,
+            "import_filename": decision_tree.import_filename,
+            "import_export_version": decision_tree.import_export_version,
+            "show_import_banner": import_banner_visible(
+                imported_at=decision_tree.imported_at,
+                current_artifact_id=decision_tree.current_artifact_id,
+            ),
         }
 
     # Cache miss - load from database
@@ -139,6 +146,12 @@ async def load_decision_tree_node(
         "research_corpus_body": corpus_body,
         "tools_row_state": tools_row_state,
         "editor_view": editor_view,
+        "import_filename": decision_tree.import_filename,
+        "import_export_version": decision_tree.import_export_version,
+        "show_import_banner": import_banner_visible(
+            imported_at=decision_tree.imported_at,
+            current_artifact_id=decision_tree.current_artifact_id,
+        ),
     }
 
 
@@ -312,6 +325,9 @@ async def render_viewer_node(
         "editor_view": editor_view,
         "editor_sidebar_width": config["configurable"].get("editor_sidebar_width", 384),
         "tools_row_state": state.get("tools_row_state", "not_built"),
+        "import_filename": state.get("import_filename"),
+        "import_export_version": state.get("import_export_version"),
+        "show_import_banner": state.get("show_import_banner", False),
     }
     # Full page needs user + active_page for base layout nav (match dashboard, gallery, etc.)
     if full_page:

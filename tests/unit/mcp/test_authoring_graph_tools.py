@@ -91,6 +91,14 @@ class TestAuthoringGraphHelpers:
         payload = json.loads(err)
         assert payload["error"]["code"] == "invalid_graph"
 
+    def test_parse_deeply_nested_json_is_invalid_graph(self) -> None:
+        depth = 100_000
+        err = parse_authoring_graph_json("[" * depth + "]" * depth)
+        assert isinstance(err, str)
+        payload = json.loads(err)
+        assert payload["error"]["code"] == "invalid_graph"
+        assert "nested too deeply" in payload["error"]["message"]
+
     def test_parse_oversized(self) -> None:
         pad = "x" * (AUTHORING_GRAPH_JSON_MAX_UTF8_BYTES + 10)
         err = parse_authoring_graph_json(f'{{"pad": "{pad}"}}')

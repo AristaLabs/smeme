@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smeme.auth.users import current_active_user
@@ -154,6 +154,7 @@ async def _dashboard_page_context(
     *,
     success_message: str | None = None,
     error_message: str | None = None,
+    error_code: str | None = None,
 ) -> dict[str, Any]:
     """Single context dict for every ``decision_tree/dashboard.html`` render (HTMX full swaps included)."""
     from smeme.decision_tree.generation.agentic.services import checkpoint_manager
@@ -238,6 +239,8 @@ async def _dashboard_page_context(
         ctx["success_message"] = success_message
     if error_message is not None:
         ctx["error_message"] = error_message
+    if error_code is not None:
+        ctx["error_code"] = error_code
     return ctx
 
 
@@ -321,6 +324,90 @@ async def load_sample_decision_tree(
     )
     response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
     return _dashboard_no_store_headers(response)
+
+
+async def _import_copy_error_page(
+    db: AsyncSession,
+    current_user: User,
+    request: Request,
+    exc: Any,
+) -> HTMLResponse:
+    from smeme.decision_tree.helpers.import_copy import ImportCopyError
+
+    if not isinstance(exc, ImportCopyError):
+        raise exc
+    # reserve_decision_tree_slot holds a transaction-scoped advisory lock. Rollback
+    # releases it before dashboard queries, and also expires every object in this
+    # session. Refresh only a user loaded on this session (the Clerk request path).
+    # A user injected from another session, as in auth_as, is not persistent here.
+    await db.rollback()
+    if inspect(current_user).session is db.sync_session:
+        await db.refresh(current_user)
+    ctx = await _dashboard_page_context(
+        db,
+        current_user,
+        request,
+        error_message=exc.message,
+        error_code=exc.code,
+    )
+    response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
+    return _dashboard_no_store_headers(response)
+
+
+@router.post("/import", response_class=HTMLResponse)
+async def import_decision_tree_copy(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(current_active_user)],
+):
+    """Copy a v2 .smeme.json export into a new Hidden draft owned by this user."""
+    from smeme.decision_tree.generation.agentic.request_limits import read_form_with_body_limit
+    from smeme.decision_tree.helpers.import_copy import (
+        IMPORT_BODY_MAX_BYTES,
+        ImportCopyError,
+        import_decision_tree_export,
+    )
+
+    try:
+        form = await read_form_with_body_limit(
+            request,
+            max_body_bytes=IMPORT_BODY_MAX_BYTES,
+            max_files=1,
+            max_fields=2,
+            max_part_size=IMPORT_BODY_MAX_BYTES,
+        )
+    except HTTPException as exc:
+        if exc.status_code != 413:
+            raise
+        return await _import_copy_error_page(
+            db,
+            current_user,
+            request,
+            ImportCopyError("payload_too_large", "This file is larger than 600 KiB."),
+        )
+
+    upload = form.get("file")
+    if upload is None or not hasattr(upload, "read"):
+        return await _import_copy_error_page(
+            db,
+            current_user,
+            request,
+            ImportCopyError(
+                "invalid_envelope",
+                "Choose a .smeme.json file downloaded from a decision tree.",
+            ),
+        )
+    raw = await upload.read()
+    filename = getattr(upload, "filename", None)
+    try:
+        tree = await import_decision_tree_export(db, current_user, raw, filename)
+    except ImportCopyError as exc:
+        return await _import_copy_error_page(db, current_user, request, exc)
+
+    return RedirectResponse(
+        url=f"/decision-trees/{tree.id}/editor",
+        status_code=303,
+    )
 
 
 @router.post("/acme-langgraph-example", response_class=HTMLResponse)

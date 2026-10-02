@@ -20,6 +20,7 @@ from smeme.billing.access_policy import (
 from smeme.billing.providers import (
     hosted_quota_enforcement_enabled,
     hosted_quota_enforcement_scope,
+    register_billing_providers,
     reset_billing_providers_for_tests,
 )
 from smeme.billing.quota import (
@@ -660,6 +661,107 @@ async def test_reserve_mcp_quota_denies_at_cap(
         await session.commit()
 
 
+async def _other_session_can_take_lock(test_session_factory, lock_key: str) -> bool:
+    from sqlalchemy import text
+
+    async with test_session_factory() as other:
+        result = await other.execute(
+            text("SELECT pg_try_advisory_xact_lock(hashtext(:key))"),
+            {"key": lock_key},
+        )
+        acquired = bool(result.scalar())
+        await other.rollback()
+    return acquired
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reserve_mcp_quota_keeps_lock_when_billing_refresh_commits(
+    test_session_factory, billing_user, monkeypatch
+) -> None:
+    """A Cloud billing refresh that commits must not drop the quota lock."""
+    from uuid import UUID
+
+    from smeme.billing import quota as quota_module
+
+    seen: dict[str, bool] = {}
+    real_sum = quota_module.sum_mcp_weighted_month
+
+    async def committing_refresh(db, user) -> None:
+        seen["refresh_held"] = not await _other_session_can_take_lock(
+            test_session_factory, f"mcp:quota:{user.id}"
+        )
+        await db.commit()
+
+    async def probing_sum(db, user, **kwargs):
+        seen["count_held"] = not await _other_session_can_take_lock(
+            test_session_factory, f"mcp:quota:{user.id}"
+        )
+        return await real_sum(db, user, **kwargs)
+
+    register_billing_providers(ensure_pro_billing_period=committing_refresh)
+    monkeypatch.setattr(quota_module, "sum_mcp_weighted_month", probing_sum)
+    try:
+        async with test_session_factory() as session:
+            result = await reserve_mcp_quota(session, billing_user, "smeme_reasoning_evaluate")
+    finally:
+        reset_billing_providers_for_tests()
+
+    assert isinstance(result, UUID)
+    assert seen["refresh_held"] is False
+    assert seen["count_held"] is True
+
+    async with test_session_factory() as session:
+        await session.execute(delete(McpToolInvocation).where(McpToolInvocation.id == result))
+        await session.commit()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_wizard_start_keeps_lock_when_billing_refresh_commits(
+    test_session_factory, billing_user, monkeypatch
+) -> None:
+    """The AI-build start lock must still be held while the tree cap is counted."""
+    from smeme.billing import quota as quota_module
+    from smeme.decision_tree.generation.agentic.services import (
+        _wizard_start_lock_key,
+        checkpoint_manager,
+    )
+
+    seen: dict[str, bool] = {}
+    real_count = quota_module.count_live_root_workflows_for_user
+    lock_key = _wizard_start_lock_key(billing_user.id)
+
+    async def committing_refresh(db, user) -> None:
+        seen["refresh_held"] = not await _other_session_can_take_lock(test_session_factory, lock_key)
+        await db.commit()
+
+    async def probing_count(db, user):
+        seen["count_held"] = not await _other_session_can_take_lock(test_session_factory, lock_key)
+        return await real_count(db, user)
+
+    register_billing_providers(ensure_pro_billing_period=committing_refresh)
+    monkeypatch.setattr(quota_module, "count_live_root_workflows_for_user", probing_count)
+    try:
+        async with test_session_factory() as session:
+            generation = await checkpoint_manager.start_new_generation(
+                db=session,
+                user=billing_user,
+                user_prompt="Lock stays held across the quota count",
+            )
+    finally:
+        reset_billing_providers_for_tests()
+
+    assert seen["refresh_held"] is False
+    assert seen["count_held"] is True
+
+    async with test_session_factory() as session:
+        await session.execute(
+            delete(InProgressDecisionTreeGeneration).where(
+                InProgressDecisionTreeGeneration.id == generation.id
+            )
+        )
+        await session.commit()
+
+
 @pytest.mark.asyncio(loop_scope="session")
 async def test_reserve_mcp_quota_concurrency_limit_on_lock_fail(
     test_session_factory, billing_user, monkeypatch
@@ -793,3 +895,114 @@ async def test_core_ignores_stale_hosted_downgrade_state(billing_user) -> None:
             "workflow_pick_required": False,
             "subscription_period_end_label": None,
         }
+
+
+# ---------------------------------------------------------------------------
+# reserve_decision_tree_slot — lock + check + INSERT for new trees
+# ---------------------------------------------------------------------------
+
+
+def _draft_ready_graph(title: str):
+    from smeme.decision_tree.models import (
+        ConclusionData,
+        DTGraph,
+        DTGraphMetadata,
+        GraphEdge,
+        GraphNode,
+        QuestionData,
+    )
+
+    return DTGraph(
+        nodes=[
+            GraphNode(
+                id="q1",
+                type="question",
+                data=QuestionData(
+                    text="Is the vendor sound?",
+                    type="radio",
+                    options=["Yes", "No", "Unsure"],
+                    required=True,
+                ),
+            ),
+            GraphNode(id="c1", type="conclusion", data=ConclusionData(title="Approve", summary="ok")),
+            GraphNode(id="c2", type="conclusion", data=ConclusionData(title="Reject", summary="no")),
+        ],
+        edges=[
+            GraphEdge(source="q1", target="c1", condition="Yes"),
+            GraphEdge(source="q1", target="c2", condition="No"),
+            GraphEdge(source="q1", target="c2", condition="Unsure"),
+        ],
+        metadata=DTGraphMetadata(title=title),
+    )
+
+
+async def _fill_to_one_below_free_cap(test_session_factory, user: User) -> None:
+    cap = TIER_LIMITS[BillingTier.FREE].max_workflows
+    async with test_session_factory() as session:
+        for i in range(cap - 1):
+            session.add(
+                DecisionTree(
+                    author_id=user.id,
+                    title=f"Existing {i}",
+                    graph_data=_draft_ready_graph(f"Existing {i}").model_dump(mode="json"),
+                    is_current=True,
+                    is_archived=False,
+                )
+            )
+        await session.commit()
+
+
+async def _count_roots(test_session_factory, user: User) -> int:
+    async with test_session_factory() as session:
+        return await count_active_root_workflows(session, user.id)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_concurrent_create_drafts_cannot_exceed_tree_cap(
+    test_session_factory, billing_user
+) -> None:
+    """Two creates racing at cap-1: exactly one succeeds, one gets quota_exceeded."""
+    import asyncio
+
+    from smeme.mcp.authoring_graph import create_draft_from_graph
+
+    await _fill_to_one_below_free_cap(test_session_factory, billing_user)
+
+    async def create(title: str):
+        async with test_session_factory() as session:
+            return await create_draft_from_graph(
+                session, user=billing_user, graph=_draft_ready_graph(title)
+            )
+
+    results = await asyncio.gather(create("Race A"), create("Race B"))
+
+    denied = [r for r in results if isinstance(r, str)]
+    assert len(denied) == 1
+    assert json.loads(denied[0])["error"]["code"] == "quota_exceeded"
+    assert await _count_roots(test_session_factory, billing_user) == (
+        TIER_LIMITS[BillingTier.FREE].max_workflows
+    )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_concurrent_load_sample_at_cap_minus_one_returns_same_tree(
+    test_session_factory, billing_user
+) -> None:
+    """The waiting request re-reads the committed sample instead of hitting the cap."""
+    import asyncio
+
+    from smeme.decision_tree.sample_tree import ensure_sample_tree
+
+    await _fill_to_one_below_free_cap(test_session_factory, billing_user)
+
+    async def load():
+        async with test_session_factory() as session:
+            tree = await ensure_sample_tree(billing_user, session)
+            return tree.id
+
+    first, second = await asyncio.gather(load(), load())
+
+    assert first == second
+    assert await _count_roots(test_session_factory, billing_user) == (
+        TIER_LIMITS[BillingTier.FREE].max_workflows
+    )

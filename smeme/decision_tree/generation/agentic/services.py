@@ -107,9 +107,10 @@ class DecisionTreeGenerationCheckpointManager:
     ) -> InProgressDecisionTreeGeneration:
         """Atomically gate and create a new in-progress generation record.
 
-        Acquires a per-user Postgres advisory lock (transaction-scoped) before
-        re-checking all wizard-start quotas.  Because the lock, the quota
-        re-check, and the INSERT all occur inside the same transaction, two
+        Refreshes billing, then acquires a per-user Postgres advisory lock
+        (transaction-scoped) before re-checking all wizard-start quotas.  Because
+        the lock, the quota re-check, and the INSERT all occur inside the same
+        transaction, two
         concurrent requests for the same user cannot both pass the quota check
         and both insert a row — the second request either waits for the first to
         commit (seeing the new in-progress row) or fails fast if the lock cannot
@@ -124,7 +125,16 @@ class DecisionTreeGenerationCheckpointManager:
                 cannot start (in_progress cap, workflow cap, or monthly cap hit).
                 ``exc.block`` carries the structured WizardStartBlock reason.
         """
+        from smeme.billing.providers import (
+            ensure_pro_billing_period,
+            hosted_quota_enforcement_enabled,
+        )
         from smeme.billing.quota import check_wizard_start_block
+
+        # Refresh before the lock. On Cloud this can commit, which would
+        # release a transaction-scoped lock before the quota re-check.
+        if hosted_quota_enforcement_enabled():
+            await ensure_pro_billing_period(db, user)
 
         # ------------------------------------------------------------------ #
         # 1. Acquire per-user advisory lock (transaction-scoped).             #
@@ -149,7 +159,12 @@ class DecisionTreeGenerationCheckpointManager:
         #    before us — exactly the race we are closing.                     #
         # ------------------------------------------------------------------ #
         in_progress = await self.list_user_generations(db=db, user_id=user.id)
-        block = await check_wizard_start_block(db, user, in_progress_count=len(in_progress))
+        block = await check_wizard_start_block(
+            db,
+            user,
+            in_progress_count=len(in_progress),
+            refresh_billing=False,
+        )
         if block:
             raise WizardStartBlockedError(block)
 

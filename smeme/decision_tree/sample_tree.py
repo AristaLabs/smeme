@@ -106,6 +106,9 @@ async def ensure_sample_tree(user: User | None, db: AsyncSession) -> DecisionTre
         return None
     user_id = user.id
 
+    from smeme.billing.quota import reserve_decision_tree_slot
+
+    quota = await reserve_decision_tree_slot(db, user)
     existing = await find_sample_tree(db, user_id)
     if existing is not None:
         tree = await _make_live_and_listed(db, existing)
@@ -113,9 +116,6 @@ async def ensure_sample_tree(user: User | None, db: AsyncSession) -> DecisionTre
         await db.refresh(tree)
         return tree
 
-    from smeme.billing.quota import QuotaDimension, check_quota
-
-    quota = await check_quota(db, user, QuotaDimension.DECISION_TREES, projected_add=1.0)
     if not quota.allowed:
         raise SampleTreeError("quota_exceeded", quota.message)
 

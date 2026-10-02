@@ -1434,7 +1434,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
         ) -> str:
             try:
                 payload: dict[str, Any] = json.loads(raw_answers_json)
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, RecursionError) as exc:
                 log_reasoning_ingest_hard_reject(
                     logger,
                     code="invalid_answers_json",
@@ -1940,7 +1940,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
             # We parse it ourselves to get the actual dict.
             try:
                 payload: dict[str, Any] = json.loads(raw_answers_json)
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, RecursionError) as exc:
                 log_reasoning_ingest_hard_reject(
                     logger,
                     code="invalid_answers_json",
@@ -2109,7 +2109,7 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
         ) -> dict[str, Any] | str:
             try:
                 payload = json.loads(raw_json)
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, RecursionError) as exc:
                 log_reasoning_ingest_hard_reject(
                     logger,
                     code="invalid_answers_json",
@@ -3530,7 +3530,7 @@ def get_or_create_orchestrator_fastmcp(s: Settings | None = None) -> FastMCP | N
                 try:
                     verification_key = _json.loads(verification_key_json)
                     observations = _json.loads(observations_json)
-                except _json.JSONDecodeError as exc:
+                except (_json.JSONDecodeError, RecursionError) as exc:
                     out = tool_error_json(
                         "inquire_invalid_payload",
                         f"verification_key_json or observations_json invalid: {exc}",

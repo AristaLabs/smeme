@@ -1,5 +1,7 @@
 """IR structural validation (B0.5-lite)."""
 
+import sys
+
 from smeme.decision_tree.models import (
     ConclusionData,
     GraphEdge,
@@ -290,6 +292,33 @@ def test_validate_ir_rejects_directed_cycle():
         ),
     )
     r = validate_ir(ir)
+    assert not r.valid
+    assert any("Directed cycle" in e for e in r.errors)
+
+
+def _deep_question_chain_ir(*, close_cycle: bool) -> IR:
+    n = sys.getrecursionlimit() * 3
+    ids = [f"Q{i}" for i in range(n)]
+    pairs = [(ids[i], ids[i + 1]) for i in range(n - 1)]
+    if close_cycle:
+        pairs.append((ids[-1], ids[0]))
+    return IR(
+        format_version=IR_FORMAT_VERSION,
+        nodes=tuple(IRNode(id=nid, kind=IRNodeKind.QUESTION, question=_Q_RADIO) for nid in ids),
+        edges=tuple(
+            IREdge(source=s, target=t, guard_id=f"g_{i}") for i, (s, t) in enumerate(pairs)
+        ),
+        guards=tuple(Guard(id=f"g_{i}", expr=DEFAULT_GUARD_EXPR) for i in range(len(pairs))),
+    )
+
+
+def test_validate_ir_cycle_check_handles_chain_deeper_than_recursion_limit():
+    r = validate_ir(_deep_question_chain_ir(close_cycle=False))
+    assert not any("Directed cycle" in e for e in r.errors)
+
+
+def test_validate_ir_rejects_cycle_closing_deep_chain():
+    r = validate_ir(_deep_question_chain_ir(close_cycle=True))
     assert not r.valid
     assert any("Directed cycle" in e for e in r.errors)
 
