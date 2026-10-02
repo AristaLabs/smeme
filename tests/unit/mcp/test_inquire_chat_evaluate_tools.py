@@ -132,6 +132,7 @@ async def test_mcp_evaluate_continue_persists_one_unverified_report_on_replay(
             assert replay["status"] == "ACTIVE"
             assert replay["report"]["inquire_stop_reason"] == CHAT_ISOLATED_VERIFICATION_NOT_RUN
             assert replay["harness_next"] != "continue_evaluate"
+            assert replay["evaluation_run_id"] == first_run_id
     finally:
         reset_mcp_runtime_for_tests()
 

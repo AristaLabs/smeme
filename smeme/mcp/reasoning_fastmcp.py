@@ -1794,6 +1794,19 @@ def get_or_create_fastmcp(s: Settings | None = None) -> FastMCP:
                                 reserve_quota=False,
                                 chat_merge=chat_merge_kwargs(facade),
                             )
+                            replay_run_id = facade.get("_chat_evaluation_run_id")
+                            if not persist_report and replay_run_id is not None:
+                                try:
+                                    replay_payload = json.loads(apply_out)
+                                except json.JSONDecodeError:
+                                    rec.note_json_response(apply_out)
+                                    return apply_out
+                                if (
+                                    isinstance(replay_payload, dict)
+                                    and "error" not in replay_payload
+                                ):
+                                    replay_payload["evaluation_run_id"] = str(replay_run_id)
+                                    apply_out = _tool_json(replay_payload)
                             if persist_report:
                                 try:
                                     apply_payload = json.loads(apply_out)
