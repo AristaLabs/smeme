@@ -193,6 +193,21 @@ async def docs_changelog(request: Request, user: OptionalUser):
     )
 
 
+@router.get("/langgraph", response_class=HTMLResponse)
+async def docs_langgraph(request: Request, user: OptionalUser):
+    """Builder front door for the ACME LangGraph technical preview."""
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_DISCLAIMER
+
+    return _docs_response(
+        request,
+        "docs/langgraph.html",
+        user=user,
+        active_page="docs_langgraph",
+        docs_section="langgraph",
+        acme_example_disclaimer=ACME_EXAMPLE_DISCLAIMER,
+    )
+
+
 @router.get("/mcp", response_class=HTMLResponse)
 async def docs_mcp(request: Request, user: OptionalUser):
     """Connect your agent (MCP) — connector setup and guidance bootstrap."""

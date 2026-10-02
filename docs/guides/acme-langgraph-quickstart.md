@@ -11,8 +11,8 @@ solver-selected questions and a human admission boundary.
 
 ## 1. Load the example
 
-1. Sign in to a Free hosted account and open **Decision trees**.
-2. Read the slot warning and the complete fictional-demo disclaimer.
+1. Open the [LangGraph technical preview](https://smeme.ai/docs/langgraph) and follow **Load the example in your account**. Sign in when asked.
+2. On `/decision-trees/acme-langgraph-example`, read the slot warning and the complete fictional-demo disclaimer.
 3. Select **Load ACME LangGraph example**.
 
 The action creates, Deploys, and Lists one account-owned decision tree. It is
@@ -21,7 +21,7 @@ reuses the same tree and does not consume another slot.
 
 ## 2. Download the case files
 
-Select **Download synthetic case files** on the dashboard. Keep the filename
+Select **Download synthetic case files** on `/decision-trees/acme-langgraph-example`. Keep the filename
 `smeme-acme-dataset-distributed.zip`; the generated command expects it in your
 Downloads directory.
 
@@ -50,7 +50,7 @@ application virtual environment or install FastMCP manually.
 
 ## 4. Run the generated command
 
-Copy **Run with LangGraph** from the dashboard and run it from the repository
+Copy **Run with LangGraph** from `/decision-trees/acme-langgraph-example` and run it from the repository
 root. It has this shape:
 
 ```bash
@@ -108,9 +108,9 @@ presenting an unqualified success.
 - `invalid_client`: copy the generated command again from the target deployment.
 - `redirect_uri` mismatch: the OAuth application must allow
   `http://localhost:8787/callback`.
-- Tree not Listed: reload the example from the dashboard; the operation repairs
+- Tree not Listed: reload the example from `/decision-trees/acme-langgraph-example`; the operation repairs
   Deploy/Listed state idempotently.
-- Bundle checksum failure: download the ZIP again from the dashboard.
+- Bundle checksum failure: download the ZIP again from that page.
 
 This is fictional technical demonstration material, not legal, tax,
 accounting, compliance, or other professional advice. Provenance records where

@@ -185,20 +185,9 @@ async def _dashboard_page_context(
         "mcp_enabled": settings.mcp_enabled,
         **mcp_connect_template_context(settings),
     }
-    from smeme.decision_tree.acme_example import (
-        ACME_EXAMPLE_DISCLAIMER,
-        find_acme_example_tree,
-    )
+    from smeme.decision_tree.acme_example import find_acme_example_tree
 
     acme_example_tree = await find_acme_example_tree(db, current_user.id)
-    oauth_client_id = str(mcp_connect_ctx.get("mcp_oauth_client_id") or "").strip()
-    acme_run_command = None
-    if acme_example_tree is not None and oauth_client_id:
-        acme_run_command = _acme_langgraph_command(
-            request=request,
-            decision_tree_id=acme_example_tree.id,
-            oauth_client_id=oauth_client_id,
-        )
     usage_summary = await build_usage_summary(db, current_user)
     wizard_start_block = await check_wizard_start_block(
         db,
@@ -229,9 +218,6 @@ async def _dashboard_page_context(
         "show_generation_deleted": show_generation_deleted,
         "decision_tree_grayed": decision_tree_grayed,
         "acme_example_tree": acme_example_tree,
-        "acme_example_disclaimer": ACME_EXAMPLE_DISCLAIMER,
-        "acme_dataset_url": (settings.acme_dataset_url or "").strip() or None,
-        "acme_run_command": acme_run_command,
         **billing_ctx,
         **mcp_connect_ctx,
     }
@@ -249,6 +235,56 @@ def _dashboard_no_store_headers(response: HTMLResponse) -> HTMLResponse:
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+async def _acme_example_page_context(
+    db: AsyncSession,
+    current_user: User,
+    request: Request,
+    *,
+    error_message: str | None = None,
+) -> dict[str, Any]:
+    """Context for the signed-in ACME LangGraph example page."""
+    from smeme.decision_tree.acme_example import (
+        ACME_EXAMPLE_DISCLAIMER,
+        find_acme_example_tree,
+    )
+
+    mcp_connect_ctx = mcp_connect_template_context(settings)
+    acme_example_tree = await find_acme_example_tree(db, current_user.id)
+    oauth_client_id = str(mcp_connect_ctx.get("mcp_oauth_client_id") or "").strip()
+    acme_run_command = None
+    if acme_example_tree is not None and oauth_client_id:
+        acme_run_command = _acme_langgraph_command(
+            request=request,
+            decision_tree_id=acme_example_tree.id,
+            oauth_client_id=oauth_client_id,
+        )
+    ctx: dict[str, Any] = {
+        "request": request,
+        "user": current_user,
+        "active_page": "dashboard",
+        "acme_example_tree": acme_example_tree,
+        "acme_example_disclaimer": ACME_EXAMPLE_DISCLAIMER,
+        "acme_dataset_url": (settings.acme_dataset_url or "").strip() or None,
+        "acme_run_command": acme_run_command,
+    }
+    if error_message is not None:
+        ctx["error_message"] = error_message
+    return ctx
+
+
+def _acme_example_page_response(
+    ctx: dict[str, Any],
+    *,
+    status_code: int = 200,
+) -> HTMLResponse:
+    response = templates.TemplateResponse(
+        "decision_tree/acme_langgraph_example.html",
+        ctx,
+        status_code=status_code,
+    )
+    return _dashboard_no_store_headers(response)
 
 
 # ============================================================================
@@ -410,6 +446,17 @@ async def import_decision_tree_copy(
     )
 
 
+@router.get("/acme-langgraph-example", response_class=HTMLResponse)
+async def acme_langgraph_example_page(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(current_active_user)],
+):
+    """Signed-in home for the ACME LangGraph technical preview."""
+    ctx = await _acme_example_page_context(db, current_user, request)
+    return _acme_example_page_response(ctx)
+
+
 @router.post("/acme-langgraph-example", response_class=HTMLResponse)
 async def load_acme_langgraph_example(
     request: Request,
@@ -422,28 +469,22 @@ async def load_acme_langgraph_example(
     try:
         tree = await ensure_acme_example_tree(current_user, db)
     except AcmeExampleError as exc:
-        ctx = await _dashboard_page_context(db, current_user, request, error_message=exc.message)
-        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
-        return _dashboard_no_store_headers(response)
+        ctx = await _acme_example_page_context(db, current_user, request, error_message=exc.message)
+        return _acme_example_page_response(ctx)
 
     if tree is None:
-        ctx = await _dashboard_page_context(
+        ctx = await _acme_example_page_context(
             db,
             current_user,
             request,
             error_message="Sign in to load the ACME LangGraph example.",
         )
-        response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
-        return _dashboard_no_store_headers(response)
+        return _acme_example_page_response(ctx)
 
-    ctx = await _dashboard_page_context(
-        db,
-        current_user,
-        request,
-        success_message=f'"{tree.title}" is Deployed and Listed for this account.',
+    return RedirectResponse(
+        url="/decision-trees/acme-langgraph-example",
+        status_code=303,
     )
-    response = templates.TemplateResponse("decision_tree/dashboard.html", ctx)
-    return _dashboard_no_store_headers(response)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

@@ -1,0 +1,65 @@
+{% extends "layouts/base.html" %}
+{% block title %}LangGraph technical preview — Docs{% endblock %}
+{% block head %}
+{% set docs_canonical_path = "/docs/langgraph" %}
+{% set docs_og_title = "LangGraph technical preview — Docs" %}
+{% set docs_meta_description = "For LangGraph and AI workflow builders: load the fictional ACME withholding example, download the synthetic case files, and run a deployment-scoped command." %}
+{% set docs_breadcrumb_items = [{"name": "Docs", "path": "/docs"}, {"name": "LangGraph technical preview", "path": "/docs/langgraph"}] %}
+{% include "docs/_docs_seo.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  {% set docs_breadcrumb_current = "LangGraph technical preview" %}
+  {% include "docs/_docs_breadcrumb.html" %}
+
+  <div class="mt-6 lg:flex lg:gap-12">
+
+    <aside class="hidden lg:block lg:w-44 lg:shrink-0">
+      <div class="sticky top-8">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+    </aside>
+
+    <article class="min-w-0 flex-1">
+
+      <div class="mb-8 lg:hidden">
+        {% include "docs/_docs_nav.html" %}
+      </div>
+
+      <header class="mb-10">
+        <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Technical preview</p>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight text-ui-ink">A deterministic node in a LangGraph workflow</h1>
+        <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          This page is for people building LangGraph workflows and other AI graphs.
+          Your graph gathers evidence. A person admits each answer at an interrupt.
+          SMEme evaluates a deployed decision tree over MCP and returns the next question or a report.
+          The model proposes. It does not choose the conclusion.
+        </p>
+      </header>
+
+      <section aria-labelledby="acme-preview-heading" class="mb-10">
+        <h2 id="acme-preview-heading" class="text-base font-semibold text-ui-ink">The ACME withholding example</h2>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          The example is an opt-in fictional cross-border withholding decision tree.
+          Loading it creates, Deploys, and Lists one tree on the signed-in account and uses one decision-tree slot.
+          It does not replace the two-question sample that a new account receives.
+        </p>
+        <p class="mt-3 text-sm text-ui-ink-secondary leading-relaxed max-w-prose whitespace-pre-line">{{ acme_example_disclaimer }}</p>
+        <p class="mt-4 text-sm">
+          <a href="/decision-trees/acme-langgraph-example" class="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300">Load the example in your account</a>
+        </p>
+      </section>
+
+      <section aria-labelledby="acme-run-heading">
+        <h2 id="acme-run-heading" class="text-base font-semibold text-ui-ink">Run it</h2>
+        <p class="mt-2 text-sm text-ui-ink-secondary leading-relaxed max-w-prose">
+          The five-minute steps, expected prompts, and cleanup live in the
+          <a href="https://github.com/AristaLabs/smeme/blob/main/docs/guides/acme-langgraph-quickstart.md" class="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-300">ACME LangGraph quickstart</a>.
+          After you load the example, that page gives you the case-file download and the command for this deployment and this account.
+        </p>
+      </section>
+    </article>
+  </div>
+</div>
+{% endblock %}

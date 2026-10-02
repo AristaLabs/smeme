@@ -335,6 +335,9 @@ async def render_viewer_node(
         context["request"] = config["configurable"].get("request")
         context["active_page"] = "dashboard"
         context["show_deploy_success"] = config["configurable"].get("show_deploy_success", False)
+        context["show_acme_langgraph_link"] = config["configurable"].get(
+            "show_acme_langgraph_link", False
+        )
         context.update(theme_template_context(context.get("request")))
 
     # Render template directly using env (not TemplateResponse which expects Request)

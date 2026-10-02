@@ -155,6 +155,11 @@
 
 {% block content %}
 <div id="editor-container">
+  {% if show_acme_langgraph_link|default(false) %}
+  <p class="px-4 pt-4 text-sm sm:px-6 lg:px-8">
+    <a href="/decision-trees/acme-langgraph-example" class="font-medium text-brand-700 hover:text-brand-900 dark:text-brand-300">LangGraph example</a>
+  </p>
+  {% endif %}
   {% include 'decision_tree/_editor_content.html' %}
 </div>
 

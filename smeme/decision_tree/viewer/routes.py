@@ -86,7 +86,10 @@ async def view_editor_page(
 
         raise_if_workflow_edit_denied(user, decision_tree)
 
+    from smeme.decision_tree.acme_example import ACME_EXAMPLE_SAMPLE_KEY
+
     is_owner = decision_tree.author_id == user.id
+    show_acme_langgraph_link = is_owner and decision_tree.sample_key == ACME_EXAMPLE_SAMPLE_KEY
     editor_view = resolve_editor_view(
         query_view=view,
         cookie_view=request.cookies.get(EDITOR_VIEW_COOKIE),
@@ -118,6 +121,7 @@ async def view_editor_page(
                 user=user,
                 editor_view=editor_view,
                 show_deploy_success=show_deploy_success,
+                show_acme_langgraph_link=show_acme_langgraph_link,
                 **mcp_connect_ctx,
             ),
         )
